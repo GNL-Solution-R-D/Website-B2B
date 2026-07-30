@@ -1,41 +1,73 @@
 <footer class="wp-block-template-part">
-<div class="wp-block-group has-base-color has-base-background-color has-text-color has-background has-link-color wp-elements-ef64ccd28389c753cdfac03b1015e7c7 has-global-padding is-content-justification-center is-layout-constrained wp-container-core-group-is-layout-a611d27a wp-block-group-is-layout-constrained" style="margin-top:0;margin-bottom:0;padding-top:var(--wp--preset--spacing--60);padding-right:0;padding-bottom:var(--wp--preset--spacing--50)">
-<div class="wp-block-group alignfull has-global-padding is-layout-constrained wp-container-core-group-is-layout-ff778368 wp-block-group-is-layout-constrained" style="padding-right:var(--wp--preset--spacing--30);padding-left:var(--wp--preset--spacing--30)">
-<div class="wp-block-group alignfull is-content-justification-space-between is-nowrap is-layout-flex wp-container-core-group-is-layout-c0dd7891 wp-block-group-is-layout-flex">
-<div class="wp-block-group is-vertical is-layout-flex wp-container-core-group-is-layout-a67678a9 wp-block-group-is-layout-flex" style="padding-right:var(--wp--preset--spacing--40);padding-left:var(--wp--preset--spacing--40)">
-<div class="wp-block-group is-nowrap is-layout-flex wp-container-core-group-is-layout-c0d5ccf6 wp-block-group-is-layout-flex">
-<figure class="wp-block-image size-large has-custom-border wp-container-content-d50df0bc"><img loading="lazy" decoding="async" width="1024" height="576" src="wp-content/uploads/2025/04/Logo-GNL3-1024x576.png" alt="" class="wp-image-431" style="border-top-left-radius:0px;border-top-right-radius:0px;border-bottom-left-radius:0px;border-bottom-right-radius:0px" srcset="https://gnl-solution.fr/wp-content/uploads/2025/04/Logo-GNL3-1024x576.png 1024w, https://gnl-solution.fr/wp-content/uploads/2025/04/Logo-GNL3-600x338.png 600w, https://gnl-solution.fr/wp-content/uploads/2025/04/Logo-GNL3-300x169.png 300w, https://gnl-solution.fr/wp-content/uploads/2025/04/Logo-GNL3-768x432.png 768w, https://gnl-solution.fr/wp-content/uploads/2025/04/Logo-GNL3-1536x864.png 1536w, https://gnl-solution.fr/wp-content/uploads/2025/04/Logo-GNL3.png 1920w" sizes="auto, (max-width: 1024px) 100vw, 1024px" /></figure>
-</div>
+	<div class="wp-block-group has-base-color has-base-background-color has-text-color has-background has-link-color wp-elements-ef64ccd28389c753cdfac03b1015e7c7 has-global-padding is-content-justification-center is-layout-constrained wp-container-core-group-is-layout-a611d27a wp-block-group-is-layout-constrained" style="margin-top:0;margin-bottom:0;padding-top:var(--wp--preset--spacing--60);padding-right:0;padding-bottom:var(--wp--preset--spacing--50)">
+		<div class="wp-block-group alignfull has-global-padding is-layout-constrained wp-container-core-group-is-layout-ff778368 wp-block-group-is-layout-constrained" style="padding-right:var(--wp--preset--spacing--30);padding-left:var(--wp--preset--spacing--30)">
+			<div class="wp-block-group alignfull is-content-justification-space-between is-nowrap is-layout-flex wp-container-core-group-is-layout-c0dd7891 wp-block-group-is-layout-flex">
+				<div class="wp-block-group is-vertical is-layout-flex wp-container-core-group-is-layout-a67678a9 wp-block-group-is-layout-flex" style="padding-right:var(--wp--preset--spacing--40);padding-left:var(--wp--preset--spacing--40)">
+					<div class="wp-block-group is-nowrap is-layout-flex wp-container-core-group-is-layout-c0d5ccf6 wp-block-group-is-layout-flex">
+						<figure class="wp-block-image size-large has-custom-border wp-container-content-d50df0bc">
+							<img loading="lazy" decoding="async" width="1024" height="576" src="wp-content/uploads/2025/04/Logo-GNL3-1024x576.png" alt="" class="wp-image-431" style="border-top-left-radius:0px;border-top-right-radius:0px;border-bottom-left-radius:0px;border-bottom-right-radius:0px" srcset="https://gnl-solution.fr/wp-content/uploads/2025/04/Logo-GNL3-1024x576.png 1024w, https://gnl-solution.fr/wp-content/uploads/2025/04/Logo-GNL3-600x338.png 600w, https://gnl-solution.fr/wp-content/uploads/2025/04/Logo-GNL3-300x169.png 300w, https://gnl-solution.fr/wp-content/uploads/2025/04/Logo-GNL3-768x432.png 768w, https://gnl-solution.fr/wp-content/uploads/2025/04/Logo-GNL3-1536x864.png 1536w, https://gnl-solution.fr/wp-content/uploads/2025/04/Logo-GNL3.png 1920w" sizes="auto, (max-width: 1024px) 100vw, 1024px" />
+						</figure>
+					</div>
+					<p class="has-text-color has-link-color has-medium-font-size wp-elements-88fc59decd3fd59e0e326cfc6ed651e5" style="color:#353535">Les noms, logos et produits cités restent <br>la propriété exclusive de leurs détenteurs respectifs.</p>
+					<p class="has-text-color has-link-color has-medium-font-size wp-elements-f895323b203e15eb2b0914f64c0af975" style="color:#353535">SIRET : 94235880500011</p>
+					<ul class="wp-block-social-links has-visible-labels is-style-logos-only is-horizontal is-content-justification-left is-layout-flex wp-container-core-social-links-is-layout-8e381028 wp-block-social-links-is-layout-flex" style="border-style:none;border-width:0px;border-top-left-radius:0px;border-top-right-radius:0px;border-bottom-left-radius:0px;border-bottom-right-radius:0px;margin-top:0;margin-bottom:0">
+						<li class="wp-social-link wp-social-link-discord  wp-block-social-link">
+							<a href="https://discord.gg/RKnRsNbQG5" class="wp-block-social-link-anchor">
+								<svg width="24" height="24" version="1.1" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+									<path d="M20.317 4.369A19.88 19.88 0 0 0 15.894 3a14.145 14.145 0 0 0-.719 1.518 19.205 19.205 0 0 0-5.351 0A14.183 14.183 0 0 0 9.104 3 19.896 19.896 0 0 0 4.682 4.369a18.921 18.921 0 0 0-3.012 12.52 19.929 19.929 0 0 0 6.081 3.097c.487-.65.922-1.339 1.3-2.061a12.445 12.445 0 0 1-1.958-.896c.165-.12.326-.246.483-.374a12.445 12.445 0 0 0 8.946 0c.157.128.318.253.483.374-.627.371-1.281.683-1.958.896.379.722.813 1.41 1.3 2.061a19.94 19.94 0 0 0 6.081-3.097 18.921 18.921 0 0 0-3.012-12.52ZM8.12 15.233c-1.202 0-2.184-1.09-2.184-2.431 0-1.34.97-2.431 2.184-2.431 1.213 0 2.202 1.09 2.184 2.431 0 1.341-.97 2.431-2.184 2.431Zm7.757 0c-1.202 0-2.184-1.09-2.184-2.431 0-1.34.97-2.431 2.184-2.431 1.213 0 2.202 1.09 2.184 2.431 0 1.341-.97 2.431-2.184 2.431Z"/>
+								</svg>
+								<span class="wp-block-social-link-label">Discord</span>
+							</a>
+						</li>
+						<li class="wp-social-link wp-social-link-linkedin  wp-block-social-link">
+							<a href="https://www.linkedin.com/company/109507423/" class="wp-block-social-link-anchor">
+								<svg width="24" height="24" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+									<path d="M19.7,3H4.3C3.582,3,3,3.582,3,4.3v15.4C3,20.418,3.582,21,4.3,21h15.4c0.718,0,1.3-0.582,1.3-1.3V4.3 C21,3.582,20.418,3,19.7,3z M8.339,18.338H5.667v-8.59h2.672V18.338z M7.004,8.574c-0.857,0-1.549-0.694-1.549-1.548 c0-0.855,0.691-1.548,1.549-1.548c0.854,0,1.547,0.694,1.547,1.548C8.551,7.881,7.858,8.574,7.004,8.574z M18.339,18.338h-2.669 v-4.177c0-0.996-0.017-2.278-1.387-2.278c-1.389,0-1.601,1.086-1.601,2.206v4.249h-2.667v-8.59h2.559v1.174h0.037 c0.356-0.675,1.227-1.387,2.526-1.387c2.703,0,3.203,1.779,3.203,4.092V18.338z"></path>
+								</svg>
+								<span class="wp-block-social-link-label">LinkedIn</span>
+							</a>
+						</li>
+						<li class="wp-social-link wp-social-link-github  wp-block-social-link">
+							<a href="https://github.com/GNL-Solution-R-D" class="wp-block-social-link-anchor">
+								<svg width="24" height="24" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+									<path d="M12,2C6.477,2,2,6.477,2,12c0,4.419,2.865,8.166,6.839,9.489c0.5,0.09,0.682-0.218,0.682-0.484 c0-0.236-0.009-0.866-0.014-1.699c-2.782,0.602-3.369-1.34-3.369-1.34c-0.455-1.157-1.11-1.465-1.11-1.465 c-0.909-0.62,0.069-0.608,0.069-0.608c1.004,0.071,1.532,1.03,1.532,1.03c0.891,1.529,2.341,1.089,2.91,0.833 c0.091-0.647,0.349-1.086,0.635-1.337c-2.22-0.251-4.555-1.111-4.555-4.943c0-1.091,0.39-1.984,1.03-2.682 C6.546,8.54,6.202,7.524,6.746,6.148c0,0,0.84-0.269,2.75,1.025C10.295,6.95,11.15,6.84,12,6.836 c0.85,0.004,1.705,0.114,2.504,0.336c1.909-1.294,2.748-1.025,2.748-1.025c0.546,1.376,0.202,2.394,0.1,2.646 c0.64,0.699,1.026,1.591,1.026,2.682c0,3.841-2.337,4.687-4.565,4.935c0.359,0.307,0.679,0.917,0.679,1.852 c0,1.335-0.012,2.415-0.012,2.741c0,0.269,0.18,0.579,0.688,0.481C19.138,20.161,22,16.416,22,12C22,6.477,17.523,2,12,2z"></path>
+								</svg>
+								<span class="wp-block-social-link-label">GitHub</span>
+							</a>
+						</li>
+					</ul>
+				</div>
 
+				<div class="wp-block-group is-content-justification-right is-nowrap is-layout-flex wp-container-core-group-is-layout-cf56d299 wp-block-group-is-layout-flex" style="padding-right:var(--wp--preset--spacing--40);padding-left:var(--wp--preset--spacing--40)">
+					<nav style="color: #353535;" class="has-text-color  is-vertical wp-block-navigation is-layout-flex wp-container-core-navigation-is-layout-4b827052 wp-block-navigation-is-layout-flex" aria-label="Navigation Pied de page 3"></nav>
 
+					<nav style="color: #353535;" class="has-text-color  is-vertical wp-block-navigation is-content-justification-stretch is-layout-flex wp-container-core-navigation-is-layout-69c550ab wp-block-navigation-is-layout-flex" aria-label="Navigation Pied de page">
+						<ul style="color: #353535;" class="wp-block-navigation__container has-text-color  is-vertical wp-block-navigation">
+							<li style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.196), 16px);" class=" wp-block-navigation-item wp-block-navigation-link">
+								<a class="wp-block-navigation-item__content"  href="index.php/cgu/index.html">
+									<span class="wp-block-navigation-item__label">CGU</span>
+								</a>
+							</li>
 
-<p class="has-text-color has-link-color has-medium-font-size wp-elements-88fc59decd3fd59e0e326cfc6ed651e5" style="color:#353535">Les noms, logos et produits cités restent <br>la propriété exclusive de leurs détenteurs respectifs.</p>
+							<li class=" wp-block-navigation-item wp-block-navigation-link">
+								<a class="wp-block-navigation-item__content"  href="cgv/index.html">
+									<span class="wp-block-navigation-item__label">CGV</span>
+								</a>
+							</li>
 
+							<li style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.196), 16px);" class=" wp-block-navigation-item wp-block-navigation-link">
+								<a class="wp-block-navigation-item__content"  href="index.php/politique-de-confidentialite/index.html">
+									<span class="wp-block-navigation-item__label">Politique de Confidentialité</span>
+								</a>
+							</li>
+						</ul>
+					</nav>
+				</div>
+			</div>
 
-
-<p class="has-text-color has-link-color has-medium-font-size wp-elements-f895323b203e15eb2b0914f64c0af975" style="color:#353535">SIRET : 94235880500011</p>
-
-
-
-<ul class="wp-block-social-links has-visible-labels is-style-logos-only is-horizontal is-content-justification-left is-layout-flex wp-container-core-social-links-is-layout-8e381028 wp-block-social-links-is-layout-flex" style="border-style:none;border-width:0px;border-top-left-radius:0px;border-top-right-radius:0px;border-bottom-left-radius:0px;border-bottom-right-radius:0px;margin-top:0;margin-bottom:0"><li class="wp-social-link wp-social-link-discord  wp-block-social-link"><a href="https://discord.gg/RKnRsNbQG5" class="wp-block-social-link-anchor"><svg width="24" height="24" version="1.1" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M20.317 4.369A19.88 19.88 0 0 0 15.894 3a14.145 14.145 0 0 0-.719 1.518 19.205 19.205 0 0 0-5.351 0A14.183 14.183 0 0 0 9.104 3 19.896 19.896 0 0 0 4.682 4.369a18.921 18.921 0 0 0-3.012 12.52 19.929 19.929 0 0 0 6.081 3.097c.487-.65.922-1.339 1.3-2.061a12.445 12.445 0 0 1-1.958-.896c.165-.12.326-.246.483-.374a12.445 12.445 0 0 0 8.946 0c.157.128.318.253.483.374-.627.371-1.281.683-1.958.896.379.722.813 1.41 1.3 2.061a19.94 19.94 0 0 0 6.081-3.097 18.921 18.921 0 0 0-3.012-12.52ZM8.12 15.233c-1.202 0-2.184-1.09-2.184-2.431 0-1.34.97-2.431 2.184-2.431 1.213 0 2.202 1.09 2.184 2.431 0 1.341-.97 2.431-2.184 2.431Zm7.757 0c-1.202 0-2.184-1.09-2.184-2.431 0-1.34.97-2.431 2.184-2.431 1.213 0 2.202 1.09 2.184 2.431 0 1.341-.97 2.431-2.184 2.431Z"/></svg><span class="wp-block-social-link-label">Discord</span></a></li>
-
-<li class="wp-social-link wp-social-link-linkedin  wp-block-social-link"><a href="https://www.linkedin.com/company/109507423/" class="wp-block-social-link-anchor"><svg width="24" height="24" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M19.7,3H4.3C3.582,3,3,3.582,3,4.3v15.4C3,20.418,3.582,21,4.3,21h15.4c0.718,0,1.3-0.582,1.3-1.3V4.3 C21,3.582,20.418,3,19.7,3z M8.339,18.338H5.667v-8.59h2.672V18.338z M7.004,8.574c-0.857,0-1.549-0.694-1.549-1.548 c0-0.855,0.691-1.548,1.549-1.548c0.854,0,1.547,0.694,1.547,1.548C8.551,7.881,7.858,8.574,7.004,8.574z M18.339,18.338h-2.669 v-4.177c0-0.996-0.017-2.278-1.387-2.278c-1.389,0-1.601,1.086-1.601,2.206v4.249h-2.667v-8.59h2.559v1.174h0.037 c0.356-0.675,1.227-1.387,2.526-1.387c2.703,0,3.203,1.779,3.203,4.092V18.338z"></path></svg><span class="wp-block-social-link-label">LinkedIn</span></a></li>
-
-<li class="wp-social-link wp-social-link-github  wp-block-social-link"><a href="https://github.com/GNL-Solution-R-D" class="wp-block-social-link-anchor"><svg width="24" height="24" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M12,2C6.477,2,2,6.477,2,12c0,4.419,2.865,8.166,6.839,9.489c0.5,0.09,0.682-0.218,0.682-0.484 c0-0.236-0.009-0.866-0.014-1.699c-2.782,0.602-3.369-1.34-3.369-1.34c-0.455-1.157-1.11-1.465-1.11-1.465 c-0.909-0.62,0.069-0.608,0.069-0.608c1.004,0.071,1.532,1.03,1.532,1.03c0.891,1.529,2.341,1.089,2.91,0.833 c0.091-0.647,0.349-1.086,0.635-1.337c-2.22-0.251-4.555-1.111-4.555-4.943c0-1.091,0.39-1.984,1.03-2.682 C6.546,8.54,6.202,7.524,6.746,6.148c0,0,0.84-0.269,2.75,1.025C10.295,6.95,11.15,6.84,12,6.836 c0.85,0.004,1.705,0.114,2.504,0.336c1.909-1.294,2.748-1.025,2.748-1.025c0.546,1.376,0.202,2.394,0.1,2.646 c0.64,0.699,1.026,1.591,1.026,2.682c0,3.841-2.337,4.687-4.565,4.935c0.359,0.307,0.679,0.917,0.679,1.852 c0,1.335-0.012,2.415-0.012,2.741c0,0.269,0.18,0.579,0.688,0.481C19.138,20.161,22,16.416,22,12C22,6.477,17.523,2,12,2z"></path></svg><span class="wp-block-social-link-label">GitHub</span></a></li></ul>
-</div>
-
-
-
-<div class="wp-block-group is-content-justification-right is-nowrap is-layout-flex wp-container-core-group-is-layout-cf56d299 wp-block-group-is-layout-flex" style="padding-right:var(--wp--preset--spacing--40);padding-left:var(--wp--preset--spacing--40)"><nav style="color: #353535;" class="has-text-color  is-vertical wp-block-navigation is-layout-flex wp-container-core-navigation-is-layout-4b827052 wp-block-navigation-is-layout-flex" aria-label="Navigation Pied de page 3"></nav>
-
-<nav style="color: #353535;" class="has-text-color  is-vertical wp-block-navigation is-content-justification-stretch is-layout-flex wp-container-core-navigation-is-layout-69c550ab wp-block-navigation-is-layout-flex" aria-label="Navigation Pied de page"><ul style="color: #353535;" class="wp-block-navigation__container has-text-color  is-vertical wp-block-navigation"><li style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.196), 16px);" class=" wp-block-navigation-item wp-block-navigation-link"><a class="wp-block-navigation-item__content"  href="index.php/cgu/index.html"><span class="wp-block-navigation-item__label">CGU</span></a></li><li class=" wp-block-navigation-item wp-block-navigation-link"><a class="wp-block-navigation-item__content"  href="cgv/index.html"><span class="wp-block-navigation-item__label">CGV</span></a></li><li style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.196), 16px);" class=" wp-block-navigation-item wp-block-navigation-link"><a class="wp-block-navigation-item__content"  href="index.php/politique-de-confidentialite/index.html"><span class="wp-block-navigation-item__label">Politique de Confidentialité</span></a></li></ul></nav></div>
-</div>
-
-
-
-<div class="wp-block-group alignwide is-layout-flow wp-block-group-is-layout-flow" style="margin-top:var(--wp--preset--spacing--50);margin-bottom:0">
-<p class="has-text-align-center has-text-color has-link-color has-medium-font-size wp-elements-ebb266593344d8ec9bd6b1371d85e3a5" style="color:#353535">©GNL Solution</p>
-</div>
-</div>
-</div>
+			<div class="wp-block-group alignwide is-layout-flow wp-block-group-is-layout-flow" style="margin-top:var(--wp--preset--spacing--50);margin-bottom:0">
+				<p class="has-text-align-center has-text-color has-link-color has-medium-font-size wp-elements-ebb266593344d8ec9bd6b1371d85e3a5" style="color:#353535">©GNL Solution</p>
+			</div>
+		</div>
+	</div>
 </footer>
