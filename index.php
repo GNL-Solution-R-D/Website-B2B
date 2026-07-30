@@ -489,7 +489,7 @@ window.SureCartAffiliatesConfig = {
 
 
 
-<p class="has-medium-font-size"><strong>Le Laboratoire</strong> met à disposition des étudiants et des chercheurs un environnement virtualisé prêt à l’emploi pour s’exercer librement à l’informatique et à la cybersécurité. Montez vos machines, testez vos scénarios et menez vos projets sur une infrastructure isolée et sécurisée, sans aucun risque pour vos systèmes personnels.</p>
+<p class="has-medium-font-size"><strong>Le Laboratoire</strong> met à disposition des étudiants et des chercheurs un environnement virtualisé prêt à l'emploi pour s'exercer librement à l'informatique et à la cybersécurité. Montez vos machines, testez vos scénarios et menez vos projets sur une infrastructure isolée et sécurisée, sans aucun risque pour vos systèmes personnels.</p>
 </div>
 
 
@@ -499,7 +499,7 @@ window.SureCartAffiliatesConfig = {
 
 
 
-<p class="has-medium-font-size"><strong>L&rsquo;Espace Client</strong> est le portail unique des associations et micro-entreprises adhérentes. Suivez vos ressources, gérez vos abonnements et retrouvez l&rsquo;ensemble de vos fonctionnalités depuis une interface claire et centralisée.</p>
+<p class="has-medium-font-size"><strong>L&rsquo;Espace Client</strong> est le portail unique des associations et micro-entreprises adhérentes, l'Espace Client centralise la gestion de vos services. Suivez vos ressources, gérez vos abonnements et retrouvez l'ensemble de vos fonctionnalités depuis une interface claire, au même endroit.</p>
 </div>
 
 
@@ -509,7 +509,7 @@ window.SureCartAffiliatesConfig = {
 
 
 
-<p class="has-medium-font-size"><strong>L&rsquo;Espace CLOUD</strong> est un hébergement mutualisé pensé pour les petites structures : sécurisé, souple et 100 % conforme au RGPD. Vos données et vos applications restent hébergées à Besançon, sur une infrastructure sobre en énergie, avec une capacité qui évolue au rythme de vos besoins.</p>
+<p class="has-medium-font-size"><strong>L&rsquo;Espace CLOUD</strong> est un hébergement mutualisé pensé pour les petites structures : sécurisé, souple et 100 % conforme au RGPD. Vos données et vos applications restent hébergées à Besançon, sur une infrastructure sobre en énergie, avec une capacité qui évolue au rythme de vos besoins.</p>
 </div>
 </div>
 </div>
@@ -812,7 +812,8 @@ class="has-arrow-type-chevron wp-block-surecart-product-pagination-next" aria-la
 
 
 <details class="wp-block-details has-medium-font-size is-layout-flow wp-block-details-is-layout-flow"><summary>Détail de l’abonnement</summary>	<div class="sc-prose wp-block-surecart-product-description">
-		<p>1 WordPress, 4 Go RAM, 40 Go SSD/NVMe, staging, cache applicatif, sauvegarde J+14</p>	</div>
+		<p>Idéal pour lancer un site vitrine ou un premier projet en ligne. Un WordPress rapide et fiable, avec un environnement de préproduction pour tester vos évolutions en toute sérénité.
+1 site WordPress · 4 Go de RAM · 40 Go SSD/NVMe · environnement de staging · cache applicatif · sauvegardes conservées 14 jours.</p>	</div>
 </details>
 </div>
 
@@ -861,7 +862,8 @@ class="has-arrow-type-chevron wp-block-surecart-product-pagination-next" aria-la
 
 
 <details class="wp-block-details has-medium-font-size is-layout-flow wp-block-details-is-layout-flow"><summary>Détail de l’abonnement</summary>	<div class="sc-prose wp-block-surecart-product-description">
-		<p>1 WordPress, 6 Go RAM, 60 Go SSD/NVMe, supervision, restauration assistée, support prioritaire</p>	</div>
+		<p>Pour les sites qui montent en charge et ne peuvent pas se permettre d'interruption. Plus de ressources, une supervision continue et un accompagnement prioritaire dès que vous en avez besoin.
+1 site WordPress · 6 Go de RAM · 60 Go SSD/NVMe · supervision de l'infrastructure · restauration assistée · support prioritaire.</p>	</div>
 </details>
 </div>
 
