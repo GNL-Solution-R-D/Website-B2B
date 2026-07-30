@@ -1,3 +1,287 @@
+<?php
+/* =====================================================================
+   GNL Solution — Boutique dynamique
+   ---------------------------------------------------------------------
+   La liste des produits provient de la datatable n8n "product",
+   interrogée via le webhook POST :
+        https://api.gnl-solution.fr/webhook/boutique
+   En cas d'indisponibilité du webhook, on retombe automatiquement sur
+   le fichier local product.csv (même structure de colonnes).
+
+   Colonnes attendues :
+   id, datacenter_flag, type, slug, name, stitre, description,
+   categorie_id, stock, stock_limite, option, prix_mensuel,
+   kubernete_config, createdAt, updatedAt
+
+   type        : web_pro | web_edu | soon
+   categorie_id: 1=PHP  2=WordPress  3=DEV  4=Étudiant  5=Cloud/À venir
+   ===================================================================== */
+
+if (!defined('GNL_WEBHOOK_URL')) {
+    define('GNL_WEBHOOK_URL', 'https://api.gnl-solution.fr/webhook/boutique');
+}
+if (!defined('GNL_CSV_FALLBACK')) {
+    define('GNL_CSV_FALLBACK', __DIR__ . '/product.csv');
+}
+if (!defined('GNL_CACHE_TTL')) {
+    define('GNL_CACHE_TTL', 300); // durée du cache local en secondes
+}
+
+/* --- Appel du webhook n8n (POST) -> corps brut de la réponse --------- */
+function gnl_fetch_from_webhook() {
+    $payload = json_encode(array('source' => 'index.php', 'action' => 'list'));
+
+    if (function_exists('curl_init')) {
+        $ch = curl_init(GNL_WEBHOOK_URL);
+        curl_setopt_array($ch, array(
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $payload,
+            CURLOPT_HTTPHEADER     => array('Content-Type: application/json', 'Accept: application/json'),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 6,
+            CURLOPT_CONNECTTIMEOUT => 4,
+        ));
+        $body = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($body !== false && $code >= 200 && $code < 300) {
+            return gnl_decode_rows($body);
+        }
+        return null;
+    }
+
+    // Repli sans cURL
+    $ctx = stream_context_create(array('http' => array(
+        'method'        => 'POST',
+        'header'        => "Content-Type: application/json\r\nAccept: application/json\r\n",
+        'content'       => $payload,
+        'timeout'       => 6,
+        'ignore_errors' => true,
+    )));
+    $body = @file_get_contents(GNL_WEBHOOK_URL, false, $ctx);
+    if ($body === false) return null;
+    return gnl_decode_rows($body);
+}
+
+/* --- Décodage tolérant de la réponse JSON en liste de lignes --------- */
+function gnl_decode_rows($body) {
+    $data = json_decode($body, true);
+    if (!is_array($data)) return null;
+
+    // Déballe les enveloppes n8n les plus courantes
+    foreach (array('data', 'products', 'rows', 'items', 'result') as $k) {
+        if (isset($data[$k]) && is_array($data[$k])) { $data = $data[$k]; break; }
+    }
+    // Objet unique -> liste à un élément
+    if (isset($data['id']) || isset($data['name']) || isset($data['slug'])) {
+        $data = array($data);
+    }
+
+    $rows = array();
+    foreach ($data as $item) {
+        if (!is_array($item)) continue;
+        if (isset($item['json']) && is_array($item['json'])) $item = $item['json']; // format {json:{...}}
+        $rows[] = $item;
+    }
+    return $rows ? $rows : null;
+}
+
+/* --- Repli sur product.csv ------------------------------------------ */
+function gnl_fetch_from_csv() {
+    if (!is_readable(GNL_CSV_FALLBACK)) return array();
+    $rows = array();
+    if (($h = fopen(GNL_CSV_FALLBACK, 'r')) !== false) {
+        $header = fgetcsv($h);
+        if ($header) {
+            $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]); // retire un BOM éventuel
+            while (($line = fgetcsv($h)) !== false) {
+                if ($line === array(null) || (count($line) === 1 && $line[0] === null)) continue;
+                $line = array_pad($line, count($header), '');
+                $line = array_slice($line, 0, count($header));
+                $rows[] = array_combine($header, $line);
+            }
+        }
+        fclose($h);
+    }
+    return $rows;
+}
+
+/* --- Chargement (webhook -> cache -> csv) + normalisation ------------ */
+function gnl_load_products() {
+    $cacheFile = sys_get_temp_dir() . '/gnl_products_cache.json';
+
+    // Cache frais ?
+    if (is_readable($cacheFile) && (time() - filemtime($cacheFile) < GNL_CACHE_TTL)) {
+        $cached = json_decode(@file_get_contents($cacheFile), true);
+        if (is_array($cached) && $cached) return gnl_normalize($cached);
+    }
+
+    $rows = gnl_fetch_from_webhook();
+    if ($rows) {
+        @file_put_contents($cacheFile, json_encode($rows)); // best effort
+    } else {
+        $rows = gnl_fetch_from_csv();
+    }
+    return gnl_normalize($rows);
+}
+
+/* --- Normalisation d'une ligne (clés stables) ----------------------- */
+function gnl_normalize($rows) {
+    $out = array();
+    if (!is_array($rows)) return $out;
+    foreach ($rows as $r) {
+        if (!is_array($r)) continue;
+        $g = function ($k) use ($r) { return isset($r[$k]) ? $r[$k] : ''; };
+        $out[] = array(
+            'id'           => $g('id'),
+            'flag'         => strtoupper(trim((string) $g('datacenter_flag'))),
+            'type'         => strtolower(trim((string) $g('type'))),
+            'slug'         => trim((string) $g('slug')),
+            'name'         => trim((string) $g('name')),
+            'stitre'       => trim((string) $g('stitre')),
+            'description'  => trim((string) $g('description')),
+            'categorie'    => (int) $g('categorie_id'),
+            'stock'        => $g('stock'),
+            'stock_limite' => $g('stock_limite'),
+            'option'       => $g('option'),
+            'prix'         => $g('prix_mensuel'),
+        );
+    }
+    return $out;
+}
+
+/* --- Sélection ------------------------------------------------------- */
+function gnl_where($products, $type = null, $categorie = null) {
+    $res = array();
+    foreach ($products as $p) {
+        if ($type !== null && $p['type'] !== $type) continue;
+        if ($categorie !== null && $p['categorie'] !== (int) $categorie) continue;
+        $res[] = $p;
+    }
+    return $res;
+}
+
+/* --- Helpers d'affichage -------------------------------------------- */
+function gnl_e($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }
+
+function gnl_price($v) {
+    if ($v === '' || $v === null) return '';
+    $f = (float) str_replace(array(' ', ','), array('', '.'), (string) $v);
+    if ($f <= 0) return '';
+    return '€' . number_format($f, 2, ',', ' ');
+}
+
+function gnl_desc_html($d) {
+    $d = trim(strip_tags((string) $d));
+    if ($d === '') return '';
+    return nl2br(gnl_e($d));
+}
+
+function gnl_flag($code) {
+    $code = strtoupper((string) $code);
+    if ($code === 'FR') {
+        return '<figure class="wp-block-image alignright size-full is-resized" style="margin-bottom:0">'
+             . '<img decoding="async" width="1000" height="563" src="wp-content/uploads/2025/12/icon-flag-edited.png" '
+             . 'alt="Datacenter France" class="wp-image-573" style="width:20px;height:auto" /></figure>';
+    }
+    $emoji = array('DE' => '🇩🇪', 'SW' => '🇨🇭', 'CH' => '🇨🇭', 'BE' => '🇧🇪', 'FR' => '🇫🇷');
+    $flag = isset($emoji[$code]) ? $emoji[$code] : '🌍';
+    return '<figure class="wp-block-image alignright is-resized" style="margin:0 0 0 auto">'
+         . '<span style="font-size:18px;line-height:1" title="Datacenter ' . gnl_e($code) . '">' . $flag . '</span></figure>';
+}
+
+/* --- Carte produit "pro" (web_pro / web_edu) ------------------------ */
+function gnl_render_pro_card($p) {
+    $name  = gnl_e($p['name']);
+    $slug  = rawurlencode($p['slug']);
+    $flag  = gnl_flag($p['flag']);
+    $price = gnl_price($p['prix']);
+
+    $stitre = ($p['stitre'] !== '')
+        ? '<p class="has-small-font-size">' . gnl_e($p['stitre']) . '</p>'
+        : '';
+
+    if ($price !== '') {
+        $priceBlock = '<div style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.392), 18px);font-style:normal;font-weight:600; margin-top:5px;margin-bottom:5px;" class="wp-block-surecart-product-list-price">' . $price . '</div>'
+                    . '<p class="has-text-align-right has-small-font-size" style="margin-top:0">/ Mois</p>';
+    } else {
+        $priceBlock = '<div style="font-weight:600;margin-top:5px;margin-bottom:5px;color:#009494" class="wp-block-surecart-product-list-price">Bientôt</div>';
+    }
+
+    if ((int) $p['stock'] > 0) {
+        $priceBlock .= '<p class="has-text-align-right has-small-font-size" style="margin-top:0;color:#6c9400">Plus que ' . (int) $p['stock'] . ' places</p>';
+    }
+
+    $descHtml = gnl_desc_html($p['description']);
+    $details  = ($descHtml !== '')
+        ? '<details class="wp-block-details has-medium-font-size is-layout-flow wp-block-details-is-layout-flow"><summary>Détail de l’abonnement</summary><div class="sc-prose wp-block-surecart-product-description"><p>' . $descHtml . '</p></div></details>'
+        : '';
+
+    echo <<<HTML
+		<li class="sc-product-item sc-has-animation-fade-up">
+			<a class="sc-product-item-link" href="products/{$slug}/">
+<div class="wp-block-group has-border-color has-base-background-color has-background is-layout-flow wp-container-core-group-is-layout-ade1e76d wp-block-group-is-layout-flow wp-container-content-9cfa9a5a" style="border-color:color-mix(in srgb, currentColor 20%, transparent);border-width:1px;border-top-left-radius:3px;border-top-right-radius:3px;border-bottom-left-radius:3px;border-bottom-right-radius:3px;padding-top:var(--wp--preset--spacing--20);padding-right:var(--wp--preset--spacing--30);padding-bottom:var(--wp--preset--spacing--20);padding-left:var(--wp--preset--spacing--30)">
+<div class="wp-block-group is-layout-grid wp-container-core-group-is-layout-a1cc4303 wp-block-group-is-layout-grid" style="margin-top:0px;margin-bottom:0px;line-height:1">
+<div class="wp-block-group wp-container-content-b4c5012d is-vertical is-layout-flex wp-container-core-group-is-layout-4b827052 wp-block-group-is-layout-flex"><h2 style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.588), 20px);font-style:normal;font-weight:400; margin-bottom:5px;margin-top:0px;" class="wp-block-surecart-product-title" aria-label="{$name}">{$name}</h2>
+{$stitre}
+</div>
+<div class="wp-block-group wp-container-content-015a91b6 is-vertical is-content-justification-right is-layout-flex wp-container-core-group-is-layout-16a37519 wp-block-group-is-layout-flex">
+{$flag}
+{$priceBlock}
+</div>
+</div>
+{$details}
+</div>
+			</a>
+		</li>
+
+HTML;
+}
+
+/* --- Rendu d'une grille "pro" par catégorie ------------------------- */
+function gnl_render_pro_cards($categorie) {
+    global $GNL_PRODUCTS;
+    $list = gnl_where($GNL_PRODUCTS, 'web_pro', $categorie);
+    foreach ($list as $p) gnl_render_pro_card($p);
+}
+
+/* --- Rendu de la grille étudiante (web_edu) ------------------------- */
+function gnl_render_edu_cards() {
+    global $GNL_PRODUCTS;
+    $list = gnl_where($GNL_PRODUCTS, 'web_edu');
+    foreach ($list as $p) gnl_render_pro_card($p);
+}
+
+/* --- Grille supplémentaire enveloppée (utilisée pour DEV) ----------- */
+function gnl_render_pro_grid_block($categorie) {
+    global $GNL_PRODUCTS;
+    if (!gnl_where($GNL_PRODUCTS, 'web_pro', $categorie)) return; // rien à afficher
+    echo '<ul style="margin-right:0;margin-left:0;margin-top:var(--wp--preset--spacing--30);" class="wp-block-surecart-product-template wp-container-content-9cfa9a5a is-layout-grid wp-container-surecart-product-template-is-layout-b7428002 wp-block-surecart-product-template-is-layout-grid">' . "\n";
+    gnl_render_pro_cards($categorie);
+    echo "\t</ul>\n";
+}
+
+/* --- Cartes "Prochainement disponible" (soon) ----------------------- */
+function gnl_render_soon_cards() {
+    global $GNL_PRODUCTS;
+    $items = gnl_where($GNL_PRODUCTS, 'soon');
+    if (!$items) return;
+    echo '<div class="wp-block-columns alignwide is-layout-flex wp-block-columns-is-layout-flex" style="margin-top:var(--wp--preset--spacing--30);margin-bottom:0;flex-wrap:wrap;gap:var(--wp--preset--spacing--30)">' . "\n";
+    foreach ($items as $p) {
+        $name = gnl_e($p['name']);
+        $sub  = ($p['stitre'] !== '') ? gnl_e($p['stitre']) : gnl_desc_html($p['description']);
+        echo '<div class="wp-block-column is-vertically-aligned-top has-border-color has-base-background-color has-background has-global-padding is-content-justification-center is-layout-constrained wp-block-column-is-layout-constrained" style="border-color:color-mix(in srgb, currentColor 20%, transparent);border-width:1px;border-radius:3px;padding:var(--wp--preset--spacing--40);flex-basis:30%;flex-grow:1;min-width:240px">' . "\n";
+        echo '<h3 class="wp-block-heading has-large-font-size" style="margin-bottom:var(--wp--preset--spacing--20)">' . $name . '</h3>' . "\n";
+        if ($sub !== '') echo '<p class="has-small-font-size">' . $sub . '</p>' . "\n";
+        echo '<p class="has-small-font-size" style="color:#009494;font-weight:600;margin-top:var(--wp--preset--spacing--20)">Bientôt disponible</p>' . "\n";
+        echo '</div>' . "\n";
+    }
+    echo '</div>' . "\n";
+}
+
+/* --- Chargement effectif ------------------------------------------- */
+$GNL_PRODUCTS = gnl_load_products();
+?>
 <!DOCTYPE html>
 <html lang="fr-FR">
 
@@ -532,153 +816,7 @@ window.SureCartAffiliatesConfig = {
 	
 
 <ul style="margin-right:0;margin-left:0;" class="wp-block-surecart-product-template wp-container-content-9cfa9a5a is-layout-grid wp-container-surecart-product-template-is-layout-fe22ff3d wp-block-surecart-product-template-is-layout-grid">
-	
-		<li class="sc-product-item sc-has-animation-fade-up" data-wp-key="post-template-item-775">
-			<form 
-				data-wp-interactive='{ "namespace": "surecart/product-page" }'
-				data-wp-on--submit="callbacks.handleSubmit"
-				data-wp-init="callbacks.init"
-				data-wp-context='{"formId":596,"mode":"test","checkoutUrl":"https:\/\/gnl-solution.fr\/checkout-2\/","urlPrefix":"","product":{"id":"62111461-4d4a-4df6-82f3-c0e50ada357d","archived":false,"available_stock":0,"name":"PHP Start","permalink":"https:\/\/gnl-solution.fr\/products\/php-start\/","has_unlimited_stock":true,"preview_image":{}},"selectedPrice":{"id":"18ed041e-abb7-4d4b-bdea-0ecce779b1a1","ad_hoc":false,"amount":1900,"archived":false,"currency":"eur","scratch_amount":null,"display_amount":"\u20ac19,00","converted_ad_hoc_min_amount":0,"converted_ad_hoc_max_amount":null,"scratch_display_amount":"","is_on_sale":false,"trial_text":"","trial_text_with_punctuation":"","setup_fee_text":"","setup_fee_text_with_punctuation":"","payments_text":"","interval_text":"every 1 month","short_interval_text":"\/ 1 mo","interval_count_text":"","is_zero_decimal":false,"currency_symbol":"\u20ac"},"prices":[{"id":"18ed041e-abb7-4d4b-bdea-0ecce779b1a1","ad_hoc":false,"amount":1900,"archived":false,"currency":"eur","scratch_amount":null,"display_amount":"\u20ac19,00","converted_ad_hoc_min_amount":0,"converted_ad_hoc_max_amount":null,"scratch_display_amount":"","is_on_sale":false,"trial_text":"","setup_fee_text":"","payments_text":"","interval_text":"every 1 month","short_interval_text":"\/ 1 mo","interval_count_text":"","is_zero_decimal":false,"currency_symbol":"\u20ac"}],"variants":[],"quantity":1,"busy":false,"adHocAmount":0,"variantValues":[],"text":"Add to Cart","outOfStockText":"Sold Out","unavailableText":"Non disponible \u00e0 l\u0027achat","note":"","noteLabel":""}'				>
-				<a class="sc-product-item-link" href="products/php-start/index.html">
-					
-
-<div class="wp-block-group has-border-color has-base-background-color has-background is-layout-flow wp-container-core-group-is-layout-ade1e76d wp-block-group-is-layout-flow wp-container-content-9cfa9a5a" style="border-color:color-mix(in srgb, currentColor 20%, transparent);border-width:1px;border-top-left-radius:3px;border-top-right-radius:3px;border-bottom-left-radius:3px;border-bottom-right-radius:3px;padding-top:var(--wp--preset--spacing--20);padding-right:var(--wp--preset--spacing--30);padding-bottom:var(--wp--preset--spacing--20);padding-left:var(--wp--preset--spacing--30)">
-<div class="wp-block-group is-layout-grid wp-container-core-group-is-layout-a1cc4303 wp-block-group-is-layout-grid" style="margin-top:0px;margin-bottom:0px;line-height:1">
-<div class="wp-block-group wp-container-content-b4c5012d is-vertical is-layout-flex wp-container-core-group-is-layout-4b827052 wp-block-group-is-layout-flex"><h2 style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.588), 20px);font-style:normal;font-weight:400; margin-bottom:5px;margin-top:0px;" class="wp-block-surecart-product-title" aria-label="PHP Start">
-	
-	PHP Start
-	</h2>
-
-
-
-<p class="has-small-font-size">Pour lancer votre premier site en toute simplicité.</p>
-</div>
-
-
-
-<div class="wp-block-group wp-container-content-015a91b6 is-vertical is-content-justification-right is-layout-flex wp-container-core-group-is-layout-16a37519 wp-block-group-is-layout-flex">
-<figure class="wp-block-image alignright size-full is-resized"><img fetchpriority="high" decoding="async" width="1000" height="563" src="wp-content/uploads/2025/12/icon-flag-edited.png" alt="" class="wp-image-573" style="width:20px;height:auto" srcset="https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited.png 1000w, https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited-300x169.png 300w, https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited-768x432.png 768w, https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited-600x338.png 600w" sizes="(max-width: 1000px) 100vw, 1000px" /></figure>
-
-
-<div style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.392), 18px);font-style:normal;font-weight:600; margin-top:5px;margin-bottom:5px;" class="wp-block-surecart-product-list-price">
-	€19,00</div>
-
-
-
-<p class="has-text-align-right has-small-font-size" style="margin-top:0">/ Mois</p>
-</div>
-
-
-</div>
-
-
-
-<details class="wp-block-details has-medium-font-size is-layout-flow wp-block-details-is-layout-flow"><summary>Détail de l’abonnement</summary>	<div class="sc-prose wp-block-surecart-product-description">
-		<p>1 site, 2 vCPU partagés, 2 Go RAM garantis, 20 Go SSD/NVMe, 1 base MariaDB/MySQL, SSL, sauvegarde J+7</p>	</div>
-</details>
-</div>
-
-				</a>
-			</form>
-		</li>
-	
-		<li class="sc-product-item sc-has-animation-fade-up" data-wp-key="post-template-item-778">
-			<form 
-				data-wp-interactive='{ "namespace": "surecart/product-page" }'
-				data-wp-on--submit="callbacks.handleSubmit"
-				data-wp-init="callbacks.init"
-				data-wp-context='{"formId":596,"mode":"test","checkoutUrl":"https:\/\/gnl-solution.fr\/checkout-2\/","urlPrefix":"","product":{"id":"1b3b988c-790f-40c0-9298-6a6ce252b7f0","archived":false,"available_stock":0,"name":"PHP Pro","permalink":"https:\/\/gnl-solution.fr\/products\/php-pro\/","has_unlimited_stock":true,"preview_image":{}},"selectedPrice":{"id":"a296582f-c499-4d9f-a19e-e8e3526d377f","ad_hoc":false,"amount":3900,"archived":false,"currency":"eur","scratch_amount":null,"display_amount":"\u20ac39,00","converted_ad_hoc_min_amount":0,"converted_ad_hoc_max_amount":null,"scratch_display_amount":"","is_on_sale":false,"trial_text":"","trial_text_with_punctuation":"","setup_fee_text":"","setup_fee_text_with_punctuation":"","payments_text":"","interval_text":"every 1 month","short_interval_text":"\/ 1 mo","interval_count_text":"","is_zero_decimal":false,"currency_symbol":"\u20ac"},"prices":[{"id":"a296582f-c499-4d9f-a19e-e8e3526d377f","ad_hoc":false,"amount":3900,"archived":false,"currency":"eur","scratch_amount":null,"display_amount":"\u20ac39,00","converted_ad_hoc_min_amount":0,"converted_ad_hoc_max_amount":null,"scratch_display_amount":"","is_on_sale":false,"trial_text":"","setup_fee_text":"","payments_text":"","interval_text":"every 1 month","short_interval_text":"\/ 1 mo","interval_count_text":"","is_zero_decimal":false,"currency_symbol":"\u20ac"}],"variants":[],"quantity":1,"busy":false,"adHocAmount":0,"variantValues":[],"text":"Add to Cart","outOfStockText":"Sold Out","unavailableText":"Non disponible \u00e0 l\u0027achat","note":"","noteLabel":""}'				>
-				<a class="sc-product-item-link" href="products/php-pro/index.html">
-					
-
-<div class="wp-block-group has-border-color has-base-background-color has-background is-layout-flow wp-container-core-group-is-layout-ade1e76d wp-block-group-is-layout-flow wp-container-content-9cfa9a5a" style="border-color:color-mix(in srgb, currentColor 20%, transparent);border-width:1px;border-top-left-radius:3px;border-top-right-radius:3px;border-bottom-left-radius:3px;border-bottom-right-radius:3px;padding-top:var(--wp--preset--spacing--20);padding-right:var(--wp--preset--spacing--30);padding-bottom:var(--wp--preset--spacing--20);padding-left:var(--wp--preset--spacing--30)">
-<div class="wp-block-group is-layout-grid wp-container-core-group-is-layout-a1cc4303 wp-block-group-is-layout-grid" style="margin-top:0px;margin-bottom:0px;line-height:1">
-<div class="wp-block-group wp-container-content-b4c5012d is-vertical is-layout-flex wp-container-core-group-is-layout-4b827052 wp-block-group-is-layout-flex"><h2 style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.588), 20px);font-style:normal;font-weight:400; margin-bottom:5px;margin-top:0px;" class="wp-block-surecart-product-title" aria-label="PHP Pro">
-	
-	PHP Pro
-	</h2>
-
-
-
-<p class="has-small-font-size">Plusieurs sites, plus de ressources et un espace de test.</p>
-</div>
-
-
-
-<div class="wp-block-group wp-container-content-015a91b6 is-vertical is-content-justification-right is-layout-flex wp-container-core-group-is-layout-16a37519 wp-block-group-is-layout-flex">
-<figure class="wp-block-image alignright size-full is-resized"><img fetchpriority="high" decoding="async" width="1000" height="563" src="wp-content/uploads/2025/12/icon-flag-edited.png" alt="" class="wp-image-573" style="width:20px;height:auto" srcset="https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited.png 1000w, https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited-300x169.png 300w, https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited-768x432.png 768w, https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited-600x338.png 600w" sizes="(max-width: 1000px) 100vw, 1000px" /></figure>
-
-
-<div style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.392), 18px);font-style:normal;font-weight:600; margin-top:5px;margin-bottom:5px;" class="wp-block-surecart-product-list-price">
-	€39,00</div>
-
-
-
-<p class="has-text-align-right has-small-font-size" style="margin-top:0">/ Mois</p>
-</div>
-
-
-</div>
-
-
-
-<details class="wp-block-details has-medium-font-size is-layout-flow wp-block-details-is-layout-flow"><summary>Détail de l’abonnement</summary>	<div class="sc-prose wp-block-surecart-product-description">
-		<p>3 sites, 2 vCPU, 4 Go RAM, 40 Go SSD/NVMe, 3 bases, staging, logs, sauvegarde J+14</p>	</div>
-</details>
-</div>
-
-				</a>
-			</form>
-		</li>
-	
-		<li class="sc-product-item sc-has-animation-fade-up" data-wp-key="post-template-item-779">
-			<form 
-				data-wp-interactive='{ "namespace": "surecart/product-page" }'
-				data-wp-on--submit="callbacks.handleSubmit"
-				data-wp-init="callbacks.init"
-				data-wp-context='{"formId":596,"mode":"test","checkoutUrl":"https:\/\/gnl-solution.fr\/checkout-2\/","urlPrefix":"","product":{"id":"c4752bb0-289e-4651-85a7-157fd59064d7","archived":false,"available_stock":0,"name":"PHP Business","permalink":"https:\/\/gnl-solution.fr\/products\/php-business\/","has_unlimited_stock":true,"preview_image":{}},"selectedPrice":{"id":"6466d022-1183-4d54-b2bf-d18811aa467c","ad_hoc":false,"amount":6900,"archived":false,"currency":"eur","scratch_amount":null,"display_amount":"\u20ac69,00","converted_ad_hoc_min_amount":0,"converted_ad_hoc_max_amount":null,"scratch_display_amount":"","is_on_sale":false,"trial_text":"","trial_text_with_punctuation":"","setup_fee_text":"","setup_fee_text_with_punctuation":"","payments_text":"","interval_text":"every 1 month","short_interval_text":"\/ 1 mo","interval_count_text":"","is_zero_decimal":false,"currency_symbol":"\u20ac"},"prices":[{"id":"6466d022-1183-4d54-b2bf-d18811aa467c","ad_hoc":false,"amount":6900,"archived":false,"currency":"eur","scratch_amount":null,"display_amount":"\u20ac69,00","converted_ad_hoc_min_amount":0,"converted_ad_hoc_max_amount":null,"scratch_display_amount":"","is_on_sale":false,"trial_text":"","setup_fee_text":"","payments_text":"","interval_text":"every 1 month","short_interval_text":"\/ 1 mo","interval_count_text":"","is_zero_decimal":false,"currency_symbol":"\u20ac"}],"variants":[],"quantity":1,"busy":false,"adHocAmount":0,"variantValues":[],"text":"Add to Cart","outOfStockText":"Sold Out","unavailableText":"Non disponible \u00e0 l\u0027achat","note":"","noteLabel":""}'				>
-				<a class="sc-product-item-link" href="products/php-business/index.html">
-					
-
-<div class="wp-block-group has-border-color has-base-background-color has-background is-layout-flow wp-container-core-group-is-layout-ade1e76d wp-block-group-is-layout-flow wp-container-content-9cfa9a5a" style="border-color:color-mix(in srgb, currentColor 20%, transparent);border-width:1px;border-top-left-radius:3px;border-top-right-radius:3px;border-bottom-left-radius:3px;border-bottom-right-radius:3px;padding-top:var(--wp--preset--spacing--20);padding-right:var(--wp--preset--spacing--30);padding-bottom:var(--wp--preset--spacing--20);padding-left:var(--wp--preset--spacing--30)">
-<div class="wp-block-group is-layout-grid wp-container-core-group-is-layout-a1cc4303 wp-block-group-is-layout-grid" style="margin-top:0px;margin-bottom:0px;line-height:1">
-<div class="wp-block-group wp-container-content-b4c5012d is-vertical is-layout-flex wp-container-core-group-is-layout-4b827052 wp-block-group-is-layout-flex"><h2 style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.588), 20px);font-style:normal;font-weight:400; margin-bottom:5px;margin-top:0px;" class="wp-block-surecart-product-title" aria-label="PHP Business">
-	
-	PHP Business
-	</h2>
-
-
-
-<p class="has-small-font-size">Puissance et sécurité pour vos projets qui grandissent.</p>
-</div>
-
-
-
-<div class="wp-block-group wp-container-content-015a91b6 is-vertical is-content-justification-right is-layout-flex wp-container-core-group-is-layout-16a37519 wp-block-group-is-layout-flex">
-<figure class="wp-block-image alignright size-full is-resized"><img fetchpriority="high" decoding="async" width="1000" height="563" src="wp-content/uploads/2025/12/icon-flag-edited.png" alt="" class="wp-image-573" style="width:20px;height:auto" srcset="https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited.png 1000w, https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited-300x169.png 300w, https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited-768x432.png 768w, https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited-600x338.png 600w" sizes="(max-width: 1000px) 100vw, 1000px" /></figure>
-
-
-<div style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.392), 18px);font-style:normal;font-weight:600; margin-top:5px;margin-bottom:5px;" class="wp-block-surecart-product-list-price">
-	€69,00</div>
-
-
-
-<p class="has-text-align-right has-small-font-size" style="margin-top:0">/ Mois</p>
-</div>
-
-
-</div>
-
-
-
-<details class="wp-block-details has-medium-font-size is-layout-flow wp-block-details-is-layout-flow"><summary>Détail de l’abonnement</summary>	<div class="sc-prose wp-block-surecart-product-description">
-		<p>5 sites, 4 vCPU, 6 Go RAM, 80 Go SSD/NVMe, WAF basique, sauvegarde J+30, supervision</p>	</div>
-</details>
-</div>
-
-				</a>
-			</form>
-		</li>
+<?php gnl_render_pro_cards(1); ?>
 	</ul>
 
 
@@ -721,155 +859,7 @@ class="has-arrow-type-chevron wp-block-surecart-product-pagination-next" aria-la
 	
 
 <ul class="wp-block-surecart-product-template wp-container-content-9cfa9a5a is-layout-grid wp-container-surecart-product-template-is-layout-b7428002 wp-block-surecart-product-template-is-layout-grid">
-	
-		<li class="sc-product-item sc-has-animation-fade-up" data-wp-key="post-template-item-782">
-			<form 
-				data-wp-interactive='{ "namespace": "surecart/product-page" }'
-				data-wp-on--submit="callbacks.handleSubmit"
-				data-wp-init="callbacks.init"
-				data-wp-context='{"formId":596,"mode":"test","checkoutUrl":"https:\/\/gnl-solution.fr\/checkout-2\/","urlPrefix":"1","product":{"id":"85c2f76b-7ec4-4116-9130-b87213a16e5f","archived":false,"available_stock":0,"name":"WordPress Start","permalink":"https:\/\/gnl-solution.fr\/products\/wordpress-start\/","has_unlimited_stock":true,"preview_image":{}},"selectedPrice":{"id":"b007ace9-161c-47d1-aa83-2aecd56cd9ea","ad_hoc":false,"amount":2900,"archived":false,"currency":"eur","scratch_amount":null,"display_amount":"\u20ac29,00","converted_ad_hoc_min_amount":0,"converted_ad_hoc_max_amount":null,"scratch_display_amount":"","is_on_sale":false,"trial_text":"","trial_text_with_punctuation":"","setup_fee_text":"","setup_fee_text_with_punctuation":"","payments_text":"","interval_text":"every 1 month","short_interval_text":"\/ 1 mo","interval_count_text":"","is_zero_decimal":false,"currency_symbol":"\u20ac"},"prices":[{"id":"b007ace9-161c-47d1-aa83-2aecd56cd9ea","ad_hoc":false,"amount":2900,"archived":false,"currency":"eur","scratch_amount":null,"display_amount":"\u20ac29,00","converted_ad_hoc_min_amount":0,"converted_ad_hoc_max_amount":null,"scratch_display_amount":"","is_on_sale":false,"trial_text":"","setup_fee_text":"","payments_text":"","interval_text":"every 1 month","short_interval_text":"\/ 1 mo","interval_count_text":"","is_zero_decimal":false,"currency_symbol":"\u20ac"}],"variants":[],"quantity":1,"busy":false,"adHocAmount":0,"variantValues":[],"text":"Add to Cart","outOfStockText":"Sold Out","unavailableText":"Non disponible \u00e0 l\u0027achat","note":"","noteLabel":""}'				>
-				<a class="sc-product-item-link" href="products/wordpress-start/index.html">
-					
-
-<div class="wp-block-group has-border-color has-base-background-color has-background is-layout-flow wp-container-core-group-is-layout-ade1e76d wp-block-group-is-layout-flow wp-container-content-9cfa9a5a" style="border-color:color-mix(in srgb, currentColor 20%, transparent);border-width:1px;border-top-left-radius:3px;border-top-right-radius:3px;border-bottom-left-radius:3px;border-bottom-right-radius:3px;padding-top:var(--wp--preset--spacing--20);padding-right:var(--wp--preset--spacing--30);padding-bottom:var(--wp--preset--spacing--20);padding-left:var(--wp--preset--spacing--30)">
-<div class="wp-block-group is-layout-grid wp-container-core-group-is-layout-a1cc4303 wp-block-group-is-layout-grid" style="margin-top:0px;margin-bottom:0px;line-height:1">
-<div class="wp-block-group wp-container-content-b4c5012d is-vertical is-layout-flex wp-container-core-group-is-layout-4b827052 wp-block-group-is-layout-flex"><h2 style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.588), 20px);font-style:normal;font-weight:400; margin-bottom:5px;margin-top:0px;" class="wp-block-surecart-product-title" aria-label="WordPress Start">
-	
-	WordPress Start
-	</h2>
-
-
-
-<p class="has-small-font-size">Votre site WordPress clé en main, sécurisé et toujours à jour.</p>
-</div>
-
-
-
-<div class="wp-block-group wp-container-content-015a91b6 is-vertical is-content-justification-right is-layout-flex wp-container-core-group-is-layout-16a37519 wp-block-group-is-layout-flex">
-<figure class="wp-block-image alignright size-full is-resized"><img fetchpriority="high" decoding="async" width="1000" height="563" src="wp-content/uploads/2025/12/icon-flag-edited.png" alt="" class="wp-image-573" style="width:20px;height:auto" srcset="https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited.png 1000w, https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited-300x169.png 300w, https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited-768x432.png 768w, https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited-600x338.png 600w" sizes="(max-width: 1000px) 100vw, 1000px" /></figure>
-
-
-<div style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.392), 18px);font-style:normal;font-weight:600; margin-top:5px;margin-bottom:5px;" class="wp-block-surecart-product-list-price">
-	€29,00</div>
-
-
-
-<p class="has-text-align-right has-small-font-size" style="margin-top:0">/ Mois</p>
-</div>
-
-
-</div>
-
-
-
-<details class="wp-block-details has-medium-font-size is-layout-flow wp-block-details-is-layout-flow"><summary>Détail de l’abonnement</summary>	<div class="sc-prose wp-block-surecart-product-description">
-		<p>1 WordPress, 2 Go RAM, 20 Go SSD/NVMe, MAJ de sécurité, SSL, sauvegarde J+7</p>	</div>
-</details>
-</div>
-
-				</a>
-			</form>
-		</li>
-	
-		<li class="sc-product-item sc-has-animation-fade-up" data-wp-key="post-template-item-783">
-			<form 
-				data-wp-interactive='{ "namespace": "surecart/product-page" }'
-				data-wp-on--submit="callbacks.handleSubmit"
-				data-wp-init="callbacks.init"
-				data-wp-context='{"formId":596,"mode":"test","checkoutUrl":"https:\/\/gnl-solution.fr\/checkout-2\/","urlPrefix":"1","product":{"id":"15aa6275-bb37-43a2-8bae-af7959877d05","archived":false,"available_stock":0,"name":"WordPress Pro","permalink":"https:\/\/gnl-solution.fr\/products\/wordpress-pro\/","has_unlimited_stock":true,"preview_image":{}},"selectedPrice":{"id":"ea58dcf3-19bd-4137-9bb6-4272f0211d25","ad_hoc":false,"amount":5900,"archived":false,"currency":"eur","scratch_amount":null,"display_amount":"\u20ac59,00","converted_ad_hoc_min_amount":0,"converted_ad_hoc_max_amount":null,"scratch_display_amount":"","is_on_sale":false,"trial_text":"","trial_text_with_punctuation":"","setup_fee_text":"","setup_fee_text_with_punctuation":"","payments_text":"","interval_text":"every 1 month","short_interval_text":"\/ 1 mo","interval_count_text":"","is_zero_decimal":false,"currency_symbol":"\u20ac"},"prices":[{"id":"ea58dcf3-19bd-4137-9bb6-4272f0211d25","ad_hoc":false,"amount":5900,"archived":false,"currency":"eur","scratch_amount":null,"display_amount":"\u20ac59,00","converted_ad_hoc_min_amount":0,"converted_ad_hoc_max_amount":null,"scratch_display_amount":"","is_on_sale":false,"trial_text":"","setup_fee_text":"","payments_text":"","interval_text":"every 1 month","short_interval_text":"\/ 1 mo","interval_count_text":"","is_zero_decimal":false,"currency_symbol":"\u20ac"}],"variants":[],"quantity":1,"busy":false,"adHocAmount":0,"variantValues":[],"text":"Add to Cart","outOfStockText":"Sold Out","unavailableText":"Non disponible \u00e0 l\u0027achat","note":"","noteLabel":""}'				>
-				<a class="sc-product-item-link" href="products/wordpress-pro/index.html">
-					
-
-<div class="wp-block-group has-border-color has-base-background-color has-background is-layout-flow wp-container-core-group-is-layout-ade1e76d wp-block-group-is-layout-flow wp-container-content-9cfa9a5a" style="border-color:color-mix(in srgb, currentColor 20%, transparent);border-width:1px;border-top-left-radius:3px;border-top-right-radius:3px;border-bottom-left-radius:3px;border-bottom-right-radius:3px;padding-top:var(--wp--preset--spacing--20);padding-right:var(--wp--preset--spacing--30);padding-bottom:var(--wp--preset--spacing--20);padding-left:var(--wp--preset--spacing--30)">
-<div class="wp-block-group is-layout-grid wp-container-core-group-is-layout-a1cc4303 wp-block-group-is-layout-grid" style="margin-top:0px;margin-bottom:0px;line-height:1">
-<div class="wp-block-group wp-container-content-b4c5012d is-vertical is-layout-flex wp-container-core-group-is-layout-4b827052 wp-block-group-is-layout-flex"><h2 style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.588), 20px);font-style:normal;font-weight:400; margin-bottom:5px;margin-top:0px;" class="wp-block-surecart-product-title" aria-label="WordPress Pro">
-	
-	WordPress Pro
-	</h2>
-
-
-
-<p class="has-small-font-size">Idéal pour un site vitrine ou un projet ambitieux.</p>
-</div>
-
-
-
-<div class="wp-block-group wp-container-content-015a91b6 is-vertical is-content-justification-right is-layout-flex wp-container-core-group-is-layout-16a37519 wp-block-group-is-layout-flex">
-<figure class="wp-block-image alignright size-full is-resized"><img fetchpriority="high" decoding="async" width="1000" height="563" src="wp-content/uploads/2025/12/icon-flag-edited.png" alt="" class="wp-image-573" style="width:20px;height:auto" srcset="https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited.png 1000w, https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited-300x169.png 300w, https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited-768x432.png 768w, https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited-600x338.png 600w" sizes="(max-width: 1000px) 100vw, 1000px" /></figure>
-
-
-<div style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.392), 18px);font-style:normal;font-weight:600; margin-top:5px;margin-bottom:5px;" class="wp-block-surecart-product-list-price">
-	€59,00</div>
-
-
-
-<p class="has-text-align-right has-small-font-size" style="margin-top:0">/ Mois</p>
-</div>
-
-
-</div>
-
-
-
-<details class="wp-block-details has-medium-font-size is-layout-flow wp-block-details-is-layout-flow"><summary>Détail de l’abonnement</summary>	<div class="sc-prose wp-block-surecart-product-description">
-		<p>Idéal pour lancer un site vitrine ou un premier projet en ligne. Un WordPress rapide et fiable, avec un environnement de préproduction pour tester vos évolutions en toute sérénité.
-1 site WordPress · 4 Go de RAM · 40 Go SSD/NVMe · environnement de staging · cache applicatif · sauvegardes conservées 14 jours.</p>	</div>
-</details>
-</div>
-
-				</a>
-			</form>
-		</li>
-	
-		<li class="sc-product-item sc-has-animation-fade-up" data-wp-key="post-template-item-784">
-			<form 
-				data-wp-interactive='{ "namespace": "surecart/product-page" }'
-				data-wp-on--submit="callbacks.handleSubmit"
-				data-wp-init="callbacks.init"
-				data-wp-context='{"formId":596,"mode":"test","checkoutUrl":"https:\/\/gnl-solution.fr\/checkout-2\/","urlPrefix":"1","product":{"id":"feecaf83-c48f-4016-ab91-86ad563a2690","archived":false,"available_stock":0,"name":"WordPress Business","permalink":"https:\/\/gnl-solution.fr\/products\/wordpress-business\/","has_unlimited_stock":true,"preview_image":{}},"selectedPrice":{"id":"30ed69bf-0ebf-41b6-ae33-d0cfa29626e6","ad_hoc":false,"amount":9900,"archived":false,"currency":"eur","scratch_amount":null,"display_amount":"\u20ac99,00","converted_ad_hoc_min_amount":0,"converted_ad_hoc_max_amount":null,"scratch_display_amount":"","is_on_sale":false,"trial_text":"","trial_text_with_punctuation":"","setup_fee_text":"","setup_fee_text_with_punctuation":"","payments_text":"","interval_text":"every 1 month","short_interval_text":"\/ 1 mo","interval_count_text":"","is_zero_decimal":false,"currency_symbol":"\u20ac"},"prices":[{"id":"30ed69bf-0ebf-41b6-ae33-d0cfa29626e6","ad_hoc":false,"amount":9900,"archived":false,"currency":"eur","scratch_amount":null,"display_amount":"\u20ac99,00","converted_ad_hoc_min_amount":0,"converted_ad_hoc_max_amount":null,"scratch_display_amount":"","is_on_sale":false,"trial_text":"","setup_fee_text":"","payments_text":"","interval_text":"every 1 month","short_interval_text":"\/ 1 mo","interval_count_text":"","is_zero_decimal":false,"currency_symbol":"\u20ac"}],"variants":[],"quantity":1,"busy":false,"adHocAmount":0,"variantValues":[],"text":"Add to Cart","outOfStockText":"Sold Out","unavailableText":"Non disponible \u00e0 l\u0027achat","note":"","noteLabel":""}'				>
-				<a class="sc-product-item-link" href="products/wordpress-business/index.html">
-					
-
-<div class="wp-block-group has-border-color has-base-background-color has-background is-layout-flow wp-container-core-group-is-layout-ade1e76d wp-block-group-is-layout-flow wp-container-content-9cfa9a5a" style="border-color:color-mix(in srgb, currentColor 20%, transparent);border-width:1px;border-top-left-radius:3px;border-top-right-radius:3px;border-bottom-left-radius:3px;border-bottom-right-radius:3px;padding-top:var(--wp--preset--spacing--20);padding-right:var(--wp--preset--spacing--30);padding-bottom:var(--wp--preset--spacing--20);padding-left:var(--wp--preset--spacing--30)">
-<div class="wp-block-group is-layout-grid wp-container-core-group-is-layout-a1cc4303 wp-block-group-is-layout-grid" style="margin-top:0px;margin-bottom:0px;line-height:1">
-<div class="wp-block-group wp-container-content-b4c5012d is-vertical is-layout-flex wp-container-core-group-is-layout-4b827052 wp-block-group-is-layout-flex"><h2 style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.588), 20px);font-style:normal;font-weight:400; margin-bottom:5px;margin-top:0px;" class="wp-block-surecart-product-title" aria-label="WordPress Business">
-	
-	WordPress Business
-	</h2>
-
-
-
-<p class="has-small-font-size">Performance et accompagnement prioritaire, sans interruption.</p>
-</div>
-
-
-
-<div class="wp-block-group wp-container-content-015a91b6 is-vertical is-content-justification-right is-layout-flex wp-container-core-group-is-layout-16a37519 wp-block-group-is-layout-flex">
-<figure class="wp-block-image alignright size-full is-resized"><img fetchpriority="high" decoding="async" width="1000" height="563" src="wp-content/uploads/2025/12/icon-flag-edited.png" alt="" class="wp-image-573" style="width:20px;height:auto" srcset="https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited.png 1000w, https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited-300x169.png 300w, https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited-768x432.png 768w, https://gnl-solution.fr/wp-content/uploads/2025/12/icon-flag-edited-600x338.png 600w" sizes="(max-width: 1000px) 100vw, 1000px" /></figure>
-
-
-<div style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.392), 18px);font-style:normal;font-weight:600; margin-top:5px;margin-bottom:5px;" class="wp-block-surecart-product-list-price">
-	€99,00</div>
-
-
-
-<p class="has-text-align-right has-small-font-size" style="margin-top:0">/ Mois</p>
-</div>
-
-
-</div>
-
-
-
-<details class="wp-block-details has-medium-font-size is-layout-flow wp-block-details-is-layout-flow"><summary>Détail de l’abonnement</summary>	<div class="sc-prose wp-block-surecart-product-description">
-		<p>Pour les sites qui montent en charge et ne peuvent pas se permettre d'interruption. Plus de ressources, une supervision continue et un accompagnement prioritaire dès que vous en avez besoin.
-1 site WordPress · 6 Go de RAM · 60 Go SSD/NVMe · supervision de l'infrastructure · restauration assistée · support prioritaire.</p>	</div>
-</details>
-</div>
-
-				</a>
-			</form>
-		</li>
+<?php gnl_render_pro_cards(2); ?>
 	</ul>
 
 
@@ -901,6 +891,9 @@ class="has-arrow-type-chevron wp-block-surecart-product-pagination-next" aria-la
 </div>
 
 	<div class="sc-block-ui" data-wp-bind--hidden="!state.loading" hidden></div>
+
+<?php gnl_render_pro_grid_block(3); ?>
+
 </div>
 
 
@@ -933,53 +926,7 @@ class="has-arrow-type-chevron wp-block-surecart-product-pagination-next" aria-la
 	
 
 <ul class="wp-block-surecart-product-template wp-container-content-9cfa9a5a is-layout-grid wp-container-surecart-product-template-is-layout-b7428002 wp-block-surecart-product-template-is-layout-grid">
-	
-		<li class="sc-product-item sc-has-animation-fade-up" data-wp-key="post-template-item-717">
-			<form 
-				data-wp-interactive='{ "namespace": "surecart/product-page" }'
-				data-wp-on--submit="callbacks.handleSubmit"
-				data-wp-init="callbacks.init"
-				data-wp-context='{"formId":596,"mode":"test","checkoutUrl":"https:\/\/gnl-solution.fr\/checkout-2\/","urlPrefix":"3","product":{"id":"20f8a2b8-0b53-4d41-9fdf-1707b2a75edc","archived":false,"available_stock":-4,"name":"WEB EDU","permalink":"https:\/\/gnl-solution.fr\/products\/web-edu\/","has_unlimited_stock":true,"preview_image":{"src":"https:\/\/gnl-solution.fr\/wp-content\/uploads\/2025\/12\/DSC_5141-2-min-768x511.jpg","class":"attachment-medium_large size-medium_large","alt":"","width":768,"height":511,"srcset":"https:\/\/gnl-solution.fr\/wp-content\/uploads\/2025\/12\/DSC_5141-2-min-768x511.jpg 768w, https:\/\/gnl-solution.fr\/wp-content\/uploads\/2025\/12\/DSC_5141-2-min-scaled-600x399.jpg 600w, https:\/\/gnl-solution.fr\/wp-content\/uploads\/2025\/12\/DSC_5141-2-min-300x200.jpg 300w, https:\/\/gnl-solution.fr\/wp-content\/uploads\/2025\/12\/DSC_5141-2-min-1024x681.jpg 1024w, https:\/\/gnl-solution.fr\/wp-content\/uploads\/2025\/12\/DSC_5141-2-min-1536x1022.jpg 1536w, https:\/\/gnl-solution.fr\/wp-content\/uploads\/2025\/12\/DSC_5141-2-min-2048x1363.jpg 2048w","sizes":"(max-width: 768px) 100vw, 768px"}},"selectedPrice":{"id":"c49d92e3-7745-4919-94aa-5e0c5a3f0730","ad_hoc":false,"amount":99,"archived":false,"currency":"eur","scratch_amount":null,"display_amount":"\u20ac0,99","converted_ad_hoc_min_amount":0,"converted_ad_hoc_max_amount":null,"scratch_display_amount":"","is_on_sale":false,"trial_text":"","trial_text_with_punctuation":"","setup_fee_text":"","setup_fee_text_with_punctuation":"","payments_text":"","interval_text":"every 1 month","short_interval_text":"\/ 1 mo","interval_count_text":"","is_zero_decimal":false,"currency_symbol":"\u20ac"},"prices":[{"id":"c49d92e3-7745-4919-94aa-5e0c5a3f0730","ad_hoc":false,"amount":99,"archived":false,"currency":"eur","scratch_amount":null,"display_amount":"\u20ac0,99","converted_ad_hoc_min_amount":0,"converted_ad_hoc_max_amount":null,"scratch_display_amount":"","is_on_sale":false,"trial_text":"","setup_fee_text":"","payments_text":"","interval_text":"every 1 month","short_interval_text":"\/ 1 mo","interval_count_text":"","is_zero_decimal":false,"currency_symbol":"\u20ac"},{"id":"02d46e0f-bedb-439f-b720-1382b8054bb1","ad_hoc":false,"amount":999,"archived":false,"currency":"eur","scratch_amount":null,"display_amount":"\u20ac9,99","converted_ad_hoc_min_amount":0,"converted_ad_hoc_max_amount":null,"scratch_display_amount":"","is_on_sale":false,"trial_text":"","setup_fee_text":"","payments_text":"","interval_text":"every 1 year","short_interval_text":"\/ 1 yr","interval_count_text":"","is_zero_decimal":false,"currency_symbol":"\u20ac"}],"variants":[{"id":"92b715f5-99d5-4901-868c-086868df91e3","amount":null,"available_stock":-4,"option_1":"Wordpress","option_2":null,"option_3":null,"display_amount":"","line_item_image":{}},{"id":"0891b26e-d602-4641-8daf-0f5e53cb4ccd","amount":null,"available_stock":0,"option_1":"PHP","option_2":null,"option_3":null,"display_amount":"","line_item_image":{}}],"quantity":1,"busy":false,"adHocAmount":0,"variantValues":{"option_1":"Wordpress"},"text":"Add to Cart","outOfStockText":"Sold Out","unavailableText":"Non disponible \u00e0 l\u0027achat","note":"","noteLabel":""}'				>
-				<a class="sc-product-item-link" href="products/web-edu/index.html">
-					
-
-<div class="wp-block-group has-border-color has-base-background-color has-background is-layout-flow wp-container-core-group-is-layout-394c5b21 wp-block-group-is-layout-flow wp-container-content-9cfa9a5a" style="border-color:color-mix(in srgb, currentColor 20%, transparent);border-width:1px;border-top-left-radius:3px;border-top-right-radius:3px;border-bottom-left-radius:3px;border-bottom-right-radius:3px;padding-top:var(--wp--preset--spacing--40);padding-right:var(--wp--preset--spacing--40);padding-bottom:var(--wp--preset--spacing--40);padding-left:var(--wp--preset--spacing--40)">
-<div class="wp-block-group is-layout-grid wp-container-core-group-is-layout-a1cc4303 wp-block-group-is-layout-grid" style="margin-top:0px;margin-bottom:0px;line-height:1">
-<div class="wp-block-group wp-container-content-b4c5012d is-vertical is-layout-flex wp-container-core-group-is-layout-4b827052 wp-block-group-is-layout-flex"><h2 style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.588), 20px);font-style:normal;font-weight:400; margin-bottom:5px;margin-top:0px;" class="wp-block-surecart-product-title" aria-label="WEB EDU">
-	
-	WEB EDU
-	</h2>
-
-
-
-<p class="has-small-font-size">L’offre étudiante : votre cloud à petit prix, hébergé à Besançon.</p>
-</div>
-
-
-
-<div class="wp-block-group wp-container-content-015a91b6 is-vertical is-content-justification-right is-layout-flex wp-container-core-group-is-layout-16a37519 wp-block-group-is-layout-flex">
-<figure class="wp-block-image alignright size-full is-resized"><img decoding="async" width="1000" height="1000" src="wp-content/uploads/2025/04/icon-flag1.png" alt="" class="wp-image-41" style="width:20px;height:auto" srcset="https://gnl-solution.fr/wp-content/uploads/2025/04/icon-flag1.png 1000w, https://gnl-solution.fr/wp-content/uploads/2025/04/icon-flag1-300x300.png 300w, https://gnl-solution.fr/wp-content/uploads/2025/04/icon-flag1-100x100.png 100w, https://gnl-solution.fr/wp-content/uploads/2025/04/icon-flag1-600x600.png 600w, https://gnl-solution.fr/wp-content/uploads/2025/04/icon-flag1-150x150.png 150w, https://gnl-solution.fr/wp-content/uploads/2025/04/icon-flag1-768x768.png 768w" sizes="(max-width: 1000px) 100vw, 1000px" /></figure>
-
-
-<div style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.392), 18px);font-style:normal;font-weight:600; margin-top:5px;margin-bottom:5px;" class="wp-block-surecart-product-list-price">
-	€0,99</div>
-
-
-
-<p class="has-text-align-right has-small-font-size" style="margin-top:0">/ Mois</p>
-</div>
-
-
-</div>
-
-
-
-<details class="wp-block-details has-medium-font-size is-layout-flow wp-block-details-is-layout-flow"><summary>Détail de l’abonnement</summary></details>
-</div>
-
-				</a>
-			</form>
-		</li>
+<?php gnl_render_edu_cards(); ?>
 	</ul>
 
 
@@ -998,120 +945,7 @@ class="has-arrow-type-chevron wp-block-surecart-product-pagination-next" aria-la
 
 
 
-<div class="wp-block-columns alignwide is-layout-flex wp-container-core-columns-is-layout-729e4efa wp-block-columns-is-layout-flex" style="margin-top:var(--wp--preset--spacing--30);margin-bottom:0">
-<div class="wp-block-column is-vertically-aligned-top has-border-color has-base-background-color has-background has-global-padding is-content-justification-center is-layout-constrained wp-container-core-column-is-layout-860428b2 wp-block-column-is-layout-constrained" style="border-color:color-mix(in srgb, currentColor 20%, transparent);border-width:1px;border-radius:3px;padding-top:var(--wp--preset--spacing--40);padding-right:var(--wp--preset--spacing--40);padding-bottom:var(--wp--preset--spacing--40);padding-left:var(--wp--preset--spacing--40)">
-<div class="wp-block-columns is-not-stacked-on-mobile is-layout-flex wp-container-core-columns-is-layout-81213e5a wp-block-columns-is-layout-flex" style="margin-top:0;margin-bottom:0">
-<div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow" style="flex-basis:70%">
-<h3 class="wp-block-heading has-large-font-size" style="margin-bottom:var(--wp--preset--spacing--20)">Houssing made in france</h3>
-
-
-
-<p class="has-small-font-size"></p>
-</div>
-</div>
-
-
-
-<details class="wp-block-details has-medium-font-size is-layout-flow wp-block-details-is-layout-flow"><summary>Détail de l’adhésion</summary>
-<p></p>
-</details>
-</div>
-
-
-
-<div class="wp-block-column is-vertically-aligned-top has-border-color has-base-background-color has-background has-global-padding is-content-justification-center is-layout-constrained wp-container-core-column-is-layout-860428b2 wp-block-column-is-layout-constrained" style="border-color:color-mix(in srgb, currentColor 20%, transparent);border-width:1px;border-radius:3px;padding-top:var(--wp--preset--spacing--40);padding-right:var(--wp--preset--spacing--40);padding-bottom:var(--wp--preset--spacing--40);padding-left:var(--wp--preset--spacing--40)">
-<div class="wp-block-columns is-not-stacked-on-mobile is-layout-flex wp-container-core-columns-is-layout-81213e5a wp-block-columns-is-layout-flex" style="margin-top:0;margin-bottom:0">
-<div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow" style="flex-basis:70%">
-<h3 class="wp-block-heading has-large-font-size" style="margin-bottom:var(--wp--preset--spacing--20)">Houssing Switzerland</h3>
-
-
-
-<p class="has-small-font-size"></p>
-</div>
-</div>
-
-
-
-<details class="wp-block-details has-medium-font-size is-layout-flow wp-block-details-is-layout-flow"><summary>Détail de l’adhésion</summary>
-<ul class="wp-block-list">
-<li>Déclaration de traitement de données sous-admissible au RGPD</li>
-
-
-
-<li>Stockage sur un serveur Bisontin Conforme aux normes</li>
-</ul>
-</details>
-</div>
-</div>
-
-
-
-<div class="wp-block-columns alignwide is-layout-flex wp-container-core-columns-is-layout-f476b11c wp-block-columns-is-layout-flex" style="margin-top:var(--wp--preset--spacing--50);margin-bottom:0">
-<div class="wp-block-column is-vertically-aligned-top has-border-color has-base-background-color has-background has-global-padding is-content-justification-center is-layout-constrained wp-container-core-column-is-layout-860428b2 wp-block-column-is-layout-constrained" style="border-color:color-mix(in srgb, currentColor 20%, transparent);border-width:1px;border-radius:3px;padding-top:var(--wp--preset--spacing--40);padding-right:var(--wp--preset--spacing--40);padding-bottom:var(--wp--preset--spacing--40);padding-left:var(--wp--preset--spacing--40)">
-<div class="wp-block-columns is-not-stacked-on-mobile is-layout-flex wp-container-core-columns-is-layout-81213e5a wp-block-columns-is-layout-flex" style="margin-top:0;margin-bottom:0">
-<div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow" style="flex-basis:70%">
-<h3 class="wp-block-heading has-large-font-size" style="margin-bottom:var(--wp--preset--spacing--20)">Cloud</h3>
-
-
-
-<p class="has-small-font-size"></p>
-</div>
-</div>
-
-
-
-<details class="wp-block-details has-medium-font-size is-layout-flow wp-block-details-is-layout-flow"><summary>Détail de l’adhésion</summary>
-<p></p>
-</details>
-</div>
-
-
-
-<div class="wp-block-column is-vertically-aligned-top has-border-color has-base-background-color has-background has-global-padding is-content-justification-center is-layout-constrained wp-container-core-column-is-layout-860428b2 wp-block-column-is-layout-constrained" style="border-color:color-mix(in srgb, currentColor 20%, transparent);border-width:1px;border-radius:3px;padding-top:var(--wp--preset--spacing--40);padding-right:var(--wp--preset--spacing--40);padding-bottom:var(--wp--preset--spacing--40);padding-left:var(--wp--preset--spacing--40)">
-<div class="wp-block-columns is-not-stacked-on-mobile is-layout-flex wp-container-core-columns-is-layout-81213e5a wp-block-columns-is-layout-flex" style="margin-top:0;margin-bottom:0">
-<div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow" style="flex-basis:70%">
-<h3 class="wp-block-heading has-large-font-size" style="margin-bottom:var(--wp--preset--spacing--20)">Cloud RGPD</h3>
-
-
-
-<p class="has-small-font-size"></p>
-</div>
-</div>
-
-
-
-<details class="wp-block-details has-medium-font-size is-layout-flow wp-block-details-is-layout-flow"><summary>Détail de l’adhésion</summary>
-<ul class="wp-block-list">
-<li>Déclaration de traitement de données sous-admissible au RGPD</li>
-
-
-
-<li>Stockage sur un serveur Bisontin Conforme aux normes</li>
-</ul>
-</details>
-</div>
-
-
-
-<div class="wp-block-column is-vertically-aligned-top has-border-color has-base-background-color has-background has-global-padding is-content-justification-center is-layout-constrained wp-container-core-column-is-layout-860428b2 wp-block-column-is-layout-constrained" style="border-color:color-mix(in srgb, currentColor 20%, transparent);border-width:1px;border-radius:3px;padding-top:var(--wp--preset--spacing--40);padding-right:var(--wp--preset--spacing--40);padding-bottom:var(--wp--preset--spacing--40);padding-left:var(--wp--preset--spacing--40)">
-<div class="wp-block-columns is-not-stacked-on-mobile is-layout-flex wp-container-core-columns-is-layout-81213e5a wp-block-columns-is-layout-flex" style="margin-top:0;margin-bottom:0">
-<div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow" style="flex-basis:70%">
-<h3 class="wp-block-heading has-large-font-size" style="margin-bottom:var(--wp--preset--spacing--20)">Stockage HDS</h3>
-
-
-
-<p class="has-small-font-size"></p>
-</div>
-</div>
-
-
-
-<details class="wp-block-details has-medium-font-size is-layout-flow wp-block-details-is-layout-flow"><summary>Détail de l’adhésion</summary>
-<p></p>
-</details>
-</div>
-</div>
-</div>
+<?php gnl_render_soon_cards(); ?>
 
 
 
