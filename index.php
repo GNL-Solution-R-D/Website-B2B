@@ -43,7 +43,7 @@ function gnl_fetch_from_webhook() {
         ));
         $body = curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        unset($ch);
         if ($body !== false && $code >= 200 && $code < 300) {
             return gnl_decode_rows($body);
         }
