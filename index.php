@@ -654,11 +654,11 @@ window.SureCartAffiliatesConfig = {
 .gnl-cat{margin-top:var(--wp--preset--spacing--40,2rem)}
 .gnl-cat-title{margin:0 0 var(--wp--preset--spacing--20,1rem);font-weight:600;line-height:1.2}
 .gnl-carousel{position:relative}
-.gnl-track{box-sizing:border-box;list-style:none;margin:0;padding:2px 0;display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 60px)/3);gap:30px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-ms-overflow-style:none}
+.gnl-track{box-sizing:border-box;list-style:none;margin:0;padding:2px 0;display:flex!important;flex-wrap:nowrap!important;grid-template-columns:none!important;gap:30px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;-ms-overflow-style:none}
 .gnl-track::-webkit-scrollbar{display:none}
-.gnl-track>li.sc-product-item{scroll-snap-align:start;min-width:0}
-@media(max-width:900px){.gnl-track{grid-auto-columns:calc((100% - 30px)/2)}}
-@media(max-width:600px){.gnl-track{grid-auto-columns:100%}}
+.gnl-track>li.sc-product-item{flex:0 0 calc((100% - 60px)/3);max-width:calc((100% - 60px)/3);scroll-snap-align:start;min-width:0}
+@media(max-width:900px){.gnl-track>li.sc-product-item{flex-basis:calc((100% - 30px)/2);max-width:calc((100% - 30px)/2)}}
+@media(max-width:600px){.gnl-track>li.sc-product-item{flex-basis:100%;max-width:100%}}
 .gnl-nav{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-top:var(--wp--preset--spacing--20,1rem)}
 .gnl-nav[hidden]{display:none!important}
 .gnl-prev,.gnl-next{cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:inherit;line-height:0;-webkit-user-select:none;user-select:none;transition:opacity .15s ease}
@@ -685,6 +685,7 @@ document.addEventListener('DOMContentLoaded',function(){
     [prev,next].forEach(function(b){b.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();b.click();}});});
     track.addEventListener('scroll',function(){window.requestAnimationFrame(update);},{passive:true});
     window.addEventListener('resize',update);
+    window.addEventListener('load',update);
     update();
   });
 });
