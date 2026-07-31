@@ -299,8 +299,8 @@ function gnl_render_category($type, $categorie, $title) {
     echo '</ul>' . "\n";
     echo '</div>' . "\n";
     echo '<div class="gnl-nav" hidden>' . "\n";
-    echo '<a class="gnl-prev has-arrow-type-chevron wp-block-surecart-product-pagination-previous" role="button" tabindex="0" aria-label="Voir les précédents" aria-disabled="true">' . $chevronPrev . '</a>' . "\n";
-    echo '<a class="gnl-next has-arrow-type-chevron wp-block-surecart-product-pagination-next" role="button" tabindex="0" aria-label="Voir les suivants">' . $chevronNext . '</a>' . "\n";
+    echo '<a class="gnl-prev" role="button" tabindex="0" aria-label="Voir les précédents" aria-disabled="true">' . $chevronPrev . '</a>' . "\n";
+    echo '<a class="gnl-next" role="button" tabindex="0" aria-label="Voir les suivants">' . $chevronNext . '</a>' . "\n";
     echo '</div>' . "\n";
     echo '</div></div>' . "\n";
 }
@@ -663,8 +663,9 @@ window.SureCartAffiliatesConfig = {
 @media(max-width:600px){.gnl-track>li{flex-basis:100%;max-width:100%}}
 .gnl-nav{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-top:var(--wp--preset--spacing--20,1rem)}
 .gnl-nav[hidden]{display:none!important}
-.gnl-prev,.gnl-next{cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:inherit;line-height:0;-webkit-user-select:none;user-select:none;transition:opacity .15s ease}
-.gnl-prev[aria-disabled="true"],.gnl-next[aria-disabled="true"]{opacity:.3;cursor:default;pointer-events:none}
+.gnl-prev,.gnl-next{position:relative;z-index:2;cursor:pointer;pointer-events:auto!important;display:inline-flex;align-items:center;justify-content:center;color:inherit;line-height:0;-webkit-user-select:none;user-select:none;transition:opacity .15s ease}
+.gnl-prev svg,.gnl-next svg{pointer-events:none}
+.gnl-prev[aria-disabled="true"],.gnl-next[aria-disabled="true"]{opacity:.3;cursor:default;pointer-events:none!important}
 .wp-block-surecart-product-list>.wp-block-surecart-product-pagination{display:none!important}
 </style>
 <script id="gnl-carousel-js">
