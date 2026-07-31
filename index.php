@@ -219,7 +219,7 @@ function gnl_render_pro_card($p) {
 
     echo <<<HTML
 		<li class="sc-product-item sc-has-animation-fade-up">
-			<a class="sc-product-item-link" href="products/{$slug}/">
+			<a class="sc-product-item-link" href="/product-configuration?slug={$slug}">
 <div class="wp-block-group has-border-color has-base-background-color has-background is-layout-flow wp-container-core-group-is-layout-ade1e76d wp-block-group-is-layout-flow wp-container-content-9cfa9a5a" style="border-color:color-mix(in srgb, currentColor 20%, transparent);border-width:1px;border-top-left-radius:3px;border-top-right-radius:3px;border-bottom-left-radius:3px;border-bottom-right-radius:3px;padding-top:var(--wp--preset--spacing--20);padding-right:var(--wp--preset--spacing--30);padding-bottom:var(--wp--preset--spacing--20);padding-left:var(--wp--preset--spacing--30)">
 <div class="wp-block-group is-layout-grid wp-container-core-group-is-layout-a1cc4303 wp-block-group-is-layout-grid" style="margin-top:0px;margin-bottom:0px;line-height:1">
 <div class="wp-block-group wp-container-content-b4c5012d is-vertical is-layout-flex wp-container-core-group-is-layout-4b827052 wp-block-group-is-layout-flex"><h2 style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.588), 20px);font-style:normal;font-weight:400; margin-bottom:5px;margin-top:0px;" class="wp-block-surecart-product-title" aria-label="{$name}">{$name}</h2>
