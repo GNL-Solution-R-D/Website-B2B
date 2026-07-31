@@ -29,7 +29,7 @@ if (!defined('GNL_CACHE_TTL')) {
 
 /* --- Appel du webhook n8n (POST) -> corps brut de la réponse --------- */
 function gnl_fetch_from_webhook() {
-    $payload = json_encode(array('source' => 'index.php', 'action' => 'list'));
+    $payload = json_encode(array('source' => 'index.php', 'action' => 'product.list'));
 
     if (function_exists('curl_init')) {
         $ch = curl_init(GNL_WEBHOOK_URL);
@@ -168,7 +168,7 @@ function gnl_price($v) {
     if ($v === '' || $v === null) return '';
     $f = (float) str_replace(array(' ', ','), array('', '.'), (string) $v);
     if ($f <= 0) return '';
-    return '€' . number_format($f, 2, ',', ' ');
+    return number_format($f, 2, ',', ' ') . "\xc2\xa0€";
 }
 
 function gnl_desc_html($d) {
@@ -277,6 +277,30 @@ function gnl_render_soon_cards() {
         echo '</div>' . "\n";
     }
     echo '</div>' . "\n";
+}
+
+/* --- Catégorie affichée en carrousel (titre + 3 par vue + flèches) --- */
+function gnl_render_category($type, $categorie, $title) {
+    global $GNL_PRODUCTS;
+    $list = gnl_where($GNL_PRODUCTS, $type, $categorie);
+    if (!$list) return;
+
+    $chevronPrev = '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+    $chevronNext = '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+
+    echo '<div class="gnl-cat">' . "\n";
+    if ((string) $title !== '') {
+        echo '<h3 class="wp-block-heading gnl-cat-title">' . gnl_e($title) . '</h3>' . "\n";
+    }
+    echo '<div class="gnl-carousel">' . "\n";
+    echo '<ul class="wp-block-surecart-product-template wp-container-content-9cfa9a5a gnl-track">' . "\n";
+    foreach ($list as $p) gnl_render_pro_card($p);
+    echo '</ul>' . "\n";
+    echo '<div class="gnl-nav" hidden>' . "\n";
+    echo '<a class="gnl-prev has-arrow-type-chevron wp-block-surecart-product-pagination-previous" role="button" tabindex="0" aria-label="Voir les précédents" aria-disabled="true">' . $chevronPrev . '</a>' . "\n";
+    echo '<a class="gnl-next has-arrow-type-chevron wp-block-surecart-product-pagination-next" role="button" tabindex="0" aria-label="Voir les suivants">' . $chevronNext . '</a>' . "\n";
+    echo '</div>' . "\n";
+    echo '</div></div>' . "\n";
 }
 
 /* --- Chargement effectif ------------------------------------------- */
@@ -626,6 +650,45 @@ window.SureCartAffiliatesConfig = {
 <link rel="icon" href="wp-content/uploads/2025/12/cropped-Sans-titre37-192x192.png" sizes="192x192" />
 <link rel="apple-touch-icon" href="wp-content/uploads/2025/12/cropped-Sans-titre37-180x180.png" />
 <meta name="msapplication-TileImage" content="https://gnl-solution.fr/wp-content/uploads/2025/12/cropped-Sans-titre37-270x270.png" />
+<style id="gnl-carousel-css">
+.gnl-cat{margin-top:var(--wp--preset--spacing--40,2rem)}
+.gnl-cat-title{margin:0 0 var(--wp--preset--spacing--20,1rem);font-weight:600;line-height:1.2}
+.gnl-carousel{position:relative}
+.gnl-track{box-sizing:border-box;list-style:none;margin:0;padding:2px 0;display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 60px)/3);gap:30px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-ms-overflow-style:none}
+.gnl-track::-webkit-scrollbar{display:none}
+.gnl-track>li.sc-product-item{scroll-snap-align:start;min-width:0}
+@media(max-width:900px){.gnl-track{grid-auto-columns:calc((100% - 30px)/2)}}
+@media(max-width:600px){.gnl-track{grid-auto-columns:100%}}
+.gnl-nav{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-top:var(--wp--preset--spacing--20,1rem)}
+.gnl-nav[hidden]{display:none!important}
+.gnl-prev,.gnl-next{cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:inherit;line-height:0;-webkit-user-select:none;user-select:none;transition:opacity .15s ease}
+.gnl-prev[aria-disabled="true"],.gnl-next[aria-disabled="true"]{opacity:.3;cursor:default;pointer-events:none}
+.wp-block-surecart-product-list>.wp-block-surecart-product-pagination{display:none!important}
+</style>
+<script id="gnl-carousel-js">
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.gnl-carousel').forEach(function(car){
+    var track=car.querySelector('.gnl-track'),nav=car.querySelector('.gnl-nav');
+    if(!track||!nav)return;
+    var prev=nav.querySelector('.gnl-prev'),next=nav.querySelector('.gnl-next');
+    function step(){return Math.max(track.clientWidth*0.9,1);}
+    function overflow(){return track.scrollWidth-track.clientWidth>4;}
+    function update(){
+      if(!overflow()){nav.setAttribute('hidden','');return;}
+      nav.removeAttribute('hidden');
+      var x=track.scrollLeft,max=track.scrollWidth-track.clientWidth-2;
+      prev.setAttribute('aria-disabled',x<=2?'true':'false');
+      next.setAttribute('aria-disabled',x>=max?'true':'false');
+    }
+    prev.addEventListener('click',function(e){e.preventDefault();track.scrollBy({left:-step(),behavior:'smooth'});});
+    next.addEventListener('click',function(e){e.preventDefault();track.scrollBy({left:step(),behavior:'smooth'});});
+    [prev,next].forEach(function(b){b.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();b.click();}});});
+    track.addEventListener('scroll',function(){window.requestAnimationFrame(update);},{passive:true});
+    window.addEventListener('resize',update);
+    update();
+  });
+});
+</script>
 </head>
 
 <body class="home wp-singular page-template-default page page-id-6 wp-custom-logo wp-embed-responsive wp-theme-twentytwentyfive surecart-theme-light">
@@ -815,9 +878,7 @@ window.SureCartAffiliatesConfig = {
 >
 	
 
-<ul style="margin-right:0;margin-left:0;" class="wp-block-surecart-product-template wp-container-content-9cfa9a5a is-layout-grid wp-container-surecart-product-template-is-layout-fe22ff3d wp-block-surecart-product-template-is-layout-grid">
-<?php gnl_render_pro_cards(1); ?>
-	</ul>
+<?php gnl_render_category('web_pro', 1, 'PHP'); ?>
 
 
 
@@ -858,9 +919,7 @@ class="has-arrow-type-chevron wp-block-surecart-product-pagination-next" aria-la
 >
 	
 
-<ul class="wp-block-surecart-product-template wp-container-content-9cfa9a5a is-layout-grid wp-container-surecart-product-template-is-layout-b7428002 wp-block-surecart-product-template-is-layout-grid">
-<?php gnl_render_pro_cards(2); ?>
-	</ul>
+<?php gnl_render_category('web_pro', 2, 'WordPress'); ?>
 
 
 
@@ -892,7 +951,7 @@ class="has-arrow-type-chevron wp-block-surecart-product-pagination-next" aria-la
 
 	<div class="sc-block-ui" data-wp-bind--hidden="!state.loading" hidden></div>
 
-<?php gnl_render_pro_grid_block(3); ?>
+<?php gnl_render_category('web_pro', 3, 'DEV'); ?>
 
 </div>
 
@@ -925,9 +984,7 @@ class="has-arrow-type-chevron wp-block-surecart-product-pagination-next" aria-la
 >
 	
 
-<ul class="wp-block-surecart-product-template wp-container-content-9cfa9a5a is-layout-grid wp-container-surecart-product-template-is-layout-b7428002 wp-block-surecart-product-template-is-layout-grid">
-<?php gnl_render_edu_cards(); ?>
-	</ul>
+<?php gnl_render_category('web_edu', null, 'Offres étudiantes'); ?>
 
 
 
