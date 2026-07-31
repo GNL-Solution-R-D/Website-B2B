@@ -1013,6 +1013,7 @@ class="has-arrow-type-chevron wp-block-surecart-product-pagination-next" aria-la
 
 
 
+</div>
 <div class="wp-block-group alignfull is-style-section-4 has-background has-global-padding is-layout-constrained wp-block-group-is-layout-constrained is-style-section-4--4" style="background-color:#009494;min-height:0vh;margin-top:0;margin-bottom:0">
 <div class="wp-block-columns alignfull is-layout-flex wp-container-core-columns-is-layout-28f84493 wp-block-columns-is-layout-flex">
 <div class="wp-block-column is-vertically-aligned-center is-layout-flow wp-block-column-is-layout-flow">
@@ -1176,7 +1177,7 @@ wp.apiFetch.nonceEndpoint = "wp-admin/admin-ajaxf809.html?action=rest-nonce";
 var ea11yWidget = {"iconSettings":{"style":{"icon":"eye","size":"medium","color":"#3065ff","cornerRadius":{"radius":3,"unit":"px"}},"position":{"desktop":{"hidden":false,"enableExactPosition":false,"exactPosition":{"horizontal":{"direction":"right","value":10,"unit":"px"},"vertical":{"direction":"bottom","value":10,"unit":"px"}},"position":"bottom-right"},"mobile":{"hidden":false,"enableExactPosition":false,"exactPosition":{"horizontal":{"direction":"right","value":10,"unit":"px"},"vertical":{"direction":"bottom","value":10,"unit":"px"}},"position":"bottom-right"}}},"toolsSettings":{"bigger-text":{"enabled":true},"bigger-line-height":{"enabled":true},"text-align":{"enabled":true},"readable-font":{"enabled":true},"grayscale":{"enabled":true},"contrast":{"enabled":true},"page-structure":{"enabled":true},"sitemap":{"enabled":false,"url":"https://gnl-solution.fr/wp-sitemap.xml"},"reading-mask":{"enabled":true},"hide-images":{"enabled":true},"pause-animations":{"enabled":true},"highlight-links":{"enabled":true},"focus-outline":{"enabled":true},"screen-reader":{"enabled":false},"remove-elementor-label":{"enabled":false}},"accessibilityStatementURL":"","analytics":{"enabled":false,"url":null}};
 //# sourceURL=ea11y-widget-js-extra
 </script>
-<script src="../cdn.elementor.com/a11y/widgetc77e.js?api_key=ea11y-68734028-9c2f-4c2a-a091-10c4eea21500&amp;ver=4.1.1" id="ea11y-widget-js"referrerPolicy="origin"></script>
+<script src="https://cdn.elementor.com/a11y/widget.js?api_key=ea11y-68734028-9c2f-4c2a-a091-10c4eea21500&amp;ver=4.1.1" id="ea11y-widget-js" referrerpolicy="origin"></script>
 <script id="wp-emoji-settings" type="application/json">
 {"baseUrl":"https://s.w.org/images/core/emoji/17.0.2/72x72/","ext":".png","svgUrl":"https://s.w.org/images/core/emoji/17.0.2/svg/","svgExt":".svg","source":{"concatemoji":"https://gnl-solution.fr/wp-includes/js/wp-emoji-release.min.js?ver=6.9.4"}}
 </script>
