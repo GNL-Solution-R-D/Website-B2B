@@ -293,9 +293,11 @@ function gnl_render_category($type, $categorie, $title) {
         echo '<h3 class="wp-block-heading gnl-cat-title">' . gnl_e($title) . '</h3>' . "\n";
     }
     echo '<div class="gnl-carousel">' . "\n";
-    echo '<ul class="wp-block-surecart-product-template wp-container-content-9cfa9a5a gnl-track">' . "\n";
+    echo '<div class="gnl-viewport">' . "\n";
+    echo '<ul class="gnl-track">' . "\n";
     foreach ($list as $p) gnl_render_pro_card($p);
     echo '</ul>' . "\n";
+    echo '</div>' . "\n";
     echo '<div class="gnl-nav" hidden>' . "\n";
     echo '<a class="gnl-prev has-arrow-type-chevron wp-block-surecart-product-pagination-previous" role="button" tabindex="0" aria-label="Voir les précédents" aria-disabled="true">' . $chevronPrev . '</a>' . "\n";
     echo '<a class="gnl-next has-arrow-type-chevron wp-block-surecart-product-pagination-next" role="button" tabindex="0" aria-label="Voir les suivants">' . $chevronNext . '</a>' . "\n";
@@ -654,11 +656,11 @@ window.SureCartAffiliatesConfig = {
 .gnl-cat{margin-top:var(--wp--preset--spacing--40,2rem)}
 .gnl-cat-title{margin:0 0 var(--wp--preset--spacing--20,1rem);font-weight:600;line-height:1.2}
 .gnl-carousel{position:relative}
-.gnl-track{box-sizing:border-box;list-style:none;margin:0;padding:2px 0;display:flex!important;flex-wrap:nowrap!important;grid-template-columns:none!important;gap:30px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;-ms-overflow-style:none}
-.gnl-track::-webkit-scrollbar{display:none}
-.gnl-track>li.sc-product-item{flex:0 0 calc((100% - 60px)/3);max-width:calc((100% - 60px)/3);scroll-snap-align:start;min-width:0}
-@media(max-width:900px){.gnl-track>li.sc-product-item{flex-basis:calc((100% - 30px)/2);max-width:calc((100% - 30px)/2)}}
-@media(max-width:600px){.gnl-track>li.sc-product-item{flex-basis:100%;max-width:100%}}
+.gnl-viewport{overflow:hidden;width:100%}
+.gnl-track{box-sizing:border-box;list-style:none;margin:0;padding:2px 0;display:flex!important;flex-wrap:nowrap!important;grid-template-columns:none!important;gap:30px;transition:transform .35s ease;will-change:transform}
+.gnl-track>li{flex:0 0 calc((100% - 60px)/3);max-width:calc((100% - 60px)/3);min-width:0;box-sizing:border-box}
+@media(max-width:900px){.gnl-track>li{flex-basis:calc((100% - 30px)/2);max-width:calc((100% - 30px)/2)}}
+@media(max-width:600px){.gnl-track>li{flex-basis:100%;max-width:100%}}
 .gnl-nav{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-top:var(--wp--preset--spacing--20,1rem)}
 .gnl-nav[hidden]{display:none!important}
 .gnl-prev,.gnl-next{cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:inherit;line-height:0;-webkit-user-select:none;user-select:none;transition:opacity .15s ease}
@@ -668,25 +670,28 @@ window.SureCartAffiliatesConfig = {
 <script id="gnl-carousel-js">
 document.addEventListener('DOMContentLoaded',function(){
   document.querySelectorAll('.gnl-carousel').forEach(function(car){
-    var track=car.querySelector('.gnl-track'),nav=car.querySelector('.gnl-nav');
-    if(!track||!nav)return;
+    var track=car.querySelector('.gnl-track'),nav=car.querySelector('.gnl-nav'),vp=car.querySelector('.gnl-viewport');
+    if(!track||!nav||!vp)return;
     var prev=nav.querySelector('.gnl-prev'),next=nav.querySelector('.gnl-next');
-    function step(){return Math.max(track.clientWidth*0.9,1);}
-    function overflow(){return track.scrollWidth-track.clientWidth>4;}
-    function update(){
-      if(!overflow()){nav.setAttribute('hidden','');return;}
-      nav.removeAttribute('hidden');
-      var x=track.scrollLeft,max=track.scrollWidth-track.clientWidth-2;
-      prev.setAttribute('aria-disabled',x<=2?'true':'false');
-      next.setAttribute('aria-disabled',x>=max?'true':'false');
+    var index=0,GAP=30;
+    function slides(){return track.children;}
+    function slideW(){var s=slides()[0];return s?s.getBoundingClientRect().width:vp.clientWidth;}
+    function perView(){var w=slideW();return Math.max(1,Math.round((vp.clientWidth+GAP)/(w+GAP)));}
+    function maxIndex(){return Math.max(0,slides().length-perView());}
+    function apply(){
+      var mi=maxIndex();
+      if(index>mi)index=mi; if(index<0)index=0;
+      track.style.transform='translateX(-'+(index*(slideW()+GAP))+'px)';
+      if(mi<=0){nav.setAttribute('hidden','');}else{nav.removeAttribute('hidden');}
+      prev.setAttribute('aria-disabled',index<=0?'true':'false');
+      next.setAttribute('aria-disabled',index>=mi?'true':'false');
     }
-    prev.addEventListener('click',function(e){e.preventDefault();track.scrollBy({left:-step(),behavior:'smooth'});});
-    next.addEventListener('click',function(e){e.preventDefault();track.scrollBy({left:step(),behavior:'smooth'});});
+    prev.addEventListener('click',function(e){e.preventDefault();index--;apply();});
+    next.addEventListener('click',function(e){e.preventDefault();index++;apply();});
     [prev,next].forEach(function(b){b.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();b.click();}});});
-    track.addEventListener('scroll',function(){window.requestAnimationFrame(update);},{passive:true});
-    window.addEventListener('resize',update);
-    window.addEventListener('load',update);
-    update();
+    window.addEventListener('resize',function(){index=0;apply();});
+    window.addEventListener('load',apply);
+    apply();
   });
 });
 </script>
