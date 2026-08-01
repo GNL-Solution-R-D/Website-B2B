@@ -32,7 +32,11 @@ if (!defined('KEYCLOAK_CLIENT_ID'))    define('KEYCLOAK_CLIENT_ID', gnl_env('KEY
 if (!defined('KEYCLOAK_CLIENT_SECRET'))define('KEYCLOAK_CLIENT_SECRET', gnl_env('KEYCLOAK_CLIENT_SECRET', ''));
 if (!defined('KEYCLOAK_REDIRECT_URI')) define('KEYCLOAK_REDIRECT_URI', gnl_env('KEYCLOAK_REDIRECT_URI', 'https://beta.gnl-solution.fr/keycloak_callback.php'));
 if (!defined('KEYCLOAK_POST_LOGOUT'))  define('KEYCLOAK_POST_LOGOUT', gnl_env('KEYCLOAK_POST_LOGOUT_REDIRECT_URI', 'https://beta.gnl-solution.fr/connexion'));
-if (!defined('KEYCLOAK_SCOPES'))       define('KEYCLOAK_SCOPES', gnl_env('KEYCLOAK_SCOPES', 'openid profile email phone entreprise organization'));
+// Scopes demandés. On reste minimal par défaut (les mappers custom d'un scope
+// peuvent faire échouer la génération du jeton -> 'unknown_error' chez Keycloak).
+// Pour récupérer civilité/téléphone/entreprise/organisation, ajoutez-les via la
+// variable d'env KEYCLOAK_SCOPES, un par un, ex. "openid profile email phone entreprise organization".
+if (!defined('KEYCLOAK_SCOPES'))       define('KEYCLOAK_SCOPES', gnl_env('KEYCLOAK_SCOPES', 'openid profile email'));
 
 define('KC_OIDC', rtrim(KEYCLOAK_ISSUER, '/') . '/protocol/openid-connect');
 
