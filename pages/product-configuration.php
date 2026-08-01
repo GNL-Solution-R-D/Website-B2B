@@ -42,7 +42,7 @@ if (!defined('OVH_SUBSIDIARY'))   define('OVH_SUBSIDIARY', 'FR');
 
 /* ---------- Récupération webhook n8n (POST) ------------------------- */
 function gnl_fetch_from_webhook($action) {
-    $payload = json_encode(array('source' => 'product-configuration.php', 'action' => $action));
+    $payload = json_encode(array('source' => 'product-configuration', 'action' => $action));
     if (function_exists('curl_init')) {
         $ch = curl_init(GNL_WEBHOOK_URL);
         curl_setopt_array($ch, array(
@@ -869,11 +869,11 @@ document.addEventListener('DOMContentLoaded',function(){
 
 <?php if (!$product): ?>
 
-  <p class="gnl-breadcrumb"><a href="index.php">Accueil</a> &rsaquo; Configuration</p>
+  <p class="gnl-breadcrumb"><a href="./">Accueil</a> &rsaquo; Configuration</p>
   <div class="gnl-empty">
     <h2 style="margin-top:0">Offre introuvable</h2>
     <p>Nous n'avons pas retrouvé l'offre demandée. Elle a peut-être été retirée du catalogue.</p>
-    <p><a class="gnl-cta" style="display:inline-block;width:auto;text-decoration:none" href="index.php">Retour à la boutique</a></p>
+    <p><a class="gnl-cta" style="display:inline-block;width:auto;text-decoration:none" href="./">Retour à la boutique</a></p>
   </div>
 
 <?php else:
@@ -888,7 +888,7 @@ document.addEventListener('DOMContentLoaded',function(){
     );
 ?>
 
-  <p class="gnl-breadcrumb"><a href="index.php">Accueil</a> &rsaquo; Configuration &rsaquo; <?php echo $name; ?></p>
+  <p class="gnl-breadcrumb"><a href="./">Accueil</a> &rsaquo; Configuration &rsaquo; <?php echo $name; ?></p>
   <h1 class="gnl-config-title">Configurez votre offre</h1>
   <p class="gnl-config-sub">Ajustez les options puis validez votre commande.</p>
 
@@ -974,7 +974,7 @@ document.addEventListener('DOMContentLoaded',function(){
           <input type="hidden" name="config"  id="gnl-config-field" value="">
           <button type="submit" class="gnl-cta">Valider la commande</button>
         </form>
-        <a class="gnl-back" href="index.php">&larr; Choisir une autre offre</a>
+        <a class="gnl-back" href="./">&larr; Choisir une autre offre</a>
       </div>
     </aside>
 
