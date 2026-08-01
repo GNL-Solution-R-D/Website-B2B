@@ -1,4 +1,5 @@
 <?php
+ob_start(); // tampon de sortie : un avis PHP ne doit jamais casser une redirection/session
 /* =====================================================================
    GNL Solution — SSO Keycloak (connexion / callback / déconnexion)
    Fichier : keycloak_callback.php   (à placer à la RACINE du site,
@@ -97,7 +98,8 @@ function gnl_kc_post($url, $fields) {
             'content' => $body, 'timeout' => 12, 'ignore_errors' => true,
         )));
         $raw = @file_get_contents($url, false, $ctx);
-        if (isset($http_response_header[0]) && preg_match('~\s(\d{3})\s~', $http_response_header[0], $m)) $status = (int) $m[1];
+        // PHP 8.5 : $http_response_header est déprécié -> on n'analyse pas le code HTTP ici.
+        // Le corps JSON d'erreur de Keycloak (error/error_description) suffit au diagnostic.
         if ($raw === false) return array('_status' => 0, '_transport' => 'stream_failed');
     }
     $json = json_decode($raw, true);
