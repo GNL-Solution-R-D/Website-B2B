@@ -236,7 +236,7 @@ function ovh_request($method, $path, $body = null) {
     if ($bodyStr !== '') curl_setopt($ch, CURLOPT_POSTFIELDS, $bodyStr);
     $resp = curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    unset($ch); // curl_close() deprecie depuis PHP 8.5, sans effet depuis 8.0
     if ($resp === false) return array('_error' => 'network');
     $json = json_decode($resp, true);
     if ($code < 200 || $code >= 300) return array('_error' => 'http_' . $code, 'detail' => $json);
