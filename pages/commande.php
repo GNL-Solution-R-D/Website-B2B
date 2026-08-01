@@ -382,7 +382,7 @@ foreach ($cartRaw as $ci) {
 $view = 'form';
 $errors = array();
 $done = false; $orderRef = ''; $orderSent = false; $mollieError = false;
-$client = array('civilite'=>'','prenom'=>'','nom'=>'','email'=>'','tel'=>'','raison_social'=>'','nom_commercial'=>'','siret'=>'','siren'=>'','ent_email'=>'','organization'=>'','message'=>'');
+$client = array('civilite'=>'','prenom'=>'','nom'=>'','email'=>'','tel'=>'','raison_social'=>'','nom_commercial'=>'','entite_legal'=>'','siret'=>'','siren'=>'','tva'=>'','ent_email'=>'','adr_voie'=>'','adr_cp'=>'','adr_ville'=>'','adr_pays'=>'','organization'=>'','message'=>'');
 
 /* -- Retour Mollie : affichage du statut ---------------------------- */
 $order = null; $payStatus = '';
@@ -409,14 +409,17 @@ if ($view === 'form' && !$gnlUser) {
 }
 if ($gnlUser) {
     $prefill = array(
-        'civilite' => 'civilite', 'prenom' => 'given_name', 'nom' => 'family_name',
-        'email' => 'email', 'tel' => 'phone', 'raison_social' => 'raison_social',
-        'nom_commercial' => 'nom_commercial', 'siret' => 'siret', 'siren' => 'siren',
-        'ent_email' => 'ent_email', 'organization' => 'organization',
+        'civilite' => 'civilite', 'prenom' => 'given_name', 'nom' => 'family_name', 'email' => 'email',
+        'raison_social' => 'raison_social', 'nom_commercial' => 'nom_commercial', 'entite_legal' => 'entite_legal',
+        'siret' => 'siret', 'siren' => 'siren', 'tva' => 'tva', 'ent_email' => 'ent_email',
+        'adr_voie' => 'adr_voie', 'adr_cp' => 'adr_cp', 'adr_ville' => 'adr_ville', 'adr_pays' => 'adr_pays',
+        'organization' => 'organization',
     );
     foreach ($prefill as $field => $claim) {
         if ($client[$field] === '' && !empty($gnlUser[$claim])) $client[$field] = (string) $gnlUser[$claim];
     }
+    // Téléphone : celui de l'utilisateur, sinon celui de l'entreprise
+    if ($client['tel'] === '') $client['tel'] = !empty($gnlUser['phone']) ? (string) $gnlUser['phone'] : (!empty($gnlUser['ent_phone']) ? (string) $gnlUser['ent_phone'] : '');
 }
 
 /* =================== Étape de confirmation ========================= */
@@ -1248,9 +1251,13 @@ function gnl_render_recap_from_order($order) {
               <label>Raison sociale</label>
               <input type="text" name="raison_social" value="<?php echo gnl_e($client['raison_social']); ?>" autocomplete="organization">
             </div>
-            <div class="gnl-field gnl-col2">
+            <div class="gnl-field">
               <label>Nom commercial</label>
               <input type="text" name="nom_commercial" value="<?php echo gnl_e($client['nom_commercial']); ?>">
+            </div>
+            <div class="gnl-field">
+              <label>Forme juridique</label>
+              <input type="text" name="entite_legal" value="<?php echo gnl_e($client['entite_legal']); ?>">
             </div>
             <div class="gnl-field">
               <label>SIRET</label>
@@ -1260,9 +1267,29 @@ function gnl_render_recap_from_order($order) {
               <label>SIREN</label>
               <input type="text" name="siren" value="<?php echo gnl_e($client['siren']); ?>" inputmode="numeric">
             </div>
-            <div class="gnl-field gnl-col2">
+            <div class="gnl-field">
+              <label>N° TVA intracom.</label>
+              <input type="text" name="tva" value="<?php echo gnl_e($client['tva']); ?>">
+            </div>
+            <div class="gnl-field">
               <label>E-mail de facturation</label>
               <input type="email" name="ent_email" value="<?php echo gnl_e($client['ent_email']); ?>">
+            </div>
+            <div class="gnl-field gnl-col2">
+              <label>Adresse</label>
+              <input type="text" name="adr_voie" value="<?php echo gnl_e($client['adr_voie']); ?>" autocomplete="street-address">
+            </div>
+            <div class="gnl-field">
+              <label>Code postal</label>
+              <input type="text" name="adr_cp" value="<?php echo gnl_e($client['adr_cp']); ?>" autocomplete="postal-code">
+            </div>
+            <div class="gnl-field">
+              <label>Ville</label>
+              <input type="text" name="adr_ville" value="<?php echo gnl_e($client['adr_ville']); ?>" autocomplete="address-level2">
+            </div>
+            <div class="gnl-field gnl-col2">
+              <label>Pays</label>
+              <input type="text" name="adr_pays" value="<?php echo gnl_e($client['adr_pays']); ?>" autocomplete="country-name">
             </div>
             <?php if ($client['organization'] !== ''): ?>
             <div class="gnl-field gnl-col2">
