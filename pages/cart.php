@@ -902,7 +902,8 @@ document.addEventListener('DOMContentLoaded',function(){
           <div class="gnl-sum-total" style="font-size:.98rem;font-weight:600"><span>Frais uniques</span><span><?php echo gnl_money($cartOnce); ?></span></div>
         <?php endif; ?>
 
-        <a class="gnl-cta" style="text-decoration:none" href="commande">Passer la commande</a>
+        <?php $gnlUser = (isset($_SESSION['gnl_user']) && is_array($_SESSION['gnl_user'])) ? $_SESSION['gnl_user'] : null; ?>
+        <a class="gnl-cta" style="text-decoration:none" href="commande"><?php echo $gnlUser ? 'Passer la commande' : 'Se connecter et commander'; ?></a>
         <a class="gnl-back" href="./">&larr; Retour à la boutique</a>
       </div>
     </aside>
