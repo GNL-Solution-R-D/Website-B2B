@@ -229,7 +229,7 @@ function gnl_mollie_request($method, $path, $body = null) {
     if ($body !== null) curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
     $resp = curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    unset($ch); // curl_close() est déprécié depuis PHP 8.5 et sans effet depuis 8.0
     if ($resp === false) return array('_error' => 'network');
     $json = json_decode($resp, true);
     if ($code < 200 || $code >= 300) return array('_error' => 'http_' . $code, 'detail' => $json);
