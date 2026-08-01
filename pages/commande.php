@@ -258,7 +258,7 @@ function gnl_mollie_start(&$order) {
 
     $pay = gnl_mollie_request('POST', '/payments', array(
         'amount'       => gnl_amount($first),
-        'description'  => 'Commande ' . $order['reference'] . ' - ' . $order['produit']['name'],
+        'description'  => 'Commande ' . $order['reference'],
         'redirectUrl'  => gnl_self_url('mollie=return&ref=' . rawurlencode($order['reference'])),
         'webhookUrl'   => gnl_self_url('mollie=webhook'),
         'customerId'   => $customerId,
@@ -291,7 +291,7 @@ if (isset($_GET['mollie']) && $_GET['mollie'] === 'webhook') {
             if (($p['status'] ?? '') === 'paid' && empty($order['subscription_id'])
                 && !empty($order['recurring_amount']) && (float) $order['recurring_amount'] > 0
                 && !empty($p['customerId'])) {
-                $sub = gnl_mollie_create_subscription($p['customerId'], $order['recurring_amount'], 'Abonnement ' . $order['produit']['name'] . ' - ' . $ref);
+                $sub = gnl_mollie_create_subscription($p['customerId'], $order['recurring_amount'], 'Abonnement GNL Solution - ' . $ref);
                 if (is_array($sub) && !empty($sub['id'])) $order['subscription_id'] = $sub['id'];
             }
             gnl_store_order($order);
@@ -314,38 +314,69 @@ if (isset($_GET['mollie']) && $_GET['mollie'] === 'retry' && isset($_GET['ref'])
     header('Location: ' . gnl_self_url('mollie=return&ref=' . rawurlencode((string) $_GET['ref']))); exit;
 }
 
-/* =================== Lecture de la configuration (POST) ============= */
-$rawConfig = isset($_POST['config']) ? (string) $_POST['config'] : '';
-$cfg = json_decode($rawConfig, true);
-if (!is_array($cfg)) $cfg = array();
+/* =================== Panier (session) + résolution des lignes ======= */
+if (session_status() === PHP_SESSION_NONE) session_start();
 
-$slug = isset($_POST['produit']) ? trim($_POST['produit'])
-      : (isset($cfg['produit']) ? trim((string) $cfg['produit'])
-      : (isset($_GET['produit']) ? trim($_GET['produit']) : ''));
+function gnl_cart_get()   { return (isset($_SESSION['gnl_cart']) && is_array($_SESSION['gnl_cart'])) ? $_SESSION['gnl_cart'] : array(); }
+function gnl_cart_clear() { unset($_SESSION['gnl_cart']); }
+
+/* Résout une ligne de panier -> prix TOUJOURS recalculés côté serveur */
+function gnl_resolve_line($item, $productsIndex, $optIndex) {
+    $slug = isset($item['slug']) ? (string) $item['slug'] : '';
+    if ($slug === '' || !isset($productsIndex[$slug])) return null;
+    $p = $productsIndex[$slug];
+    $qty = isset($item['qty']) ? max(1, (int) $item['qty']) : 1;
+    $opts = array(); $monthly = gnl_num($p['prix']); $once = 0.0;
+    if (!empty($item['options']) && is_array($item['options'])) {
+        foreach ($item['options'] as $os) {
+            $os = strtolower((string) $os);
+            if (isset($optIndex[$os])) { $o = $optIndex[$os]; $opts[] = $o; if ($o['unique']) $once += $o['prix']; else $monthly += $o['prix']; }
+        }
+    }
+    $dom = null;
+    if (!empty($item['domaine']['name'])) {
+        $dn = preg_replace('/[^a-z0-9.\-]/', '', strtolower((string) $item['domaine']['name']));
+        if ($dn !== '') $dom = array('name' => $dn, 'price' => isset($item['domaine']['price']) ? (string) $item['domaine']['price'] : '');
+    }
+    return array(
+        'id' => isset($item['id']) ? $item['id'] : uniqid('ci_'),
+        'product' => $p, 'options' => $opts, 'domaine' => $dom, 'qty' => $qty,
+        'monthly' => $monthly, 'once' => $once,
+        'line_monthly' => $monthly * $qty, 'line_once' => $once * $qty,
+    );
+}
 
 $GNL_PRODUCTS = gnl_load_products();
-$product = null;
-foreach ($GNL_PRODUCTS as $p) { if ($slug !== '' && $p['slug'] === $slug) { $product = $p; break; } }
+$productsIndex = array();
+foreach ($GNL_PRODUCTS as $p) $productsIndex[$p['slug']] = $p;
 
 $OPT_CATALOG = gnl_load_options();
 $optIndex = array();
 foreach ($OPT_CATALOG as $o) $optIndex[$o['slug']] = $o;
 
-$selected = array();
-if (!empty($cfg['options']) && is_array($cfg['options'])) {
-    foreach ($cfg['options'] as $oslug => $ignored) {
-        $oslug = strtolower((string) $oslug);
-        if (isset($optIndex[$oslug])) $selected[] = $optIndex[$oslug];
+/* Source : panier de session, sinon config unique postée (achat direct) */
+$cartRaw = gnl_cart_get();
+if (!$cartRaw) {
+    $rawConfig = isset($_POST['config']) ? (string) $_POST['config'] : '';
+    $cfg = json_decode($rawConfig, true);
+    $slug = isset($_POST['produit']) ? trim($_POST['produit'])
+          : ((is_array($cfg) && isset($cfg['produit'])) ? trim((string) $cfg['produit'])
+          : (isset($_GET['produit']) ? trim($_GET['produit']) : ''));
+    if ($slug !== '' && isset($productsIndex[$slug])) {
+        $cartRaw = array(array(
+            'slug'    => $slug,
+            'options' => (is_array($cfg) && !empty($cfg['options']) && is_array($cfg['options'])) ? array_keys($cfg['options']) : array(),
+            'domaine' => (is_array($cfg) && !empty($cfg['domaine'])) ? $cfg['domaine'] : null,
+            'qty'     => 1,
+        ));
     }
 }
-$domain = null;
-if (!empty($cfg['domaine']) && is_array($cfg['domaine']) && !empty($cfg['domaine']['name'])) {
-    $dn = preg_replace('/[^a-z0-9.\-]/', '', strtolower((string) $cfg['domaine']['name']));
-    if ($dn !== '') $domain = array('name' => $dn, 'price' => isset($cfg['domaine']['price']) ? (string) $cfg['domaine']['price'] : '');
+
+$items = array(); $cartMonthly = 0.0; $cartOnce = 0.0;
+foreach ($cartRaw as $ci) {
+    $line = gnl_resolve_line($ci, $productsIndex, $optIndex);
+    if ($line) { $items[] = $line; $cartMonthly += $line['line_monthly']; $cartOnce += $line['line_once']; }
 }
-$monthly = $product ? gnl_num($product['prix']) : 0.0;
-$oneTime = 0.0;
-foreach ($selected as $o) { if ($o['unique']) $oneTime += $o['prix']; else $monthly += $o['prix']; }
 
 /* =================== Vue par défaut ================================ */
 $view = 'form';
@@ -370,7 +401,7 @@ if (isset($_GET['mollie']) && $_GET['mollie'] === 'return' && isset($_GET['ref']
 }
 
 /* =================== Étape de confirmation ========================= */
-if ($view === 'form' && $product && (isset($_POST['step']) && $_POST['step'] === 'confirm')) {
+if ($view === 'form' && !empty($items) && (isset($_POST['step']) && $_POST['step'] === 'confirm')) {
     foreach (array_keys($client) as $k) { if (isset($_POST[$k])) $client[$k] = trim((string) $_POST[$k]); }
     if ($client['prenom'] === '') $errors['prenom'] = true;
     if ($client['nom'] === '')    $errors['nom'] = true;
@@ -382,20 +413,33 @@ if ($view === 'form' && $product && (isset($_POST['step']) && $_POST['step'] ===
         catch (Exception $e) { $rand = strtoupper(substr(md5(uniqid('', true)), 0, 6)); }
         $orderRef = 'GNL-' . date('Ymd') . '-' . $rand;
 
-        $optOut = array();
-        foreach ($selected as $o) $optOut[] = array('slug'=>$o['slug'], 'name'=>$o['name'], 'prix'=>$o['prix'], 'unique'=>$o['unique']);
+        $orderItems = array();
+        foreach ($items as $it) {
+            $optOut = array();
+            foreach ($it['options'] as $o) $optOut[] = array('slug'=>$o['slug'], 'name'=>$o['name'], 'prix'=>$o['prix'], 'unique'=>$o['unique']);
+            $orderItems[] = array(
+                'slug'         => $it['product']['slug'],
+                'name'         => $it['product']['name'],
+                'prix_mensuel' => gnl_num($it['product']['prix']),
+                'qty'          => $it['qty'],
+                'options'      => $optOut,
+                'domaine'      => $it['domaine'],
+                'line_monthly' => round($it['line_monthly'], 2),
+                'line_once'    => round($it['line_once'], 2),
+            );
+        }
 
         $order = array(
             'reference' => $orderRef, 'date' => date('c'), 'payment_status' => 'created',
-            'produit'   => array('slug'=>$product['slug'], 'name'=>$product['name'], 'prix_mensuel'=>gnl_num($product['prix'])),
-            'options'   => $optOut, 'domaine' => $domain, 'client' => $client,
-            'totaux'    => array('mensuel'=>round($monthly,2), 'frais_unique'=>round($oneTime,2), 'devise'=>'EUR'),
-            'recurring_amount' => round($monthly, 2),
+            'items'     => $orderItems, 'client' => $client,
+            'totaux'    => array('mensuel'=>round($cartMonthly,2), 'frais_unique'=>round($cartOnce,2), 'devise'=>'EUR'),
+            'recurring_amount' => round($cartMonthly, 2),
         );
         gnl_store_order($order);
         $orderSent = gnl_send_order(array_merge(array('action'=>'order.create'), $order));
+        gnl_cart_clear(); // le panier devient une commande
 
-        if (gnl_mollie_enabled() && ($monthly > 0 || $oneTime > 0)) {
+        if (gnl_mollie_enabled() && ($cartMonthly > 0 || $cartOnce > 0)) {
             $r = gnl_mollie_start($order);
             if (!empty($r['checkout'])) { header('Location: ' . $r['checkout']); exit; }
             // Échec de création du paiement : confirmation dégradée
@@ -1006,16 +1050,21 @@ document.addEventListener('DOMContentLoaded',function(){
 function gnl_render_recap_from_order($order) {
     if (!$order) return;
     echo '<ul class="gnl-sum-lines">';
-    echo '<li class="gnl-sum-base"><span>' . gnl_e($order['produit']['name']) . '</span><span>' . gnl_money($order['produit']['prix_mensuel']) . ' / mois</span></li>';
-    if (!empty($order['options'])) {
-        foreach ($order['options'] as $o) {
-            $val = ($o['prix'] > 0) ? ('+ ' . gnl_money($o['prix'])) : 'incluse';
-            echo '<li><span>' . gnl_e($o['name']) . ($o['unique'] ? ' (unique)' : '') . '</span><span>' . $val . '</span></li>';
+    if (!empty($order['items'])) {
+        foreach ($order['items'] as $it) {
+            $qty = isset($it['qty']) ? (int) $it['qty'] : 1;
+            echo '<li class="gnl-sum-base"><span>' . gnl_e($it['name']) . ($qty > 1 ? ' &times;' . $qty : '') . '</span><span>' . gnl_money($it['prix_mensuel']) . ' / mois</span></li>';
+            if (!empty($it['options'])) {
+                foreach ($it['options'] as $o) {
+                    $val = ($o['prix'] > 0) ? ('+ ' . gnl_money($o['prix'])) : 'incluse';
+                    echo '<li><span style="padding-left:.9rem;opacity:.85">&#8627; ' . gnl_e($o['name']) . ($o['unique'] ? ' (unique)' : '') . '</span><span>' . $val . '</span></li>';
+                }
+            }
+            if (!empty($it['domaine']['name'])) {
+                $dp = ($it['domaine']['price'] !== '') ? gnl_e($it['domaine']['price']) : '—';
+                echo '<li><span style="padding-left:.9rem;opacity:.85">&#8627; Domaine&nbsp;: ' . gnl_e($it['domaine']['name']) . '</span><span>' . $dp . '</span></li>';
+            }
         }
-    }
-    if (!empty($order['domaine']['name'])) {
-        $dp = ($order['domaine']['price'] !== '') ? gnl_e($order['domaine']['price']) : '—';
-        echo '<li><span>Domaine&nbsp;: ' . gnl_e($order['domaine']['name']) . '</span><span>' . $dp . '</span></li>';
     }
     echo '</ul>';
     echo '<div class="gnl-sum-total"><span>Total mensuel</span><span>' . gnl_money($order['totaux']['mensuel']) . '</span></div>';
@@ -1052,7 +1101,7 @@ function gnl_render_recap_from_order($order) {
 
       <p style="opacity:.85">
         <?php if ($paid): ?>
-          Votre offre <strong><?php echo gnl_e($order['produit']['name']); ?></strong> est en cours de mise en service.
+          Votre commande est en cours de mise en service.
           <?php if (!empty($order['recurring_amount']) && $order['recurring_amount'] > 0): ?>
             Votre abonnement mensuel est activé&nbsp;; le prélèvement se renouvellera automatiquement chaque mois.
           <?php endif; ?>
@@ -1073,17 +1122,17 @@ function gnl_render_recap_from_order($order) {
           <a class="gnl-btn" href="./">Retour à la boutique</a>
         <?php else: ?>
           <a class="gnl-btn primary" href="commande?mollie=retry&amp;ref=<?php echo rawurlencode($order['reference']); ?>">Réessayer le paiement</a>
-          <a class="gnl-btn" href="product-configuration?slug=<?php echo gnl_e($order['produit']['slug']); ?>">Modifier ma commande</a>
+          <a class="gnl-btn" href="./">Retour à la boutique</a>
         <?php endif; ?>
       </div>
     <?php endif; ?>
   </div>
 
-<?php elseif (!$product): ?>
+<?php elseif (empty($items)): ?>
 
-  <p class="gnl-breadcrumb"><a href="./">Accueil</a> &rsaquo; Commande</p>
+  <p class="gnl-breadcrumb"><a href="./">Accueil</a> &rsaquo; Panier</p>
   <div class="gnl-empty">
-    <h2 style="margin-top:0">Votre commande est vide</h2>
+    <h2 style="margin-top:0">Votre panier est vide</h2>
     <p>Aucune offre à valider. Choisissez une offre pour commencer votre commande.</p>
     <p><a class="gnl-btn primary" style="text-decoration:none" href="./">Voir les offres</a></p>
   </div>
@@ -1116,7 +1165,7 @@ function gnl_render_recap_from_order($order) {
     $ctaLabel  = $mollieOn ? 'Payer en ligne' : 'Confirmer la commande';
 ?>
 
-  <p class="gnl-breadcrumb"><a href="./">Accueil</a> &rsaquo; <a href="product-configuration?slug=<?php echo gnl_e($product['slug']); ?>">Configuration</a> &rsaquo; Commande</p>
+  <p class="gnl-breadcrumb"><a href="./">Accueil</a> &rsaquo; <a href="cart">Panier</a> &rsaquo; Commande</p>
   <h1 class="gnl-config-title">Finalisez votre commande</h1>
   <p class="gnl-steps"><span>1. Configuration</span> &rsaquo; <b>2. Récapitulatif &amp; coordonnées</b> &rsaquo; <span>3. Paiement</span></p>
 
@@ -1127,9 +1176,7 @@ function gnl_render_recap_from_order($order) {
   <?php endif; ?>
 
   <form method="post" action="commande" id="gnl-order">
-    <input type="hidden" name="produit" value="<?php echo gnl_e($product['slug']); ?>">
-    <input type="hidden" name="config"  value="<?php echo gnl_e($rawConfig); ?>">
-    <input type="hidden" name="step"    value="confirm">
+    <input type="hidden" name="step" value="confirm">
 
     <div class="gnl-layout">
 
@@ -1183,30 +1230,33 @@ function gnl_render_recap_from_order($order) {
         <div class="gnl-summary">
           <h3>Votre commande</h3>
           <ul class="gnl-sum-lines">
-            <li class="gnl-sum-base">
-              <span><?php echo gnl_e($product['name']); ?> <?php echo gnl_flag($product['flag']); ?></span>
-              <span><?php echo gnl_money(gnl_num($product['prix'])); ?></span>
-            </li>
-            <?php foreach ($selected as $o): ?>
-              <li>
-                <span><?php echo gnl_e($o['name']); ?><?php echo $o['unique'] ? ' <small style="opacity:.7">(unique)</small>' : ''; ?></span>
-                <span><?php echo $o['prix'] > 0 ? '+ ' . gnl_money($o['prix']) : 'incluse'; ?></span>
+            <?php foreach ($items as $it): $pp = $it['product']; ?>
+              <li class="gnl-sum-base">
+                <span><?php echo gnl_e($pp['name']); ?> <?php echo gnl_flag($pp['flag']); ?><?php if ($it['qty'] > 1) echo ' &times;' . (int) $it['qty']; ?></span>
+                <span><?php echo gnl_money(gnl_num($pp['prix'])); ?></span>
               </li>
+              <?php foreach ($it['options'] as $o): ?>
+                <li>
+                  <span style="padding-left:.9rem;opacity:.85">&#8627; <?php echo gnl_e($o['name']); ?><?php echo $o['unique'] ? ' <small style="opacity:.7">(unique)</small>' : ''; ?></span>
+                  <span><?php echo $o['prix'] > 0 ? '+ ' . gnl_money($o['prix']) : 'incluse'; ?></span>
+                </li>
+              <?php endforeach; ?>
+              <?php if ($it['domaine']): ?>
+                <li><span style="padding-left:.9rem;opacity:.85">&#8627; Domaine&nbsp;: <?php echo gnl_e($it['domaine']['name']); ?></span><span><?php echo $it['domaine']['price'] !== '' ? gnl_e($it['domaine']['price']) : '—'; ?></span></li>
+              <?php endif; ?>
             <?php endforeach; ?>
-            <?php if ($domain): ?>
-              <li><span>Domaine&nbsp;: <?php echo gnl_e($domain['name']); ?></span><span><?php echo $domain['price'] !== '' ? gnl_e($domain['price']) : '—'; ?></span></li>
-            <?php endif; ?>
           </ul>
 
-          <div class="gnl-sum-total"><span>Total <small>/ mois</small></span><span><?php echo gnl_money($monthly); ?></span></div>
-          <?php if ($oneTime > 0): ?>
-            <div class="gnl-sum-total" style="font-size:.98rem;font-weight:600"><span>Frais uniques</span><span><?php echo gnl_money($oneTime); ?></span></div>
+          <div class="gnl-sum-total"><span>Total <small>/ mois</small></span><span><?php echo gnl_money($cartMonthly); ?></span></div>
+          <?php if ($cartOnce > 0): ?>
+            <div class="gnl-sum-total" style="font-size:.98rem;font-weight:600"><span>Frais uniques</span><span><?php echo gnl_money($cartOnce); ?></span></div>
           <?php endif; ?>
-          <?php if ($mollieOn && ($monthly > 0 || $oneTime > 0)): ?>
-            <p class="gnl-line-note">Aujourd'hui&nbsp;: <strong><?php echo gnl_money($monthly + $oneTime); ?></strong> (1<sup>er</sup> mois<?php echo $oneTime > 0 ? ' + frais uniques' : ''; ?>), puis <?php echo gnl_money($monthly); ?>/mois.</p>
+          <?php if ($mollieOn && ($cartMonthly > 0 || $cartOnce > 0)): ?>
+            <p class="gnl-line-note">Aujourd'hui&nbsp;: <strong><?php echo gnl_money($cartMonthly + $cartOnce); ?></strong> (1<sup>er</sup> mois<?php echo $cartOnce > 0 ? ' + frais uniques' : ''; ?>), puis <?php echo gnl_money($cartMonthly); ?>/mois.</p>
           <?php endif; ?>
-          <?php if ($domain): ?>
-            <p class="gnl-line-note">Le nom de domaine est facturé séparément (à l'année) et confirmé lors de la mise en service.</p>
+          <?php $hasDom = false; foreach ($items as $it) { if ($it['domaine']) { $hasDom = true; break; } } ?>
+          <?php if ($hasDom): ?>
+            <p class="gnl-line-note">Les noms de domaine sont facturés séparément (à l'année) et confirmés lors de la mise en service.</p>
           <?php endif; ?>
 
           <label class="gnl-cgv <?php echo isset($errors['cgv']) ? 'err' : ''; ?>">
@@ -1220,7 +1270,7 @@ function gnl_render_recap_from_order($order) {
             <p class="gnl-pay-note">Paiement 100&nbsp;% sécurisé via Mollie</p>
             <p class="gnl-pay-brands">CB • Visa • Mastercard • Bancontact • iDEAL • SEPA</p>
           <?php endif; ?>
-          <a class="gnl-back" href="product-configuration?slug=<?php echo gnl_e($product['slug']); ?>">&larr; Modifier ma configuration</a>
+          <a class="gnl-back" href="cart">&larr; Modifier mon panier</a>
         </div>
       </aside>
 
