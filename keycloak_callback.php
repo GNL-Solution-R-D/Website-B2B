@@ -36,7 +36,7 @@ if (!defined('KEYCLOAK_POST_LOGOUT'))  define('KEYCLOAK_POST_LOGOUT', gnl_env('K
 // peuvent faire échouer la génération du jeton -> 'unknown_error' chez Keycloak).
 // Pour récupérer civilité/téléphone/entreprise/organisation, ajoutez-les via la
 // variable d'env KEYCLOAK_SCOPES, un par un, ex. "openid profile email phone entreprise organization".
-if (!defined('KEYCLOAK_SCOPES'))       define('KEYCLOAK_SCOPES', gnl_env('KEYCLOAK_SCOPES', 'openid profile email phone entreprise address organization'));
+if (!defined('KEYCLOAK_SCOPES'))       define('KEYCLOAK_SCOPES', gnl_env('KEYCLOAK_SCOPES', 'openid profile email organization'));
 
 define('KC_OIDC', rtrim(KEYCLOAK_ISSUER, '/') . '/protocol/openid-connect');
 
@@ -71,15 +71,39 @@ function gnl_jwt_payload($jwt) {
     $data = json_decode(base64_decode($p), true);
     return is_array($data) ? $data : array();
 }
-/* Aplati le claim "organization" (objet {nom:{...}} ou liste [nom,...]) */
-function gnl_kc_org($org) {
-    if (is_string($org)) return $org;
-    if (is_array($org)) {
-        $keys = array_keys($org);
-        if ($keys === range(0, count($org) - 1)) return implode(', ', array_map('strval', $org));
-        return implode(', ', $keys);
+/* Aplati une table d'attributs Keycloak ({cle:[val]} ou {cle:val}) */
+function gnl_flatten_attrs($attrs) {
+    $out = array();
+    if (!is_array($attrs)) return $out;
+    foreach ($attrs as $k => $v) {
+        if (in_array($k, array('id', 'name', 'alias', 'attributes'), true)) continue;
+        $out[$k] = is_array($v) ? (isset($v[0]) ? (string) $v[0] : '') : (string) $v;
     }
-    return '';
+    return $out;
+}
+/* Extrait le claim "organization" -> array('name'=>..., 'attributes'=>array(cle=>valeur)).
+   Gère les formats : {"couturemania":{"attributes":{...}}}, {"couturemania":{...}},
+   {"name":"..","attributes":{...}} et ["couturemania", ...]. */
+function gnl_org_extract($org) {
+    $res = array('name' => '', 'attributes' => array());
+    if (!is_array($org) || !$org) return $res;
+    $keys = array_keys($org);
+    if ($keys === range(0, count($org) - 1)) { $res['name'] = (string) $org[0]; return $res; }
+    if (isset($org['attributes']) || isset($org['name']) || isset($org['id']) || isset($org['alias'])) {
+        $res['name'] = isset($org['name']) ? (string) $org['name'] : (isset($org['alias']) ? (string) $org['alias'] : '');
+        $attrs = (isset($org['attributes']) && is_array($org['attributes'])) ? $org['attributes'] : $org;
+        $res['attributes'] = gnl_flatten_attrs($attrs);
+        return $res;
+    }
+    foreach ($org as $name => $data) {
+        $res['name'] = (string) $name;
+        if (is_array($data)) {
+            $attrs = (isset($data['attributes']) && is_array($data['attributes'])) ? $data['attributes'] : $data;
+            $res['attributes'] = gnl_flatten_attrs($attrs);
+        }
+        break;
+    }
+    return $res;
 }
 function gnl_kc_post($url, $fields) {
     $body = http_build_query($fields);
@@ -218,6 +242,12 @@ if ($action === 'callback') {
     $given  = (string) $get('given_name');
     $family = (string) $get('family_name');
     $phone  = $get('phone_number') !== '' ? $get('phone_number') : $get('phone');
+    // Données société : portées par l'ORGANISATION (claim "organization"), pas par l'utilisateur
+    $org = gnl_org_extract($get('organization', null));
+    $oa  = $org['attributes'];
+    $A = function ($k) use ($oa) { return isset($oa[$k]) ? (string) $oa[$k] : ''; };
+    $voie = trim($A('voie_nbr') . ' ' . $A('voie_name'));
+
     $_SESSION['gnl_user'] = array(
         'sub'            => $ui['sub'],
         'email'          => (string) $get('email'),
@@ -226,12 +256,20 @@ if ($action === 'callback') {
         'name'           => $get('name') !== '' ? (string) $get('name') : trim($given . ' ' . $family),
         'civilite'       => (string) $get('civilite'),
         'phone'          => (string) $phone,
-        'raison_social'  => (string) $get('raison_social'),
-        'nom_commercial' => (string) $get('nom_commercial'),
-        'siret'          => (string) $get('siret'),
-        'siren'          => (string) $get('siren'),
-        'ent_email'      => (string) $get('ent_email'),
-        'organization'   => gnl_kc_org($get('organization', null)),
+        // --- Société (organisation Keycloak) ---
+        'organization'   => $org['name'],
+        'raison_social'  => $A('raison') !== '' ? $A('raison') : $A('raison_social'),
+        'nom_commercial' => $A('nom_commercial'),
+        'entite_legal'   => $A('entite_legal'),
+        'siret'          => $A('siret'),
+        'siren'          => $A('siren'),
+        'tva'            => $A('tva'),
+        'ent_email'      => $A('ent_email'),
+        'ent_phone'      => $A('telephone'),
+        'adr_voie'       => $voie,
+        'adr_cp'         => $A('cp'),
+        'adr_ville'      => $A('commune'),
+        'adr_pays'       => $A('pays'),
         'auth_at'        => time(),
     );
     if (!empty($tok['id_token'])) $_SESSION['gnl_id_token'] = $tok['id_token'];
