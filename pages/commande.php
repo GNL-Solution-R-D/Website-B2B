@@ -400,6 +400,19 @@ if (isset($_GET['mollie']) && $_GET['mollie'] === 'return' && isset($_GET['ref']
     $view = 'status';
 }
 
+/* =================== Authentification requise (SSO Keycloak) ======== */
+$gnlUser = (isset($_SESSION['gnl_user']) && is_array($_SESSION['gnl_user'])) ? $_SESSION['gnl_user'] : null;
+if ($view === 'form' && !$gnlUser) {
+    $ret = isset($_SERVER['REQUEST_URI']) ? strtok($_SERVER['REQUEST_URI'], '?') : '/commande';
+    header('Location: /keycloak_callback.php?action=login&return=' . rawurlencode($ret));
+    exit;
+}
+if ($gnlUser) {
+    if ($client['prenom'] === '') $client['prenom'] = isset($gnlUser['given_name'])  ? $gnlUser['given_name']  : '';
+    if ($client['nom'] === '')    $client['nom']    = isset($gnlUser['family_name']) ? $gnlUser['family_name'] : '';
+    if ($client['email'] === '')  $client['email']  = isset($gnlUser['email'])       ? $gnlUser['email']       : '';
+}
+
 /* =================== Étape de confirmation ========================= */
 if ($view === 'form' && !empty($items) && (isset($_POST['step']) && $_POST['step'] === 'confirm')) {
     foreach (array_keys($client) as $k) { if (isset($_POST[$k])) $client[$k] = trim((string) $_POST[$k]); }
@@ -432,6 +445,7 @@ if ($view === 'form' && !empty($items) && (isset($_POST['step']) && $_POST['step
         $order = array(
             'reference' => $orderRef, 'date' => date('c'), 'payment_status' => 'created',
             'items'     => $orderItems, 'client' => $client,
+            'user'      => $gnlUser ? array('sub'=>$gnlUser['sub'], 'email'=>$gnlUser['email']) : null,
             'totaux'    => array('mensuel'=>round($cartMonthly,2), 'frais_unique'=>round($cartOnce,2), 'devise'=>'EUR'),
             'recurring_amount' => round($cartMonthly, 2),
         );
@@ -1168,6 +1182,10 @@ function gnl_render_recap_from_order($order) {
   <p class="gnl-breadcrumb"><a href="./">Accueil</a> &rsaquo; <a href="cart">Panier</a> &rsaquo; Commande</p>
   <h1 class="gnl-config-title">Finalisez votre commande</h1>
   <p class="gnl-steps"><span>1. Configuration</span> &rsaquo; <b>2. Récapitulatif &amp; coordonnées</b> &rsaquo; <span>3. Paiement</span></p>
+
+  <?php if ($gnlUser): ?>
+    <p style="font-size:.85rem;opacity:.8;margin:.1rem 0 1rem">Connecté en tant que <strong><?php echo gnl_e($gnlUser['email'] !== '' ? $gnlUser['email'] : $gnlUser['name']); ?></strong> &middot; <a href="/keycloak_callback.php?action=logout" style="color:var(--gnl-teal)">Se déconnecter</a></p>
+  <?php endif; ?>
 
   <?php if ($errors): ?>
     <div class="gnl-alert">Merci de corriger les champs surlignés ci-dessous
