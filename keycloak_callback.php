@@ -16,12 +16,22 @@
    La config est lue depuis vos variables d'environnement KEYCLOAK_*.
    ===================================================================== */
 
-if (!defined('KEYCLOAK_ISSUER'))       define('KEYCLOAK_ISSUER', getenv('KEYCLOAK_ISSUER') ?: 'https://auth.gnl-solution.fr/auth/realms/client-auth');
-if (!defined('KEYCLOAK_CLIENT_ID'))    define('KEYCLOAK_CLIENT_ID', getenv('KEYCLOAK_CLIENT_ID') ?: 'siteweb');
-if (!defined('KEYCLOAK_CLIENT_SECRET'))define('KEYCLOAK_CLIENT_SECRET', getenv('KEYCLOAK_CLIENT_SECRET') ?: '');
-if (!defined('KEYCLOAK_REDIRECT_URI')) define('KEYCLOAK_REDIRECT_URI', getenv('KEYCLOAK_REDIRECT_URI') ?: 'https://beta.gnl-solution.fr/keycloak_callback.php');
-if (!defined('KEYCLOAK_POST_LOGOUT'))  define('KEYCLOAK_POST_LOGOUT', getenv('KEYCLOAK_POST_LOGOUT_REDIRECT_URI') ?: 'https://beta.gnl-solution.fr/connexion');
-if (!defined('KEYCLOAK_SCOPES'))       define('KEYCLOAK_SCOPES', getenv('KEYCLOAK_SCOPES') ?: 'openid profile email phone entreprise organization');
+/* Lecture robuste des variables d'environnement : getenv() ne voit pas
+   toujours les variables sous PHP-FPM (clear_env), d'où le repli sur
+   $_SERVER et $_ENV. */
+function gnl_env($key, $default = '') {
+    $v = getenv($key);
+    if ($v !== false && $v !== '') return $v;
+    if (isset($_SERVER[$key]) && $_SERVER[$key] !== '') return $_SERVER[$key];
+    if (isset($_ENV[$key]) && $_ENV[$key] !== '') return $_ENV[$key];
+    return $default;
+}
+if (!defined('KEYCLOAK_ISSUER'))       define('KEYCLOAK_ISSUER', gnl_env('KEYCLOAK_ISSUER', 'https://auth.gnl-solution.fr/auth/realms/client-auth'));
+if (!defined('KEYCLOAK_CLIENT_ID'))    define('KEYCLOAK_CLIENT_ID', gnl_env('KEYCLOAK_CLIENT_ID', 'siteweb'));
+if (!defined('KEYCLOAK_CLIENT_SECRET'))define('KEYCLOAK_CLIENT_SECRET', gnl_env('KEYCLOAK_CLIENT_SECRET', ''));
+if (!defined('KEYCLOAK_REDIRECT_URI')) define('KEYCLOAK_REDIRECT_URI', gnl_env('KEYCLOAK_REDIRECT_URI', 'https://beta.gnl-solution.fr/keycloak_callback.php'));
+if (!defined('KEYCLOAK_POST_LOGOUT'))  define('KEYCLOAK_POST_LOGOUT', gnl_env('KEYCLOAK_POST_LOGOUT_REDIRECT_URI', 'https://beta.gnl-solution.fr/connexion'));
+if (!defined('KEYCLOAK_SCOPES'))       define('KEYCLOAK_SCOPES', gnl_env('KEYCLOAK_SCOPES', 'openid profile email phone entreprise organization'));
 
 define('KC_OIDC', rtrim(KEYCLOAK_ISSUER, '/') . '/protocol/openid-connect');
 
@@ -68,6 +78,7 @@ function gnl_kc_org($org) {
 }
 function gnl_kc_post($url, $fields) {
     $body = http_build_query($fields);
+    $raw = false; $status = 0;
     if (function_exists('curl_init')) {
         $ch = curl_init($url);
         curl_setopt_array($ch, array(
@@ -75,18 +86,32 @@ function gnl_kc_post($url, $fields) {
             CURLOPT_HTTPHEADER => array('Content-Type: application/x-www-form-urlencoded', 'Accept: application/json'),
             CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 12, CURLOPT_CONNECTTIMEOUT => 6,
         ));
-        $resp = curl_exec($ch);
-        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $raw  = curl_exec($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $cerr = curl_error($ch);
         unset($ch); // curl_close est déprécié en PHP 8.5
-        if ($resp === false || $code < 200 || $code >= 300) return null;
-        return json_decode($resp, true);
+        if ($raw === false) return array('_status' => 0, '_transport' => ($cerr !== '' ? $cerr : 'curl_failed'));
+    } else {
+        $ctx = stream_context_create(array('http' => array(
+            'method' => 'POST', 'header' => "Content-Type: application/x-www-form-urlencoded\r\nAccept: application/json\r\n",
+            'content' => $body, 'timeout' => 12, 'ignore_errors' => true,
+        )));
+        $raw = @file_get_contents($url, false, $ctx);
+        if (isset($http_response_header[0]) && preg_match('~\s(\d{3})\s~', $http_response_header[0], $m)) $status = (int) $m[1];
+        if ($raw === false) return array('_status' => 0, '_transport' => 'stream_failed');
     }
-    $ctx = stream_context_create(array('http' => array(
-        'method' => 'POST', 'header' => "Content-Type: application/x-www-form-urlencoded\r\nAccept: application/json\r\n",
-        'content' => $body, 'timeout' => 12, 'ignore_errors' => true,
-    )));
-    $resp = @file_get_contents($url, false, $ctx);
-    return $resp === false ? null : json_decode($resp, true);
+    $json = json_decode($raw, true);
+    if (!is_array($json)) $json = array('_raw' => substr((string) $raw, 0, 300));
+    $json['_status'] = $status;
+    return $json;
+}
+/* Résume l'erreur renvoyée par Keycloak pour l'affichage/les logs */
+function gnl_kc_detail($resp) {
+    if (!is_array($resp)) return '';
+    if (!empty($resp['_transport'])) return 'réseau: ' . $resp['_transport'];
+    if (!empty($resp['error'])) return $resp['error'] . (!empty($resp['error_description']) ? ' — ' . $resp['error_description'] : '');
+    if (!empty($resp['_status'])) return 'HTTP ' . $resp['_status'];
+    return '';
 }
 function gnl_kc_userinfo($bearer) {
     $url = KC_OIDC . '/userinfo';
@@ -170,10 +195,17 @@ if ($action === 'callback') {
         'client_secret' => KEYCLOAK_CLIENT_SECRET !== '' ? KEYCLOAK_CLIENT_SECRET : null,
         'code_verifier' => $st['verifier'],
     ), function ($v) { return $v !== null; }));
-    if (!$tok || empty($tok['access_token'])) gnl_auth_fail('Échec de l\'échange du jeton avec Keycloak.');
+    if (!is_array($tok) || empty($tok['access_token'])) {
+        error_log('[GNL SSO] token exchange failed: ' . json_encode($tok));
+        $detail = gnl_kc_detail($tok);
+        if (KEYCLOAK_CLIENT_SECRET === '') {
+            $detail = ($detail !== '' ? $detail . ' · ' : '') . 'secret client absent côté PHP (KEYCLOAK_CLIENT_SECRET vide)';
+        }
+        gnl_auth_fail('Échec de l\'échange du jeton avec Keycloak.' . ($detail !== '' ? ' [' . $detail . ']' : ''));
+    }
 
     $ui = gnl_kc_userinfo($tok['access_token']);
-    if (!$ui || empty($ui['sub'])) gnl_auth_fail('Impossible de récupérer votre profil.');
+    if (!$ui || empty($ui['sub'])) { error_log('[GNL SSO] userinfo failed'); gnl_auth_fail('Impossible de récupérer votre profil depuis Keycloak.'); }
 
     $claims = array_merge(!empty($tok['id_token']) ? gnl_jwt_payload($tok['id_token']) : array(), is_array($ui) ? $ui : array());
     $get = function ($k, $d = '') use ($claims) { return (isset($claims[$k]) && $claims[$k] !== null) ? $claims[$k] : $d; };
