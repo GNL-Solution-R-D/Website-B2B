@@ -21,7 +21,7 @@ if (!defined('KEYCLOAK_CLIENT_ID'))    define('KEYCLOAK_CLIENT_ID', getenv('KEYC
 if (!defined('KEYCLOAK_CLIENT_SECRET'))define('KEYCLOAK_CLIENT_SECRET', getenv('KEYCLOAK_CLIENT_SECRET') ?: '');
 if (!defined('KEYCLOAK_REDIRECT_URI')) define('KEYCLOAK_REDIRECT_URI', getenv('KEYCLOAK_REDIRECT_URI') ?: 'https://beta.gnl-solution.fr/keycloak_callback.php');
 if (!defined('KEYCLOAK_POST_LOGOUT'))  define('KEYCLOAK_POST_LOGOUT', getenv('KEYCLOAK_POST_LOGOUT_REDIRECT_URI') ?: 'https://beta.gnl-solution.fr/connexion');
-if (!defined('KEYCLOAK_SCOPES'))       define('KEYCLOAK_SCOPES', getenv('KEYCLOAK_SCOPES') ?: 'openid profile email');
+if (!defined('KEYCLOAK_SCOPES'))       define('KEYCLOAK_SCOPES', getenv('KEYCLOAK_SCOPES') ?: 'openid profile email phone entreprise organization');
 
 define('KC_OIDC', rtrim(KEYCLOAK_ISSUER, '/') . '/protocol/openid-connect');
 
@@ -45,6 +45,26 @@ function gnl_b64url($bin) { return rtrim(strtr(base64_encode($bin), '+/', '-_'),
 function gnl_rand_hex($bytes = 24) {
     try { return bin2hex(random_bytes($bytes)); }
     catch (Exception $e) { return substr(md5(uniqid('', true) . mt_rand()), 0, $bytes * 2); }
+}
+/* Décode (sans revérifier la signature — jeton reçu de Keycloak en TLS)
+   la charge utile d'un JWT, pour récupérer les claims custom du realm. */
+function gnl_jwt_payload($jwt) {
+    $parts = explode('.', (string) $jwt);
+    if (count($parts) < 2) return array();
+    $p = strtr($parts[1], '-_', '+/');
+    $p .= str_repeat('=', (4 - strlen($p) % 4) % 4);
+    $data = json_decode(base64_decode($p), true);
+    return is_array($data) ? $data : array();
+}
+/* Aplati le claim "organization" (objet {nom:{...}} ou liste [nom,...]) */
+function gnl_kc_org($org) {
+    if (is_string($org)) return $org;
+    if (is_array($org)) {
+        $keys = array_keys($org);
+        if ($keys === range(0, count($org) - 1)) return implode(', ', array_map('strval', $org));
+        return implode(', ', $keys);
+    }
+    return '';
 }
 function gnl_kc_post($url, $fields) {
     $body = http_build_query($fields);
@@ -155,15 +175,26 @@ if ($action === 'callback') {
     $ui = gnl_kc_userinfo($tok['access_token']);
     if (!$ui || empty($ui['sub'])) gnl_auth_fail('Impossible de récupérer votre profil.');
 
-    $given  = isset($ui['given_name'])  ? $ui['given_name']  : '';
-    $family = isset($ui['family_name']) ? $ui['family_name'] : '';
+    $claims = array_merge(!empty($tok['id_token']) ? gnl_jwt_payload($tok['id_token']) : array(), is_array($ui) ? $ui : array());
+    $get = function ($k, $d = '') use ($claims) { return (isset($claims[$k]) && $claims[$k] !== null) ? $claims[$k] : $d; };
+    $given  = (string) $get('given_name');
+    $family = (string) $get('family_name');
+    $phone  = $get('phone_number') !== '' ? $get('phone_number') : $get('phone');
     $_SESSION['gnl_user'] = array(
-        'sub'         => $ui['sub'],
-        'email'       => isset($ui['email']) ? $ui['email'] : '',
-        'given_name'  => $given,
-        'family_name' => $family,
-        'name'        => isset($ui['name']) ? $ui['name'] : trim($given . ' ' . $family),
-        'auth_at'     => time(),
+        'sub'            => $ui['sub'],
+        'email'          => (string) $get('email'),
+        'given_name'     => $given,
+        'family_name'    => $family,
+        'name'           => $get('name') !== '' ? (string) $get('name') : trim($given . ' ' . $family),
+        'civilite'       => (string) $get('civilite'),
+        'phone'          => (string) $phone,
+        'raison_social'  => (string) $get('raison_social'),
+        'nom_commercial' => (string) $get('nom_commercial'),
+        'siret'          => (string) $get('siret'),
+        'siren'          => (string) $get('siren'),
+        'ent_email'      => (string) $get('ent_email'),
+        'organization'   => gnl_kc_org($get('organization', null)),
+        'auth_at'        => time(),
     );
     if (!empty($tok['id_token'])) $_SESSION['gnl_id_token'] = $tok['id_token'];
 
