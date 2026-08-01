@@ -382,7 +382,7 @@ foreach ($cartRaw as $ci) {
 $view = 'form';
 $errors = array();
 $done = false; $orderRef = ''; $orderSent = false; $mollieError = false;
-$client = array('prenom'=>'','nom'=>'','email'=>'','tel'=>'','societe'=>'','structure'=>'','message'=>'');
+$client = array('civilite'=>'','prenom'=>'','nom'=>'','email'=>'','tel'=>'','raison_social'=>'','nom_commercial'=>'','siret'=>'','siren'=>'','ent_email'=>'','organization'=>'','message'=>'');
 
 /* -- Retour Mollie : affichage du statut ---------------------------- */
 $order = null; $payStatus = '';
@@ -408,9 +408,15 @@ if ($view === 'form' && !$gnlUser) {
     exit;
 }
 if ($gnlUser) {
-    if ($client['prenom'] === '') $client['prenom'] = isset($gnlUser['given_name'])  ? $gnlUser['given_name']  : '';
-    if ($client['nom'] === '')    $client['nom']    = isset($gnlUser['family_name']) ? $gnlUser['family_name'] : '';
-    if ($client['email'] === '')  $client['email']  = isset($gnlUser['email'])       ? $gnlUser['email']       : '';
+    $prefill = array(
+        'civilite' => 'civilite', 'prenom' => 'given_name', 'nom' => 'family_name',
+        'email' => 'email', 'tel' => 'phone', 'raison_social' => 'raison_social',
+        'nom_commercial' => 'nom_commercial', 'siret' => 'siret', 'siren' => 'siren',
+        'ent_email' => 'ent_email', 'organization' => 'organization',
+    );
+    foreach ($prefill as $field => $claim) {
+        if ($client[$field] === '' && !empty($gnlUser[$claim])) $client[$field] = (string) $gnlUser[$claim];
+    }
 }
 
 /* =================== Étape de confirmation ========================= */
@@ -1201,7 +1207,22 @@ function gnl_render_recap_from_order($order) {
       <div>
         <div class="gnl-card">
           <h3 style="margin-top:0">Vos coordonnées</h3>
+          <?php if ($gnlUser): ?><p style="font-size:.8rem;opacity:.65;margin:.1rem 0 .9rem">Pré-rempli depuis votre compte GNL Solution — modifiable si besoin.</p><?php endif; ?>
           <div class="gnl-form-grid">
+            <div class="gnl-field">
+              <label>Civilité</label>
+              <select name="civilite">
+                <?php
+                  $civs = array('' => '— Sélectionnez —', 'M.' => 'Monsieur', 'Mme' => 'Madame');
+                  if ($client['civilite'] !== '' && !isset($civs[$client['civilite']])) $civs[$client['civilite']] = $client['civilite'];
+                  foreach ($civs as $val => $lab) echo '<option value="' . gnl_e($val) . '"' . (($client['civilite'] === $val) ? ' selected' : '') . '>' . gnl_e($lab) . '</option>';
+                ?>
+              </select>
+            </div>
+            <div class="gnl-field">
+              <label>Téléphone</label>
+              <input type="tel" name="tel" value="<?php echo gnl_e($client['tel']); ?>" autocomplete="tel">
+            </div>
             <div class="gnl-field <?php echo isset($errors['prenom']) ? 'err' : ''; ?>">
               <label>Prénom <span class="req">*</span></label>
               <input type="text" name="prenom" value="<?php echo gnl_e($client['prenom']); ?>" autocomplete="given-name">
@@ -1217,25 +1238,43 @@ function gnl_render_recap_from_order($order) {
               <input type="email" name="email" value="<?php echo gnl_e($client['email']); ?>" autocomplete="email">
               <?php if (isset($errors['email'])): ?><span class="gnl-err-msg">Adresse e-mail invalide.</span><?php endif; ?>
             </div>
-            <div class="gnl-field">
-              <label>Téléphone</label>
-              <input type="tel" name="tel" value="<?php echo gnl_e($client['tel']); ?>" autocomplete="tel">
-            </div>
-            <div class="gnl-field">
-              <label>Structure</label>
-              <select name="structure">
-                <?php
-                  $structs = array('' => '— Sélectionnez —', 'association' => 'Association', 'tpe' => 'TPE / PME', 'entrepreneur' => 'Entrepreneur', 'particulier' => 'Particulier', 'autre' => 'Autre');
-                  foreach ($structs as $val => $lab) {
-                      echo '<option value="' . gnl_e($val) . '"' . (($client['structure'] === $val) ? ' selected' : '') . '>' . gnl_e($lab) . '</option>';
-                  }
-                ?>
-              </select>
+          </div>
+        </div>
+
+        <div class="gnl-card" style="margin-top:1rem">
+          <h3 style="margin-top:0">Votre entreprise <small style="font-weight:400;opacity:.6">(facultatif)</small></h3>
+          <div class="gnl-form-grid">
+            <div class="gnl-field gnl-col2">
+              <label>Raison sociale</label>
+              <input type="text" name="raison_social" value="<?php echo gnl_e($client['raison_social']); ?>" autocomplete="organization">
             </div>
             <div class="gnl-field gnl-col2">
-              <label>Société / Association (facultatif)</label>
-              <input type="text" name="societe" value="<?php echo gnl_e($client['societe']); ?>" autocomplete="organization">
+              <label>Nom commercial</label>
+              <input type="text" name="nom_commercial" value="<?php echo gnl_e($client['nom_commercial']); ?>">
             </div>
+            <div class="gnl-field">
+              <label>SIRET</label>
+              <input type="text" name="siret" value="<?php echo gnl_e($client['siret']); ?>" inputmode="numeric">
+            </div>
+            <div class="gnl-field">
+              <label>SIREN</label>
+              <input type="text" name="siren" value="<?php echo gnl_e($client['siren']); ?>" inputmode="numeric">
+            </div>
+            <div class="gnl-field gnl-col2">
+              <label>E-mail de facturation</label>
+              <input type="email" name="ent_email" value="<?php echo gnl_e($client['ent_email']); ?>">
+            </div>
+            <?php if ($client['organization'] !== ''): ?>
+            <div class="gnl-field gnl-col2">
+              <label>Organisation</label>
+              <input type="text" name="organization" value="<?php echo gnl_e($client['organization']); ?>" readonly style="opacity:.8;background:#f7f7f7">
+            </div>
+            <?php endif; ?>
+          </div>
+        </div>
+
+        <div class="gnl-card" style="margin-top:1rem">
+          <div class="gnl-form-grid">
             <div class="gnl-field gnl-col2">
               <label>Message (facultatif)</label>
               <textarea name="message" placeholder="Précisions sur votre projet, contraintes particulières…"><?php echo gnl_e($client['message']); ?></textarea>
