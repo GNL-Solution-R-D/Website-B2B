@@ -35,7 +35,7 @@ if (!defined('GNL_BASE_URL'))   define('GNL_BASE_URL',   getenv('GNL_BASE_URL') 
 
 /* =================== Chargement catalogue (comme index.php) ========= */
 function gnl_fetch_from_webhook($action) {
-    $payload = json_encode(array('source' => 'commande.php', 'action' => $action));
+    $payload = json_encode(array('source' => 'commande', 'action' => $action));
     if (function_exists('curl_init')) {
         $ch = curl_init(GNL_WEBHOOK_URL);
         curl_setopt_array($ch, array(
@@ -202,11 +202,11 @@ function gnl_load_order($ref) {
 /* =================== URL absolue (retour / webhook Mollie) ========== */
 function gnl_self_url($query) {
     if (defined('GNL_BASE_URL') && GNL_BASE_URL !== '') {
-        $base = rtrim(GNL_BASE_URL, '/') . '/commande.php';
+        $base = rtrim(GNL_BASE_URL, '/') . '/commande';
     } else {
         $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443);
         $host  = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost';
-        $path  = isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '/commande.php';
+        $path  = isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '/commande';
         $base  = ($https ? 'https' : 'http') . '://' . $host . $path;
     }
     return $base . ($query !== '' ? ('?' . $query) : '');
@@ -1034,7 +1034,7 @@ function gnl_render_recap_from_order($order) {
     <?php if (!$order): ?>
       <div class="gnl-check ko">!</div>
       <h1>Commande introuvable</h1>
-      <p>Nous n'avons pas retrouvé cette commande. <a href="index.php">Retour à la boutique</a>.</p>
+      <p>Nous n'avons pas retrouvé cette commande. <a href="./">Retour à la boutique</a>.</p>
     <?php else: ?>
       <?php if ($paid): ?>
         <div class="gnl-check">&#10003;</div>
@@ -1070,10 +1070,10 @@ function gnl_render_recap_from_order($order) {
       <div class="gnl-btns">
         <?php if ($paid || $pending): ?>
           <a class="gnl-btn primary" href="http://espace-client.gnl-solution.fr/">Accéder à mon espace client</a>
-          <a class="gnl-btn" href="index.php">Retour à la boutique</a>
+          <a class="gnl-btn" href="./">Retour à la boutique</a>
         <?php else: ?>
-          <a class="gnl-btn primary" href="commande.php?mollie=retry&amp;ref=<?php echo rawurlencode($order['reference']); ?>">Réessayer le paiement</a>
-          <a class="gnl-btn" href="product-configuration.php?slug=<?php echo gnl_e($order['produit']['slug']); ?>">Modifier ma commande</a>
+          <a class="gnl-btn primary" href="commande?mollie=retry&amp;ref=<?php echo rawurlencode($order['reference']); ?>">Réessayer le paiement</a>
+          <a class="gnl-btn" href="product-configuration?slug=<?php echo gnl_e($order['produit']['slug']); ?>">Modifier ma commande</a>
         <?php endif; ?>
       </div>
     <?php endif; ?>
@@ -1081,11 +1081,11 @@ function gnl_render_recap_from_order($order) {
 
 <?php elseif (!$product): ?>
 
-  <p class="gnl-breadcrumb"><a href="index.php">Accueil</a> &rsaquo; Commande</p>
+  <p class="gnl-breadcrumb"><a href="./">Accueil</a> &rsaquo; Commande</p>
   <div class="gnl-empty">
     <h2 style="margin-top:0">Votre commande est vide</h2>
     <p>Aucune offre à valider. Choisissez une offre pour commencer votre commande.</p>
-    <p><a class="gnl-btn primary" style="text-decoration:none" href="index.php">Voir les offres</a></p>
+    <p><a class="gnl-btn primary" style="text-decoration:none" href="./">Voir les offres</a></p>
   </div>
 
 <?php elseif ($done): ?>
@@ -1107,7 +1107,7 @@ function gnl_render_recap_from_order($order) {
     <div class="gnl-card" style="margin-top:1.2rem"><h3 style="margin-top:0">Récapitulatif</h3><?php if ($order) gnl_render_recap_from_order($order); ?></div>
     <div class="gnl-btns">
       <a class="gnl-btn primary" href="http://espace-client.gnl-solution.fr/">Accéder à mon espace client</a>
-      <a class="gnl-btn" href="index.php">Retour à la boutique</a>
+      <a class="gnl-btn" href="./">Retour à la boutique</a>
     </div>
   </div>
 
@@ -1116,7 +1116,7 @@ function gnl_render_recap_from_order($order) {
     $ctaLabel  = $mollieOn ? 'Payer en ligne' : 'Confirmer la commande';
 ?>
 
-  <p class="gnl-breadcrumb"><a href="index.php">Accueil</a> &rsaquo; <a href="product-configuration.php?slug=<?php echo gnl_e($product['slug']); ?>">Configuration</a> &rsaquo; Commande</p>
+  <p class="gnl-breadcrumb"><a href="./">Accueil</a> &rsaquo; <a href="product-configuration?slug=<?php echo gnl_e($product['slug']); ?>">Configuration</a> &rsaquo; Commande</p>
   <h1 class="gnl-config-title">Finalisez votre commande</h1>
   <p class="gnl-steps"><span>1. Configuration</span> &rsaquo; <b>2. Récapitulatif &amp; coordonnées</b> &rsaquo; <span>3. Paiement</span></p>
 
@@ -1126,7 +1126,7 @@ function gnl_render_recap_from_order($order) {
     </div>
   <?php endif; ?>
 
-  <form method="post" action="commande.php" id="gnl-order">
+  <form method="post" action="commande" id="gnl-order">
     <input type="hidden" name="produit" value="<?php echo gnl_e($product['slug']); ?>">
     <input type="hidden" name="config"  value="<?php echo gnl_e($rawConfig); ?>">
     <input type="hidden" name="step"    value="confirm">
@@ -1220,7 +1220,7 @@ function gnl_render_recap_from_order($order) {
             <p class="gnl-pay-note">Paiement 100&nbsp;% sécurisé via Mollie</p>
             <p class="gnl-pay-brands">CB • Visa • Mastercard • Bancontact • iDEAL • SEPA</p>
           <?php endif; ?>
-          <a class="gnl-back" href="product-configuration.php?slug=<?php echo gnl_e($product['slug']); ?>">&larr; Modifier ma configuration</a>
+          <a class="gnl-back" href="product-configuration?slug=<?php echo gnl_e($product['slug']); ?>">&larr; Modifier ma configuration</a>
         </div>
       </aside>
 
