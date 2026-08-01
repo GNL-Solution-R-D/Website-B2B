@@ -969,7 +969,7 @@ document.addEventListener('DOMContentLoaded',function(){
           <span>Total <small>/ mois</small></span>
           <span id="gnl-total"></span>
         </div>
-        <form method="post" action="commande.php" id="gnl-order-form">
+        <form method="post" action="commande" id="gnl-order-form">
           <input type="hidden" name="produit" value="<?php echo gnl_e($product['slug']); ?>">
           <input type="hidden" name="config"  id="gnl-config-field" value="">
           <button type="submit" class="gnl-cta">Valider la commande</button>
