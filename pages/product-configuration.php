@@ -756,6 +756,7 @@ document.addEventListener('DOMContentLoaded',function(){
 .gnl-sum-total small{font-weight:400;font-size:.72rem;opacity:.65;}
 .gnl-cta{display:block;width:100%;margin-top:1.1rem;border:none;background:var(--gnl-green);color:#fff;border-radius:10px;padding:.85rem 1rem;font:inherit;font-weight:700;font-size:1rem;cursor:pointer;text-align:center;transition:filter .15s;}
 .gnl-cta:hover{filter:brightness(1.06);}
+.gnl-after-add{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-top:.8rem;}
 .gnl-back{display:inline-block;margin-top:.8rem;font-size:.85rem;color:inherit;opacity:.7;text-decoration:none;}
 .gnl-back:hover{opacity:1;text-decoration:underline;}
 .gnl-empty{background:#fff;border:1px dashed var(--gnl-line);border-radius:12px;padding:1.4rem;text-align:center;}
@@ -969,12 +970,16 @@ document.addEventListener('DOMContentLoaded',function(){
           <span>Total <small>/ mois</small></span>
           <span id="gnl-total"></span>
         </div>
-        <form method="post" action="commande" id="gnl-order-form">
+        <form method="post" action="cart" id="gnl-order-form">
+          <input type="hidden" name="action"  value="add">
           <input type="hidden" name="produit" value="<?php echo gnl_e($product['slug']); ?>">
           <input type="hidden" name="config"  id="gnl-config-field" value="">
-          <button type="submit" class="gnl-cta">Valider la commande</button>
+          <button type="submit" class="gnl-cta">Ajouter au panier</button>
         </form>
-        <a class="gnl-back" href="./">&larr; Choisir une autre offre</a>
+        <div class="gnl-after-add">
+          <a class="gnl-back" href="cart">Voir mon panier</a>
+          <a class="gnl-back" href="./">Choisir une autre offre</a>
+        </div>
       </div>
     </aside>
 
