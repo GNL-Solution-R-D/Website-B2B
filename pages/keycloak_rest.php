@@ -150,6 +150,87 @@ if (!function_exists('gnl_org_extract')) {
         return $res;
     }
 }
+/* Extrait TOUTES les organisations du claim "organization".
+   Retourne une liste array( array('name'=>.., 'attributes'=>[..]), ... ).
+   Gère : ["orgA","orgB"], [{name,attributes},..], {"orgA":{..},"orgB":{..}}
+   et l'objet unique auto-descriptif {"name":..,"attributes":{..}}. */
+if (!function_exists('gnl_org_extract_all')) {
+    function gnl_org_extract_all($org) {
+        $list = array();
+        if (!is_array($org) || !$org) return $list;
+        $keys = array_keys($org);
+        // Tableau séquentiel : noms simples ou objets
+        if ($keys === range(0, count($org) - 1)) {
+            foreach ($org as $v) {
+                if (is_array($v)) {
+                    $name  = isset($v['name']) ? (string) $v['name'] : (isset($v['alias']) ? (string) $v['alias'] : '');
+                    $attrs = (isset($v['attributes']) && is_array($v['attributes'])) ? $v['attributes'] : $v;
+                    $list[] = array('name' => $name, 'attributes' => gnl_flatten_attrs($attrs));
+                } else {
+                    $list[] = array('name' => (string) $v, 'attributes' => array());
+                }
+            }
+            return $list;
+        }
+        // Objet unique auto-descriptif : {"name":..,"attributes":{..}}
+        if (isset($org['attributes']) || isset($org['name']) || isset($org['id']) || isset($org['alias'])) {
+            $name  = isset($org['name']) ? (string) $org['name'] : (isset($org['alias']) ? (string) $org['alias'] : '');
+            $attrs = (isset($org['attributes']) && is_array($org['attributes'])) ? $org['attributes'] : $org;
+            $list[] = array('name' => $name, 'attributes' => gnl_flatten_attrs($attrs));
+            return $list;
+        }
+        // Map indexée par nom d'organisation : {"orgA":{..}, "orgB":{..}}
+        foreach ($org as $name => $data) {
+            $attrs = array();
+            if (is_array($data)) {
+                $attrs = (isset($data['attributes']) && is_array($data['attributes'])) ? $data['attributes'] : $data;
+            }
+            $list[] = array('name' => (string) $name, 'attributes' => gnl_flatten_attrs($attrs));
+        }
+        return $list;
+    }
+}
+/* Champs "société" d'une organisation -> tableau prêt pour $_SESSION['gnl_user']. */
+if (!function_exists('gnl_org_fields')) {
+    function gnl_org_fields($org) {
+        $oa = (isset($org['attributes']) && is_array($org['attributes'])) ? $org['attributes'] : array();
+        $A = function ($k) use ($oa) { return isset($oa[$k]) ? (string) $oa[$k] : ''; };
+        $voie = trim($A('voie_nbr') . ' ' . $A('voie_name'));
+        return array(
+            'organization'   => isset($org['name']) ? (string) $org['name'] : '',
+            'raison_social'  => $A('raison') !== '' ? $A('raison') : $A('raison_social'),
+            'nom_commercial' => $A('nom_commercial'),
+            'entite_legal'   => $A('entite_legal'),
+            'siret'          => $A('siret'),
+            'siren'          => $A('siren'),
+            'tva'            => $A('tva'),
+            'ent_email'      => $A('ent_email'),
+            'ent_phone'      => $A('telephone'),
+            'adr_voie'       => $voie,
+            'adr_cp'         => $A('cp'),
+            'adr_ville'      => $A('commune'),
+            'adr_pays'       => $A('pays'),
+        );
+    }
+}
+/* Libellé lisible d'une organisation pour la page de choix. */
+if (!function_exists('gnl_org_label')) {
+    function gnl_org_label($org) {
+        $oa = (isset($org['attributes']) && is_array($org['attributes'])) ? $org['attributes'] : array();
+        $A = function ($k) use ($oa) { return isset($oa[$k]) ? trim((string) $oa[$k]) : ''; };
+        $title = $A('nom_commercial');
+        if ($title === '') $title = $A('raison');
+        if ($title === '') $title = $A('raison_social');
+        if ($title === '') $title = isset($org['name']) ? (string) $org['name'] : '';
+        if ($title === '') $title = 'Organisation';
+        $bits = array();
+        if ($A('entite_legal') !== '') $bits[] = $A('entite_legal');
+        $loc = trim($A('cp') . ' ' . $A('commune'));
+        if ($loc !== '') $bits[] = $loc;
+        if ($A('siret') !== '') $bits[] = 'SIRET ' . $A('siret');
+        return array('title' => $title, 'sub' => implode(' · ', $bits));
+    }
+}
 
 /* ---------- Base de l'Admin REST API à partir de l'issuer ------------
    issuer = https://host/auth/realms/<realm>
@@ -376,7 +457,13 @@ if (!function_exists('gnl_kc_execute_actions_email')) {
 }
 
 /* ============ Construit $_SESSION['gnl_user'] depuis un jeton ========
-   Miroir exact de keycloak_callback.php : /commande et /cart inchangés. */
+   Retourne :
+     false     -> échec (jeton/userinfo invalide)
+     'done'    -> connexion finalisée (0 ou 1 organisation)
+     'choose'  -> l'utilisateur appartient à ≥ 2 organisations : un état
+                  d'attente est mémorisé et /organisation doit être affiché.
+   La session produite reste IDENTIQUE à keycloak_callback.php une fois
+   finalisée : /commande et /cart sont inchangés. */
 if (!function_exists('gnl_kc_populate_session')) {
     function gnl_kc_populate_session($tok) {
         if (!is_array($tok) || empty($tok['access_token'])) return false;
@@ -392,36 +479,76 @@ if (!function_exists('gnl_kc_populate_session')) {
         $family = (string) $get('family_name');
         $phone  = $get('phone_number') !== '' ? $get('phone_number') : $get('phone');
 
-        $org = gnl_org_extract($get('organization', null));
-        $oa  = $org['attributes'];
-        $A = function ($k) use ($oa) { return isset($oa[$k]) ? (string) $oa[$k] : ''; };
-        $voie = trim($A('voie_nbr') . ' ' . $A('voie_name'));
-
-        $_SESSION['gnl_user'] = array(
-            'sub'            => $ui['sub'],
-            'email'          => (string) $get('email'),
-            'given_name'     => $given,
-            'family_name'    => $family,
-            'name'           => $get('name') !== '' ? (string) $get('name') : trim($given . ' ' . $family),
-            'civilite'       => (string) $get('civilite'),
-            'phone'          => (string) $phone,
-            'organization'   => $org['name'],
-            'raison_social'  => $A('raison') !== '' ? $A('raison') : $A('raison_social'),
-            'nom_commercial' => $A('nom_commercial'),
-            'entite_legal'   => $A('entite_legal'),
-            'siret'          => $A('siret'),
-            'siren'          => $A('siren'),
-            'tva'            => $A('tva'),
-            'ent_email'      => $A('ent_email'),
-            'ent_phone'      => $A('telephone'),
-            'adr_voie'       => $voie,
-            'adr_cp'         => $A('cp'),
-            'adr_ville'      => $A('commune'),
-            'adr_pays'       => $A('pays'),
-            'auth_at'        => time(),
+        // Identité (indépendante de l'organisation)
+        $base = array(
+            'sub'         => $ui['sub'],
+            'email'       => (string) $get('email'),
+            'given_name'  => $given,
+            'family_name' => $family,
+            'name'        => $get('name') !== '' ? (string) $get('name') : trim($given . ' ' . $family),
+            'civilite'    => (string) $get('civilite'),
+            'phone'       => (string) $phone,
         );
-        if (!empty($tok['id_token'])) $_SESSION['gnl_id_token'] = $tok['id_token'];
+        $idToken = !empty($tok['id_token']) ? (string) $tok['id_token'] : '';
+        $orgs    = gnl_org_extract_all($get('organization', null));
+
+        // 0 ou 1 organisation : on finalise immédiatement.
+        if (count($orgs) <= 1) {
+            $org = count($orgs) === 1 ? $orgs[0] : array('name' => '', 'attributes' => array());
+            gnl_finalize_login($base, $org, $idToken);
+            return 'done';
+        }
+
+        // ≥ 2 organisations : on mémorise l'état d'attente, l'utilisateur
+        // choisira sur /organisation. Tant qu'aucun choix n'est fait, il
+        // n'est PAS considéré connecté (gnl_user absent).
+        $_SESSION['gnl_pending_auth'] = array(
+            'base'     => $base,
+            'orgs'     => $orgs,
+            'id_token' => $idToken,
+            't'        => time(),
+        );
+        unset($_SESSION['gnl_user']);
+        session_regenerate_id(true); // anti-fixation dès la vérification des identifiants
+        return 'choose';
+    }
+}
+
+/* Finalise la connexion avec une organisation donnée (0..1 org). */
+if (!function_exists('gnl_finalize_login')) {
+    function gnl_finalize_login($base, $org, $idToken = '') {
+        $_SESSION['gnl_user'] = array_merge(
+            $base,
+            gnl_org_fields(is_array($org) ? $org : array('name' => '', 'attributes' => array())),
+            array('auth_at' => time())
+        );
+        if ($idToken !== '') $_SESSION['gnl_id_token'] = $idToken;
+        unset($_SESSION['gnl_pending_auth']);
         session_regenerate_id(true); // anti-fixation, conserve le panier
+        return true;
+    }
+}
+
+/* État d'attente "choix d'organisation" (ou null si absent/expiré, 15 min). */
+if (!function_exists('gnl_pending_auth')) {
+    function gnl_pending_auth() {
+        if (empty($_SESSION['gnl_pending_auth']) || !is_array($_SESSION['gnl_pending_auth'])) return null;
+        $p = $_SESSION['gnl_pending_auth'];
+        if (empty($p['orgs']) || !is_array($p['orgs'])) { unset($_SESSION['gnl_pending_auth']); return null; }
+        if (time() - (int) (isset($p['t']) ? $p['t'] : 0) > 900) { unset($_SESSION['gnl_pending_auth']); return null; }
+        return $p;
+    }
+}
+
+/* Valide et applique le choix d'organisation (index dans la liste en attente). */
+if (!function_exists('gnl_finalize_org_choice')) {
+    function gnl_finalize_org_choice($idx) {
+        $p = gnl_pending_auth();
+        if (!$p) return false;
+        $orgs = $p['orgs'];
+        $idx = (int) $idx;
+        if ($idx < 0 || $idx >= count($orgs)) return false;
+        gnl_finalize_login($p['base'], $orgs[$idx], isset($p['id_token']) ? $p['id_token'] : '');
         return true;
     }
 }
