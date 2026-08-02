@@ -24,6 +24,11 @@ if (!empty($_SESSION['gnl_user']) && is_array($_SESSION['gnl_user'])) {
     header('Location: ' . gnl_site_base() . $return);
     exit;
 }
+/* Identifiants déjà vérifiés mais choix d'organisation en attente : on reprend. */
+if (gnl_pending_auth()) {
+    header('Location: ' . gnl_site_base() . '/organisation');
+    exit;
+}
 
 $error  = '';
 $notice = '';
@@ -66,9 +71,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "Renseignez votre identifiant et votre mot de passe.";
             } else {
                 $tok = gnl_kc_password_grant($username, $password);
-                if (is_array($tok) && !empty($tok['access_token']) && gnl_kc_populate_session($tok)) {
-                    header('Location: ' . gnl_site_base() . $return);
-                    exit;
+                if (is_array($tok) && !empty($tok['access_token'])) {
+                    $r = gnl_kc_populate_session($tok);
+                    if ($r === 'choose') {                       // ≥ 2 organisations
+                        $_SESSION['gnl_pending_auth']['return'] = $return;
+                        header('Location: ' . gnl_site_base() . '/organisation');
+                        exit;
+                    }
+                    if ($r) {                                     // 'done'
+                        header('Location: ' . gnl_site_base() . $return);
+                        exit;
+                    }
                 }
                 error_log('[GNL REST] login failed for "' . $username . '": ' . gnl_kc_detail($tok));
                 $error = gnl_login_error_fr($tok);
