@@ -463,7 +463,7 @@ if (isset($_GET['mollie']) && $_GET['mollie'] === 'return' && isset($_GET['ref']
 $gnlUser = (isset($_SESSION['gnl_user']) && is_array($_SESSION['gnl_user'])) ? $_SESSION['gnl_user'] : null;
 if ($view === 'form' && !$gnlUser) {
     $ret = isset($_SERVER['REQUEST_URI']) ? strtok($_SERVER['REQUEST_URI'], '?') : '/commande';
-    header('Location: /keycloak_callback.php?action=login&return=' . rawurlencode($ret));
+    header('Location: /connexion?return=' . rawurlencode($ret));
     exit;
 }
 if ($gnlUser) {
