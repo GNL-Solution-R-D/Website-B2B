@@ -13,8 +13,9 @@
                     redirection vers le checkout Mollie.
      3. retour Mollie (?mollie=return) : affichage du statut de paiement.
      4. webhook Mollie (?mollie=webhook) : notification serveur -> serveur.
-                    Si le 1er paiement est réglé, un abonnement mensuel
-                    récurrent est créé automatiquement.
+                    Si le 1er paiement est réglé, un abonnement récurrent
+                    est créé automatiquement selon la périodicité choisie
+                    (mensuelle, trimestrielle ou annuelle).
 
    Les prix sont TOUJOURS recalculés côté serveur (product.csv /
    product_option.csv) : les montants du navigateur ne sont jamais fiables.
@@ -154,6 +155,32 @@ function gnl_flag($code) {
     $flag = isset($emoji[$code]) ? $emoji[$code] : "\xf0\x9f\x8c\x8d";
     return '<span style="font-size:18px" title="Datacenter ' . gnl_e($code) . '">' . $flag . '</span>';
 }
+/* ---------- Fréquences de facturation --------------------------------
+   L'abonnement repose sur un prix mensuel (recalculé côté serveur). La
+   fréquence choisie à la commande multiplie ce montant, définit
+   l'intervalle Mollie et la date de renouvellement prévue. */
+function gnl_billing_plans() {
+    return array(
+        'mensuel'     => array('label' => 'Mensuel',     'months' => 1,  'interval' => '1 month',   'suffix' => '/ mois',      'per' => 'par mois'),
+        'trimestriel' => array('label' => 'Trimestriel', 'months' => 3,  'interval' => '3 months',  'suffix' => '/ trimestre', 'per' => 'par trimestre'),
+        'annuel'      => array('label' => 'Annuel',      'months' => 12, 'interval' => '12 months', 'suffix' => '/ an',        'per' => 'par an'),
+    );
+}
+function gnl_billing_plan($key) {
+    $plans = gnl_billing_plans();
+    $key = strtolower(trim((string) $key));
+    if (!isset($plans[$key])) $key = 'mensuel';
+    $p = $plans[$key];
+    $p['key'] = $key;
+    return $p;
+}
+/* Date lisible en français, ex. "5 septembre 2026" */
+function gnl_fr_date($ts) {
+    if (!$ts) return '';
+    $mois = array(1=>'janvier',2=>'février',3=>'mars',4=>'avril',5=>'mai',6=>'juin',7=>'juillet',8=>'août',9=>'septembre',10=>'octobre',11=>'novembre',12=>'décembre');
+    $m = (int) date('n', $ts);
+    return ((int) date('j', $ts)) . ' ' . $mois[$m] . ' ' . date('Y', $ts);
+}
 function gnl_send_order($payload) {
     $json = json_encode($payload, JSON_UNESCAPED_UNICODE);
     if (function_exists('curl_init')) {
@@ -236,10 +263,11 @@ function gnl_mollie_request($method, $path, $body = null) {
     return $json;
 }
 function gnl_mollie_get_payment($id) { return gnl_mollie_request('GET', '/payments/' . rawurlencode($id)); }
-function gnl_mollie_create_subscription($customerId, $amount, $desc) {
+function gnl_mollie_create_subscription($customerId, $amount, $desc, $interval = '1 month', $startDate = null) {
+    if ($startDate === null || $startDate === '') $startDate = date('Y-m-d', strtotime('+1 month'));
     return gnl_mollie_request('POST', '/customers/' . rawurlencode($customerId) . '/subscriptions', array(
-        'amount' => gnl_amount($amount), 'interval' => '1 month', 'description' => $desc,
-        'startDate' => date('Y-m-d', strtotime('+1 month')), 'webhookUrl' => gnl_self_url('mollie=webhook'),
+        'amount' => gnl_amount($amount), 'interval' => $interval, 'description' => $desc,
+        'startDate' => $startDate, 'webhookUrl' => gnl_self_url('mollie=webhook'),
     ));
 }
 /* Crée un client + un premier paiement, renvoie l'URL de checkout Mollie */
@@ -251,7 +279,8 @@ function gnl_mollie_start(&$order) {
     if (isset($cust['_error']) || empty($cust['id'])) return array('_error' => 'customer', 'detail' => $cust);
     $customerId = $cust['id'];
 
-    $first = round(((float) $order['totaux']['mensuel']) + ((float) $order['totaux']['frais_unique']), 2);
+    $periode = isset($order['totaux']['periode']) ? (float) $order['totaux']['periode'] : (float) $order['totaux']['mensuel'];
+    $first = round($periode + ((float) $order['totaux']['frais_unique']), 2);
     if ($first <= 0) $first = 0.01; // Mollie exige un montant > 0
     $recurring = (float) $order['recurring_amount'];
     $seq = ($recurring > 0) ? 'first' : 'oneoff'; // "first" -> mandat, pour l'abonnement
@@ -287,17 +316,27 @@ if (isset($_GET['mollie']) && $_GET['mollie'] === 'webhook') {
         $order = gnl_load_order($ref);
         if ($order) {
             $order['payment_status'] = isset($p['status']) ? $p['status'] : 'unknown';
-            // 1er paiement réglé -> on ouvre l'abonnement mensuel récurrent
+            // 1er paiement réglé -> on ouvre l'abonnement récurrent (selon la fréquence choisie)
             if (($p['status'] ?? '') === 'paid' && empty($order['subscription_id'])
                 && !empty($order['recurring_amount']) && (float) $order['recurring_amount'] > 0
                 && !empty($p['customerId'])) {
-                $sub = gnl_mollie_create_subscription($p['customerId'], $order['recurring_amount'], 'Abonnement GNL Solution - ' . $ref);
-                if (is_array($sub) && !empty($sub['id'])) $order['subscription_id'] = $sub['id'];
+                $bill      = (isset($order['billing']) && is_array($order['billing'])) ? $order['billing'] : array();
+                $interval  = !empty($bill['mollie_interval']) ? $bill['mollie_interval'] : '1 month';
+                $freqLabel = !empty($bill['label']) ? $bill['label'] : 'Mensuel';
+                $startDate = !empty($order['next_renewal']) ? $order['next_renewal'] : date('Y-m-d', strtotime('+1 month'));
+                $sub = gnl_mollie_create_subscription($p['customerId'], $order['recurring_amount'], 'Abonnement GNL Solution (' . $freqLabel . ') - ' . $ref, $interval, $startDate);
+                if (is_array($sub) && !empty($sub['id'])) {
+                    $order['subscription_id'] = $sub['id'];
+                    // Date de renouvellement confirmée par Mollie si disponible
+                    if (!empty($sub['nextPaymentDate'])) $order['next_renewal'] = $sub['nextPaymentDate'];
+                }
             }
             gnl_store_order($order);
             gnl_send_order(array(
                 'action' => 'order.payment', 'reference' => $ref, 'status' => $order['payment_status'],
                 'mollie_payment_id' => $pid, 'subscription_id' => isset($order['subscription_id']) ? $order['subscription_id'] : null,
+                'billing' => isset($order['billing']) ? $order['billing'] : null,
+                'next_renewal' => isset($order['next_renewal']) ? $order['next_renewal'] : null,
             ));
         }
     }
@@ -451,12 +490,31 @@ if ($view === 'form' && !empty($items) && (isset($_POST['step']) && $_POST['step
             );
         }
 
+        // Fréquence de facturation choisie par le client (mensuel par défaut)
+        $plan        = gnl_billing_plan(isset($_POST['frequence']) ? $_POST['frequence'] : 'mensuel');
+        $periodTotal = round($cartMonthly * $plan['months'], 2);
+        // Le 1er règlement a lieu aujourd'hui ; le renouvellement suit d'une période complète.
+        $nextRenewal = date('Y-m-d', strtotime('+' . $plan['months'] . ' month'));
+
         $order = array(
             'reference' => $orderRef, 'date' => date('c'), 'payment_status' => 'created',
             'items'     => $orderItems, 'client' => $client,
             'user'      => $gnlUser ? array('sub'=>$gnlUser['sub'], 'email'=>$gnlUser['email']) : null,
-            'totaux'    => array('mensuel'=>round($cartMonthly,2), 'frais_unique'=>round($cartOnce,2), 'devise'=>'EUR'),
-            'recurring_amount' => round($cartMonthly, 2),
+            'billing'   => array(
+                'frequence'       => $plan['key'],       // mensuel | trimestriel | annuel
+                'label'           => $plan['label'],
+                'interval_months' => $plan['months'],
+                'mollie_interval' => $plan['interval'],
+            ),
+            'next_renewal' => $nextRenewal,              // date de renouvellement prévue (Y-m-d)
+            'totaux'    => array(
+                'mensuel'      => round($cartMonthly, 2),
+                'periode'      => $periodTotal,          // montant facturé par période
+                'frais_unique' => round($cartOnce, 2),
+                'du_jour'      => round($periodTotal + $cartOnce, 2),
+                'devise'       => 'EUR',
+            ),
+            'recurring_amount' => $periodTotal,
         );
         gnl_store_order($order);
         $orderSent = gnl_send_order(array_merge(array('action'=>'order.create'), $order));
@@ -921,6 +979,16 @@ document.addEventListener('DOMContentLoaded',function(){
 .gnl-sum-lines li.gnl-muted{opacity:.6;font-style:italic;border-bottom:none;}
 .gnl-sum-total{display:flex;justify-content:space-between;align-items:baseline;margin:.9rem 0 0;font-weight:700;font-size:1.15rem;}
 .gnl-sum-total small{font-weight:400;font-size:.72rem;opacity:.65;}
+.gnl-freq{margin:.9rem 0 .3rem;}
+.gnl-freq-title{display:block;font-size:.8rem;font-weight:600;opacity:.85;margin:0 0 .5rem;}
+.gnl-freq-opts{display:flex;flex-direction:column;gap:.5rem;}
+.gnl-freq-opt{display:flex;align-items:center;gap:.6rem;border:1px solid var(--gnl-line);border-radius:10px;padding:.55rem .7rem;cursor:pointer;transition:border-color .15s,box-shadow .15s;}
+.gnl-freq-opt:hover{border-color:var(--gnl-green);}
+.gnl-freq-opt.is-active{border-color:var(--gnl-green);box-shadow:0 0 0 1px var(--gnl-green) inset;}
+.gnl-freq-opt input{accent-color:var(--gnl-green);margin:0;flex:none;}
+.gnl-freq-name{font-size:.9rem;font-weight:600;flex:1;}
+.gnl-freq-amt{font-size:.86rem;font-weight:600;white-space:nowrap;}
+.gnl-freq-amt small{font-weight:400;opacity:.6;font-size:.72rem;}
 .gnl-cta{display:block;width:100%;margin-top:1.1rem;border:none;background:var(--gnl-green);color:#fff;border-radius:10px;padding:.85rem 1rem;font:inherit;font-weight:700;font-size:1rem;cursor:pointer;text-align:center;transition:filter .15s;}
 .gnl-cta:hover{filter:brightness(1.06);}
 .gnl-back{display:inline-block;margin-top:.8rem;font-size:.85rem;color:inherit;opacity:.7;text-decoration:none;}
@@ -1090,10 +1158,19 @@ function gnl_render_recap_from_order($order) {
         }
     }
     echo '</ul>';
-    echo '<div class="gnl-sum-total"><span>Total mensuel</span><span>' . gnl_money($order['totaux']['mensuel']) . '</span></div>';
+    $bill   = (isset($order['billing']) && is_array($order['billing'])) ? $order['billing'] : array();
+    $plan   = gnl_billing_plan(isset($bill['frequence']) ? $bill['frequence'] : 'mensuel');
+    $period = isset($order['totaux']['periode']) ? (float) $order['totaux']['periode'] : (float) $order['totaux']['mensuel'];
+    echo '<div class="gnl-sum-total"><span>Total <small>' . gnl_e($plan['suffix']) . '</small></span><span>' . gnl_money($period) . '</span></div>';
     if (!empty($order['totaux']['frais_unique']) && $order['totaux']['frais_unique'] > 0) {
         echo '<div class="gnl-sum-total" style="font-size:.95rem;font-weight:600"><span>Frais uniques</span><span>' . gnl_money($order['totaux']['frais_unique']) . '</span></div>';
     }
+    echo '<p class="gnl-line-note" style="margin-top:.7rem">Facturation&nbsp;: <strong>' . gnl_e($plan['label']) . '</strong>';
+    if (!empty($order['next_renewal'])) {
+        $ts = strtotime((string) $order['next_renewal']);
+        if ($ts) echo ' &middot; renouvellement le <strong>' . gnl_e(gnl_fr_date($ts)) . '</strong>';
+    }
+    echo '.</p>';
 }
 ?>
 
@@ -1125,8 +1202,11 @@ function gnl_render_recap_from_order($order) {
       <p style="opacity:.85">
         <?php if ($paid): ?>
           Votre commande est en cours de mise en service.
-          <?php if (!empty($order['recurring_amount']) && $order['recurring_amount'] > 0): ?>
-            Votre abonnement mensuel est activé&nbsp;; le prélèvement se renouvellera automatiquement chaque mois.
+          <?php if (!empty($order['recurring_amount']) && $order['recurring_amount'] > 0):
+                $sBill  = (isset($order['billing']) && is_array($order['billing'])) ? $order['billing'] : array();
+                $sPlan  = gnl_billing_plan(isset($sBill['frequence']) ? $sBill['frequence'] : 'mensuel');
+                $sRenew = !empty($order['next_renewal']) ? strtotime((string) $order['next_renewal']) : 0; ?>
+            Votre abonnement <strong><?php echo gnl_e(strtolower($sPlan['label'])); ?></strong> est activé&nbsp;; le prélèvement se renouvellera automatiquement <?php echo gnl_e($sPlan['per']); ?><?php echo $sRenew ? ', à partir du ' . gnl_e(gnl_fr_date($sRenew)) : ''; ?>.
           <?php endif; ?>
           Un e-mail de confirmation part vers <strong><?php echo gnl_e($order['client']['email']); ?></strong>.
         <?php elseif ($pending): ?>
@@ -1186,6 +1266,10 @@ function gnl_render_recap_from_order($order) {
 <?php else:
     $mollieOn  = gnl_mollie_enabled();
     $ctaLabel  = $mollieOn ? 'Payer en ligne' : 'Confirmer la commande';
+    $plans     = gnl_billing_plans();
+    $selFreq   = (isset($_POST['frequence']) && isset($plans[$_POST['frequence']])) ? $_POST['frequence'] : 'mensuel';
+    $selPlan   = $plans[$selFreq];
+    $selPeriod = $cartMonthly * $selPlan['months'];
 ?>
 
   <p class="gnl-breadcrumb"><a href="./">Accueil</a> &rsaquo; <a href="cart">Panier</a> &rsaquo; Commande</p>
@@ -1331,12 +1415,32 @@ function gnl_render_recap_from_order($order) {
             <?php endforeach; ?>
           </ul>
 
-          <div class="gnl-sum-total"><span>Total <small>/ mois</small></span><span><?php echo gnl_money($cartMonthly); ?></span></div>
+          <?php if ($cartMonthly > 0): ?>
+          <div class="gnl-freq" id="gnl-freq"
+               data-monthly="<?php echo gnl_e(number_format($cartMonthly, 2, '.', '')); ?>"
+               data-once="<?php echo gnl_e(number_format($cartOnce, 2, '.', '')); ?>">
+            <span class="gnl-freq-title">Périodicité de facturation</span>
+            <div class="gnl-freq-opts">
+              <?php foreach ($plans as $fk => $fp): ?>
+                <label class="gnl-freq-opt<?php echo $fk === $selFreq ? ' is-active' : ''; ?>">
+                  <input type="radio" name="frequence" value="<?php echo gnl_e($fk); ?>" <?php echo $fk === $selFreq ? 'checked' : ''; ?>>
+                  <span class="gnl-freq-name"><?php echo gnl_e($fp['label']); ?></span>
+                  <span class="gnl-freq-amt"><?php echo gnl_money($cartMonthly * $fp['months']); ?> <small><?php echo gnl_e($fp['suffix']); ?></small></span>
+                </label>
+              <?php endforeach; ?>
+            </div>
+          </div>
+          <?php endif; ?>
+
+          <div class="gnl-sum-total"><span>Total <small id="gnl-freq-suffix"><?php echo gnl_e($selPlan['suffix']); ?></small></span><span id="gnl-period-total"><?php echo gnl_money($selPeriod); ?></span></div>
           <?php if ($cartOnce > 0): ?>
             <div class="gnl-sum-total" style="font-size:.98rem;font-weight:600"><span>Frais uniques</span><span><?php echo gnl_money($cartOnce); ?></span></div>
           <?php endif; ?>
           <?php if ($mollieOn && ($cartMonthly > 0 || $cartOnce > 0)): ?>
-            <p class="gnl-line-note">Aujourd'hui&nbsp;: <strong><?php echo gnl_money($cartMonthly + $cartOnce); ?></strong> (1<sup>er</sup> mois<?php echo $cartOnce > 0 ? ' + frais uniques' : ''; ?>), puis <?php echo gnl_money($cartMonthly); ?>/mois.</p>
+            <p class="gnl-line-note">Aujourd'hui&nbsp;: <strong id="gnl-today-total"><?php echo gnl_money($selPeriod + $cartOnce); ?></strong> (1<sup>re</sup> échéance<?php echo $cartOnce > 0 ? ' + frais uniques' : ''; ?>), puis <span id="gnl-recurr-note"><?php echo gnl_money($selPeriod) . ' ' . gnl_e($selPlan['per']); ?></span>.</p>
+            <?php if ($cartMonthly > 0): ?>
+            <p class="gnl-line-note" style="margin-top:.45rem">Prochain renouvellement prévu le <strong id="gnl-renew-date"><?php echo gnl_e(gnl_fr_date(strtotime('+' . $selPlan['months'] . ' month'))); ?></strong>.</p>
+            <?php endif; ?>
           <?php endif; ?>
           <?php $hasDom = false; foreach ($items as $it) { if ($it['domaine']) { $hasDom = true; break; } } ?>
           <?php if ($hasDom): ?>
@@ -1360,6 +1464,41 @@ function gnl_render_recap_from_order($order) {
 
     </div>
   </form>
+
+  <script id="gnl-freq-js">
+  (function(){
+    var box = document.getElementById('gnl-freq');
+    if(!box) return;
+    var PLANS = {
+      mensuel:     {months:1,  suffix:'/ mois',      per:'par mois'},
+      trimestriel: {months:3,  suffix:'/ trimestre', per:'par trimestre'},
+      annuel:      {months:12, suffix:'/ an',        per:'par an'}
+    };
+    var MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+    var monthly = parseFloat(box.getAttribute('data-monthly')) || 0;
+    var once    = parseFloat(box.getAttribute('data-once')) || 0;
+    function money(v){ return v.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '\u00a0€'; }
+    function frDate(months){ var d = new Date(); d.setMonth(d.getMonth()+months); return d.getDate()+' '+MOIS[d.getMonth()]+' '+d.getFullYear(); }
+    function set(id, txt){ var el = document.getElementById(id); if(el) el.textContent = txt; }
+    function apply(key){
+      var p = PLANS[key] || PLANS.mensuel;
+      var period = monthly * p.months;
+      set('gnl-freq-suffix', p.suffix);
+      set('gnl-period-total', money(period));
+      set('gnl-today-total',  money(period + once));
+      set('gnl-recurr-note',  money(period) + ' ' + p.per);
+      set('gnl-renew-date',   frDate(p.months));
+      box.querySelectorAll('.gnl-freq-opt').forEach(function(l){
+        var r = l.querySelector('input'); l.classList.toggle('is-active', !!(r && r.checked));
+      });
+    }
+    box.querySelectorAll('input[name="frequence"]').forEach(function(r){
+      r.addEventListener('change', function(){ if(r.checked) apply(r.value); });
+    });
+    var cur = box.querySelector('input[name="frequence"]:checked');
+    if(cur) apply(cur.value);
+  })();
+  </script>
 
 <?php endif; ?>
 
