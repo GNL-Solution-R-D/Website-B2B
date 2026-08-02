@@ -145,8 +145,29 @@ function gnl_flag($code) {
 if (session_status() === PHP_SESSION_NONE) session_start();
 function gnl_cart_get()   { return (isset($_SESSION['gnl_cart']) && is_array($_SESSION['gnl_cart'])) ? $_SESSION['gnl_cart'] : array(); }
 function gnl_cart_save($c) { $_SESSION['gnl_cart'] = array_values($c); }
+
+/* Identifiants uniques (ligne produit et option) dans le panier.
+   Ils s'AJOUTENT au slug produit et au n° de commande : ils permettent de
+   distinguer deux fois le même produit configuré différemment, et sont
+   transmis tels quels au webhook n8n (order.create). Générés une seule fois
+   à l'ajout au panier puis conservés en session pour rester stables. */
+function gnl_uid($prefix) {
+    if (function_exists('random_bytes')) {
+        try { return $prefix . bin2hex(random_bytes(8)); } catch (Exception $e) {}
+    }
+    return $prefix . str_replace('.', '', uniqid('', true));
+}
+/* Slug d'une option, qu'elle soit stockée en chaîne (ancien format) ou en
+   tableau {slug, uid} (nouveau format) -> assure la rétro-compatibilité. */
+function gnl_opt_slug($o) {
+    if (is_array($o)) return isset($o['slug']) ? strtolower((string) $o['slug']) : '';
+    return strtolower((string) $o);
+}
 function gnl_cart_sig($item) {
-    $opts = isset($item['options']) ? (array) $item['options'] : array();
+    $opts = array();
+    if (isset($item['options']) && is_array($item['options'])) {
+        foreach ($item['options'] as $o) { $s = gnl_opt_slug($o); if ($s !== '') $opts[] = $s; }
+    }
     sort($opts);
     $dom = isset($item['domaine']['name']) ? $item['domaine']['name'] : '';
     return strtolower($item['slug'] . '|' . implode(',', $opts) . '|' . $dom);
@@ -158,9 +179,15 @@ function gnl_resolve_line($item, $productsIndex, $optIndex) {
     $qty = isset($item['qty']) ? max(1, (int) $item['qty']) : 1;
     $opts = array(); $monthly = gnl_num($p['prix']); $once = 0.0;
     if (!empty($item['options']) && is_array($item['options'])) {
-        foreach ($item['options'] as $os) {
-            $os = strtolower((string) $os);
-            if (isset($optIndex[$os])) { $o = $optIndex[$os]; $opts[] = $o; if ($o['unique']) $once += $o['prix']; else $monthly += $o['prix']; }
+        foreach ($item['options'] as $entry) {
+            $os  = gnl_opt_slug($entry);
+            $uid = (is_array($entry) && !empty($entry['uid'])) ? (string) $entry['uid'] : gnl_uid('opt_');
+            if (isset($optIndex[$os])) {
+                $o = $optIndex[$os];
+                $o['uid'] = $uid; // identifiant unique de CETTE option dans le panier
+                $opts[] = $o;
+                if ($o['unique']) $once += $o['prix']; else $monthly += $o['prix'];
+            }
         }
     }
     $dom = null;
@@ -169,7 +196,7 @@ function gnl_resolve_line($item, $productsIndex, $optIndex) {
         if ($dn !== '') $dom = array('name' => $dn, 'price' => isset($item['domaine']['price']) ? (string) $item['domaine']['price'] : '');
     }
     return array(
-        'id' => isset($item['id']) ? $item['id'] : uniqid('ci_'),
+        'id' => isset($item['id']) ? $item['id'] : gnl_uid('itm_'),
         'product' => $p, 'options' => $opts, 'domaine' => $dom, 'qty' => $qty,
         'monthly' => $monthly, 'once' => $once,
         'line_monthly' => $monthly * $qty, 'line_once' => $once * $qty,
@@ -202,14 +229,19 @@ if ($action === 'add') {
     if ($slug !== '' && isset($productsIndex[$slug])) {
         $optSlugs = array();
         if (is_array($cfg) && !empty($cfg['options']) && is_array($cfg['options'])) {
-            foreach (array_keys($cfg['options']) as $os) { if (isset($optIndex[strtolower($os)])) $optSlugs[] = strtolower($os); }
+            foreach (array_keys($cfg['options']) as $os) {
+                $os = strtolower($os);
+                // Chaque option reçoit son propre identifiant unique (en plus du slug).
+                if (isset($optIndex[$os])) $optSlugs[] = array('slug' => $os, 'uid' => gnl_uid('opt_'));
+            }
         }
         $dom = null;
         if (is_array($cfg) && !empty($cfg['domaine']['name'])) {
             $dn = preg_replace('/[^a-z0-9.\-]/', '', strtolower((string) $cfg['domaine']['name']));
             if ($dn !== '') $dom = array('name' => $dn, 'price' => isset($cfg['domaine']['price']) ? (string) $cfg['domaine']['price'] : '');
         }
-        $item = array('id' => uniqid('ci_'), 'slug' => $slug, 'options' => $optSlugs, 'domaine' => $dom, 'qty' => 1);
+        // 'id' = identifiant unique de la ligne produit dans le panier.
+        $item = array('id' => gnl_uid('itm_'), 'slug' => $slug, 'options' => $optSlugs, 'domaine' => $dom, 'qty' => 1);
 
         $cart = gnl_cart_get();
         $sig = gnl_cart_sig($item);
