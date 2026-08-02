@@ -69,6 +69,11 @@ if (!defined('KEYCLOAK_ADMIN_CLIENT_SECRET')) define('KEYCLOAK_ADMIN_CLIENT_SECR
 if (!defined('KEYCLOAK_REG_EMAIL_VERIFIED')) define('KEYCLOAK_REG_EMAIL_VERIFIED', gnl_env('KEYCLOAK_REG_EMAIL_VERIFIED', '1') === '1');
 if (!defined('KEYCLOAK_REG_VERIFY_EMAIL'))   define('KEYCLOAK_REG_VERIFY_EMAIL',   gnl_env('KEYCLOAK_REG_VERIFY_EMAIL', '0') === '1');
 
+/* Suffixe de domaine synthétisé pour les organisations créées à l'inscription.
+   Keycloak exige (selon la version) au moins un domaine unique par organisation ;
+   on génère <alias>.<suffixe> pour garantir unicité et validité. */
+if (!defined('KEYCLOAK_ORG_DOMAIN_SUFFIX')) define('KEYCLOAK_ORG_DOMAIN_SUFFIX', gnl_env('KEYCLOAK_ORG_DOMAIN_SUFFIX', 'clients.gnl-solution.fr'));
+
 if (!defined('KEYCLOAK_LOGO_URL')) define('KEYCLOAK_LOGO_URL', gnl_env('KEYCLOAK_LOGO_URL', 'https://gnl-solution.fr/wp-content/uploads/2025/04/Logo-GNL3.png'));
 
 if (!defined('KC_OIDC')) define('KC_OIDC', rtrim(KEYCLOAK_ISSUER, '/') . '/protocol/openid-connect');
@@ -466,6 +471,107 @@ if (!function_exists('gnl_kc_execute_actions_email')) {
     function gnl_kc_execute_actions_email($userId, $actions) {
         $q = http_build_query(array('client_id' => KEYCLOAK_CLIENT_ID));
         return gnl_kc_admin_request('PUT', '/users/' . rawurlencode($userId) . '/execute-actions-email?' . $q, $actions);
+    }
+}
+
+/* ==================== Organisations (Admin REST API) ================
+   Nécessite que le compte de service porte, en plus de manage-users, les
+   rôles realm-management "manage-organizations" (+ "view-organizations"). */
+
+/* Slug ASCII minuscule pour l'alias d'organisation ([a-z0-9-]). */
+if (!function_exists('gnl_slug')) {
+    function gnl_slug($s) {
+        $s = (string) $s;
+        if (function_exists('iconv')) {
+            $t = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s);
+            if ($t !== false && $t !== '') $s = $t;
+        }
+        $s = strtolower($s);
+        $s = preg_replace('/[^a-z0-9]+/', '-', $s);
+        $s = trim((string) $s, '-');
+        return $s !== '' ? $s : ('org-' . substr(gnl_rand_hex(4), 0, 8));
+    }
+}
+
+/* Retrouve une organisation par son alias exact (ou null). */
+if (!function_exists('gnl_kc_find_organization')) {
+    function gnl_kc_find_organization($alias) {
+        $q = http_build_query(array('search' => $alias, 'max' => 50));
+        $r = gnl_http('GET', gnl_kc_admin()['base'] . '/organizations?' . $q, null, array(
+            'Authorization: Bearer ' . gnl_kc_admin_token(), 'Accept: application/json',
+        ));
+        foreach ($r as $k => $v) {
+            if (is_int($k) && is_array($v) && isset($v['alias']) && $v['alias'] === $alias) return $v;
+        }
+        return null;
+    }
+}
+
+/* Crée une organisation avec ses attributs. $attributes = tableau
+   cle => array(valeur). Retourne array('id'=>.., 'alias'=>..) ou array('error'=>..). */
+if (!function_exists('gnl_kc_create_organization')) {
+    function gnl_kc_create_organization($name, $alias, $attributes) {
+        $base = gnl_kc_admin()['base'];
+        $hdr  = array('Authorization: Bearer ' . gnl_kc_admin_token(), 'Content-Type: application/json', 'Accept: application/json');
+        $suffix = KEYCLOAK_ORG_DOMAIN_SUFFIX;
+        $build = function ($alias, $withDomain) use ($name, $attributes, $suffix) {
+            $p = array('name' => $name, 'alias' => $alias, 'enabled' => true, 'attributes' => (object) $attributes);
+            if ($withDomain) $p['domains'] = array(array('name' => $alias . '.' . $suffix, 'verified' => false));
+            return $p;
+        };
+        $post = function ($payload) use ($base, $hdr) {
+            return gnl_http('POST', $base . '/organizations', json_encode($payload), $hdr);
+        };
+
+        $usedAlias = $alias;
+        $r  = $post($build($usedAlias, true));
+        $st = isset($r['_status']) ? (int) $r['_status'] : 0;
+
+        // Conflit (nom / alias / domaine déjà pris) -> alias + domaine suffixés
+        if ($st === 409) {
+            $usedAlias = $alias . '-' . substr(gnl_rand_hex(3), 0, 6);
+            $r  = $post($build($usedAlias, true));
+            $st = isset($r['_status']) ? (int) $r['_status'] : 0;
+        }
+        // Domaine refusé par cette version de Keycloak -> réessai sans domaine
+        if ($st !== 201 && stripos(gnl_kc_detail($r), 'domain') !== false) {
+            $r  = $post($build($usedAlias, false));
+            $st = isset($r['_status']) ? (int) $r['_status'] : 0;
+        }
+
+        if ($st === 201) {
+            $org = gnl_kc_find_organization($usedAlias);
+            return array('id' => ($org && isset($org['id'])) ? $org['id'] : '', 'alias' => $usedAlias);
+        }
+        if ($st === 403) return array('error' => 'droits insuffisants (rôle manage-organizations manquant sur le compte de service)');
+        return array('error' => gnl_kc_detail($r) !== '' ? gnl_kc_detail($r) : ('HTTP ' . $st));
+    }
+}
+
+/* Ajoute un utilisateur comme membre d'une organisation. */
+if (!function_exists('gnl_kc_org_add_member')) {
+    function gnl_kc_org_add_member($orgId, $userId) {
+        $url  = gnl_kc_admin()['base'] . '/organizations/' . rawurlencode($orgId) . '/members';
+        $auth = 'Authorization: Bearer ' . gnl_kc_admin_token();
+        // Corps = id du membre en chaîne JSON.
+        $r  = gnl_http('POST', $url, json_encode($userId), array($auth, 'Content-Type: application/json', 'Accept: application/json'));
+        $st = isset($r['_status']) ? (int) $r['_status'] : 0;
+        if ($st === 201 || $st === 204 || $st === 409) return true; // 409 = déjà membre
+        // Repli : certaines versions attendent l'id brut en text/plain.
+        $r  = gnl_http('POST', $url, (string) $userId, array($auth, 'Content-Type: text/plain', 'Accept: application/json'));
+        $st = isset($r['_status']) ? (int) $r['_status'] : 0;
+        return ($st === 201 || $st === 204 || $st === 409);
+    }
+}
+
+/* Supprime une organisation (utilisé pour nettoyer en cas d'échec). */
+if (!function_exists('gnl_kc_delete_organization')) {
+    function gnl_kc_delete_organization($orgId) {
+        if ($orgId === '') return false;
+        $r = gnl_http('DELETE', gnl_kc_admin()['base'] . '/organizations/' . rawurlencode($orgId), null,
+            array('Authorization: Bearer ' . gnl_kc_admin_token(), 'Accept: application/json'));
+        $st = isset($r['_status']) ? (int) $r['_status'] : 0;
+        return ($st >= 200 && $st < 300);
     }
 }
 
