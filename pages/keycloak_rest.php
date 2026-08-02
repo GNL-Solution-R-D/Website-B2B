@@ -470,10 +470,15 @@ if (!function_exists('gnl_kc_populate_session')) {
         $ui = gnl_kc_userinfo($tok['access_token']);
         if (!$ui || empty($ui['sub'])) return false;
 
-        $claims = array_merge(
-            !empty($tok['id_token']) ? gnl_jwt_payload($tok['id_token']) : array(),
-            is_array($ui) ? $ui : array()
-        );
+        // Claims fusionnés depuis les TROIS sources possibles. Selon la
+        // configuration du mapper Keycloak, le claim "organization" peut
+        // n'être présent que dans l'access token (cas fréquent) : on le lit
+        // donc aussi, sinon les organisations passent inaperçues.
+        $atc = !empty($tok['access_token']) ? gnl_jwt_payload($tok['access_token']) : array();
+        $itc = !empty($tok['id_token'])     ? gnl_jwt_payload($tok['id_token'])     : array();
+        $uic = is_array($ui) ? $ui : array();
+        // userinfo/id_token en dernier -> l'identité qu'ils portent l'emporte.
+        $claims = array_merge($atc, $itc, $uic);
         $get = function ($k, $d = '') use ($claims) { return (isset($claims[$k]) && $claims[$k] !== null) ? $claims[$k] : $d; };
         $given  = (string) $get('given_name');
         $family = (string) $get('family_name');
@@ -490,7 +495,23 @@ if (!function_exists('gnl_kc_populate_session')) {
             'phone'       => (string) $phone,
         );
         $idToken = !empty($tok['id_token']) ? (string) $tok['id_token'] : '';
-        $orgs    = gnl_org_extract_all($get('organization', null));
+
+        // Organisation : on retient la source qui en fournit le PLUS (une
+        // source peut ne donner qu'un booléen ou un seul nom, une autre la
+        // liste complète avec attributs).
+        $orgs = array();
+        foreach (array($atc, $itc, $uic) as $src) {
+            if (isset($src['organization'])) {
+                $cand = gnl_org_extract_all($src['organization']);
+                if (count($cand) > count($orgs)) $orgs = $cand;
+            }
+        }
+        if (gnl_env('KEYCLOAK_DEBUG') === '1') {
+            error_log('[GNL REST] organization — access=' . json_encode(isset($atc['organization']) ? $atc['organization'] : null)
+                . ' | id=' . json_encode(isset($itc['organization']) ? $itc['organization'] : null)
+                . ' | userinfo=' . json_encode(isset($uic['organization']) ? $uic['organization'] : null)
+                . ' => ' . count($orgs) . ' org(s) détectée(s)');
+        }
 
         // 0 ou 1 organisation : on finalise immédiatement.
         if (count($orgs) <= 1) {
