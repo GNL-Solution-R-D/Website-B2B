@@ -209,10 +209,19 @@ if (!function_exists('gnl_http')) {
             )));
             $raw = @file_get_contents($url, false, $ctx);
             $status = 0;
-            if (isset($http_response_header) && is_array($http_response_header)) {
-                foreach ($http_response_header as $line) {
-                    if (preg_match('#^HTTP/\S+\s+(\d{3})#', $line, $m)) $status = (int) $m[1];
-                }
+            /* Récupération du code HTTP sans utiliser $http_response_header,
+               déprécié en PHP 8.5. On privilégie http_get_last_response_headers()
+               (PHP 8.5+) et on ne touche l'ancienne variable que sur PHP < 8.5,
+               où elle n'est pas dépréciée. */
+            $respHeaders = array();
+            if (function_exists('http_get_last_response_headers')) {
+                $h = http_get_last_response_headers();
+                if (is_array($h)) $respHeaders = $h;
+            } elseif (isset($http_response_header) && is_array($http_response_header)) {
+                $respHeaders = $http_response_header;
+            }
+            foreach ($respHeaders as $line) {
+                if (preg_match('#^HTTP/\S+\s+(\d{3})#', $line, $m)) $status = (int) $m[1];
             }
             if ($raw === false) return array('_status' => $status, '_transport' => 'stream_failed');
         }
