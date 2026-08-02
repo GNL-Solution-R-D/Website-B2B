@@ -359,6 +359,20 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 function gnl_cart_get()   { return (isset($_SESSION['gnl_cart']) && is_array($_SESSION['gnl_cart'])) ? $_SESSION['gnl_cart'] : array(); }
 function gnl_cart_clear() { unset($_SESSION['gnl_cart']); }
 
+/* Identifiants uniques (ligne produit et option). Ils s'AJOUTENT au slug
+   produit et au n° de commande, et sont transmis au webhook n8n. */
+function gnl_uid($prefix) {
+    if (function_exists('random_bytes')) {
+        try { return $prefix . bin2hex(random_bytes(8)); } catch (Exception $e) {}
+    }
+    return $prefix . str_replace('.', '', uniqid('', true));
+}
+/* Slug d'une option, stockée en chaîne (ancien format) ou en tableau {slug, uid}. */
+function gnl_opt_slug($o) {
+    if (is_array($o)) return isset($o['slug']) ? strtolower((string) $o['slug']) : '';
+    return strtolower((string) $o);
+}
+
 /* Résout une ligne de panier -> prix TOUJOURS recalculés côté serveur */
 function gnl_resolve_line($item, $productsIndex, $optIndex) {
     $slug = isset($item['slug']) ? (string) $item['slug'] : '';
@@ -367,9 +381,15 @@ function gnl_resolve_line($item, $productsIndex, $optIndex) {
     $qty = isset($item['qty']) ? max(1, (int) $item['qty']) : 1;
     $opts = array(); $monthly = gnl_num($p['prix']); $once = 0.0;
     if (!empty($item['options']) && is_array($item['options'])) {
-        foreach ($item['options'] as $os) {
-            $os = strtolower((string) $os);
-            if (isset($optIndex[$os])) { $o = $optIndex[$os]; $opts[] = $o; if ($o['unique']) $once += $o['prix']; else $monthly += $o['prix']; }
+        foreach ($item['options'] as $entry) {
+            $os  = gnl_opt_slug($entry);
+            $uid = (is_array($entry) && !empty($entry['uid'])) ? (string) $entry['uid'] : gnl_uid('opt_');
+            if (isset($optIndex[$os])) {
+                $o = $optIndex[$os];
+                $o['uid'] = $uid; // identifiant unique de CETTE option dans le panier
+                $opts[] = $o;
+                if ($o['unique']) $once += $o['prix']; else $monthly += $o['prix'];
+            }
         }
     }
     $dom = null;
@@ -378,7 +398,7 @@ function gnl_resolve_line($item, $productsIndex, $optIndex) {
         if ($dn !== '') $dom = array('name' => $dn, 'price' => isset($item['domaine']['price']) ? (string) $item['domaine']['price'] : '');
     }
     return array(
-        'id' => isset($item['id']) ? $item['id'] : uniqid('ci_'),
+        'id' => isset($item['id']) ? $item['id'] : gnl_uid('itm_'),
         'product' => $p, 'options' => $opts, 'domaine' => $dom, 'qty' => $qty,
         'monthly' => $monthly, 'once' => $once,
         'line_monthly' => $monthly * $qty, 'line_once' => $once * $qty,
@@ -476,9 +496,24 @@ if ($view === 'form' && !empty($items) && (isset($_POST['step']) && $_POST['step
 
         $orderItems = array();
         foreach ($items as $it) {
+            // Identifiant unique de la ligne produit (en plus du slug + n° de commande).
+            $lineUid = (isset($it['id']) && $it['id'] !== '') ? (string) $it['id'] : gnl_uid('itm_');
             $optOut = array();
-            foreach ($it['options'] as $o) $optOut[] = array('slug'=>$o['slug'], 'name'=>$o['name'], 'prix'=>$o['prix'], 'unique'=>$o['unique']);
+            foreach ($it['options'] as $o) {
+                $optOut[] = array(
+                    'uid'          => (isset($o['uid']) && $o['uid'] !== '') ? (string) $o['uid'] : gnl_uid('opt_'),
+                    'slug'         => $o['slug'],
+                    'name'         => $o['name'],
+                    'prix'         => $o['prix'],
+                    'unique'       => $o['unique'],
+                    'reference'    => $orderRef,               // n° de commande
+                    'product_uid'  => $lineUid,                // ligne produit parente
+                    'product_slug' => $it['product']['slug'],  // slug du produit parent
+                );
+            }
             $orderItems[] = array(
+                'uid'          => $lineUid,                    // identifiant unique de la ligne produit
+                'reference'    => $orderRef,                   // n° de commande
                 'slug'         => $it['product']['slug'],
                 'name'         => $it['product']['name'],
                 'prix_mensuel' => gnl_num($it['product']['prix']),
