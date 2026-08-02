@@ -55,7 +55,7 @@ if (!function_exists('gnl_env')) {
 if (!defined('KEYCLOAK_ISSUER'))        define('KEYCLOAK_ISSUER',        gnl_env('KEYCLOAK_ISSUER', 'https://auth.gnl-solution.fr/auth/realms/client-auth'));
 if (!defined('KEYCLOAK_CLIENT_ID'))     define('KEYCLOAK_CLIENT_ID',     gnl_env('KEYCLOAK_CLIENT_ID', 'siteweb'));
 if (!defined('KEYCLOAK_CLIENT_SECRET')) define('KEYCLOAK_CLIENT_SECRET', gnl_env('KEYCLOAK_CLIENT_SECRET', ''));
-if (!defined('KEYCLOAK_SCOPES'))        define('KEYCLOAK_SCOPES',        gnl_env('KEYCLOAK_SCOPES', 'openid profile email organization'));
+if (!defined('KEYCLOAK_SCOPES'))        define('KEYCLOAK_SCOPES',        gnl_env('KEYCLOAK_SCOPES', 'openid profile email organization:*'));
 
 /* Compte de service pour l'Admin REST API (repli sur "siteweb" si vide). */
 if (!defined('KEYCLOAK_ADMIN_CLIENT_ID'))     define('KEYCLOAK_ADMIN_CLIENT_ID',     gnl_env('KEYCLOAK_ADMIN_CLIENT_ID', KEYCLOAK_CLIENT_ID));
@@ -290,19 +290,19 @@ if (!function_exists('gnl_http')) {
             )));
             $raw = @file_get_contents($url, false, $ctx);
             $status = 0;
-            /* Récupération du code HTTP sans utiliser $http_response_header,
-               déprécié en PHP 8.5. On privilégie http_get_last_response_headers()
-               (PHP 8.5+) et on ne touche l'ancienne variable que sur PHP < 8.5,
-               où elle n'est pas dépréciée. */
-            $respHeaders = array();
+            /* Code HTTP récupéré via http_get_last_response_headers() (PHP 8.5+).
+               On ne référence JAMAIS la variable http_response_header : sa simple
+               présence dans le code fait que PHP 8.5 la peuple et émet une
+               dépréciation. Sur PHP < 8.5 (sans cette fonction), le statut reste
+               0 en mode flux : le corps JSON d'erreur de Keycloak suffit. */
             if (function_exists('http_get_last_response_headers')) {
                 $h = http_get_last_response_headers();
-                if (is_array($h)) $respHeaders = $h;
-            } elseif (isset($http_response_header) && is_array($http_response_header)) {
-                $respHeaders = $http_response_header;
-            }
-            foreach ($respHeaders as $line) {
-                if (preg_match('#^HTTP/\S+\s+(\d{3})#', $line, $m)) $status = (int) $m[1];
+                if (is_array($h)) {
+                    foreach ($h as $line) {
+                        if (preg_match('#^HTTP/\S+\s+(\d{3})#', $line, $m)) $status = (int) $m[1];
+                    }
+                }
+                if (function_exists('http_clear_last_response_headers')) http_clear_last_response_headers();
             }
             if ($raw === false) return array('_status' => $status, '_transport' => 'stream_failed');
         }
@@ -342,17 +342,30 @@ if (!function_exists('gnl_kc_userinfo')) {
 /* ================= Grant "password" (connexion REST) ================ */
 if (!function_exists('gnl_kc_password_grant')) {
     function gnl_kc_password_grant($username, $password, $scope = null) {
-        $fields = array(
-            'grant_type' => 'password',
-            'client_id'  => KEYCLOAK_CLIENT_ID,
-            'username'   => $username,
-            'password'   => $password,
-            'scope'      => $scope !== null ? $scope : KEYCLOAK_SCOPES,
-        );
-        if (KEYCLOAK_CLIENT_SECRET !== '') $fields['client_secret'] = KEYCLOAK_CLIENT_SECRET;
-        return gnl_http('POST', KC_OIDC . '/token', http_build_query($fields), array(
-            'Content-Type: application/x-www-form-urlencoded', 'Accept: application/json',
-        ));
+        $scope = $scope !== null ? $scope : KEYCLOAK_SCOPES;
+        $do = function ($scope) use ($username, $password) {
+            $fields = array(
+                'grant_type' => 'password',
+                'client_id'  => KEYCLOAK_CLIENT_ID,
+                'username'   => $username,
+                'password'   => $password,
+                'scope'      => $scope,
+            );
+            if (KEYCLOAK_CLIENT_SECRET !== '') $fields['client_secret'] = KEYCLOAK_CLIENT_SECRET;
+            return gnl_http('POST', KC_OIDC . '/token', http_build_query($fields), array(
+                'Content-Type: application/x-www-form-urlencoded', 'Accept: application/json',
+            ));
+        };
+        $r = $do($scope);
+        /* Si le serveur ne supporte pas le scope dynamique "organization:*"
+           (invalid_scope), on retente une fois avec "organization" simple. */
+        if (is_array($r) && isset($r['error']) && $r['error'] === 'invalid_scope'
+            && strpos($scope, 'organization:*') !== false) {
+            $fallback = trim(str_replace('organization:*', 'organization', $scope));
+            $r2 = $do($fallback);
+            if (is_array($r2) && !empty($r2['access_token'])) return $r2;
+        }
+        return $r;
     }
 }
 
