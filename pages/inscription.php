@@ -78,9 +78,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     /* Compte créé -> connexion immédiate par grant "password". */
                     $tok = gnl_kc_password_grant($vals['email'], $pass);
-                    if (is_array($tok) && !empty($tok['access_token']) && gnl_kc_populate_session($tok)) {
-                        header('Location: ' . gnl_site_base() . $return);
-                        exit;
+                    if (is_array($tok) && !empty($tok['access_token'])) {
+                        $r = gnl_kc_populate_session($tok);
+                        if ($r === 'choose') {                    // rare à l'inscription, mais géré
+                            $_SESSION['gnl_pending_auth']['return'] = $return;
+                            header('Location: ' . gnl_site_base() . '/organisation');
+                            exit;
+                        }
+                        if ($r) {                                 // 'done'
+                            header('Location: ' . gnl_site_base() . $return);
+                            exit;
+                        }
                     }
                     /* Connexion auto bloquée (ex. vérification e-mail) -> /connexion. */
                     header('Location: ' . gnl_site_base() . '/connexion?registered=1&return=' . rawurlencode($return));
