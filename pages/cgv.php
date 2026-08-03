@@ -19,7 +19,7 @@ $page_titre = 'Conditions Générales de Vente';
     <meta name="description" content="Conditions générales de vente du site <?= e($LEGAL['site_nom']) ?>.">
     <meta name="robots" content="index,follow">
     <link rel="canonical" href="<?= e(rtrim($LEGAL['site_url'], '/')) ?>/cgv.php">
-    <link rel="stylesheet" href="legal.css">
+    <link rel="stylesheet" href="../assets/css/legal.css">
 </head>
 <body>
 
@@ -149,11 +149,12 @@ $page_titre = 'Conditions Générales de Vente';
 
     <p class="back-top"><a href="#">↑ Revenir en haut</a></p>
 
-    <footer class="legal-footer">
-        <p>© <?= e($LEGAL['annee']) ?> <?= e($LEGAL['raison_sociale']) ?>. Tous droits réservés.
-        &nbsp;·&nbsp; <a href="cgu.php">CGU</a>
-        &nbsp;·&nbsp; <a href="politique-de-confidentialite.php">Politique de confidentialité</a></p>
-    </footer>
+<?php
+// Pied de page commun (identique à index.php)
+if (is_readable('../include/footer.php')) {
+    include '../include/footer.php';
+}
+?>
 
 </div>
 
