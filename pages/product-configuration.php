@@ -937,8 +937,8 @@ document.addEventListener('DOMContentLoaded',function(){
           </div>
           <?php if ($opt['desc'] !== ''): ?><p class="gnl-opt-desc"><?php echo gnl_e($opt['desc']); ?></p><?php endif; ?>
           <div class="gnl-choices">
-            <button type="button" class="gnl-choice" data-val="oui"><?php echo $ouiLabel; ?></button>
             <button type="button" class="gnl-choice is-active" data-val="non"><?php echo $nonLabel; ?></button>
+            <button type="button" class="gnl-choice" data-val="oui"><?php echo $ouiLabel; ?></button>
           </div>
 
           <?php if ($isDomain): ?>
