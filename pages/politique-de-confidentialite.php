@@ -21,16 +21,12 @@ $page_titre = 'Politique de confidentialité';
 </head>
 <body>
 
-<header class="legal-header">
-    <div class="inner">
-        <a class="brand" href="<?= e($LEGAL['site_url']) ?>"><?= e($LEGAL['site_nom']) ?></a>
-        <nav aria-label="Pages légales">
-            <a href="cgu.php">CGU</a>
-            <a href="cgv.php">CGV</a>
-            <a href="politique-de-confidentialite.php" aria-current="page">Confidentialité</a>
-        </nav>
-    </div>
-</header>
+<?php
+// Pied de page commun (identique à index.php)
+if (is_readable('../include/header.php')) {
+    include '../include/header.php';
+}
+?>
 
 <div class="legal-wrap">
 
