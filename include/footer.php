@@ -44,19 +44,19 @@
 					<nav style="color: #353535;" class="has-text-color  is-vertical wp-block-navigation is-content-justification-stretch is-layout-flex wp-container-core-navigation-is-layout-69c550ab wp-block-navigation-is-layout-flex" aria-label="Navigation Pied de page">
 						<ul style="color: #353535;" class="wp-block-navigation__container has-text-color  is-vertical wp-block-navigation">
 							<li style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.196), 16px);" class=" wp-block-navigation-item wp-block-navigation-link">
-								<a class="wp-block-navigation-item__content"  href="index.php/cgu/index.html">
+								<a class="wp-block-navigation-item__content"  href="/cgu">
 									<span class="wp-block-navigation-item__label">CGU</span>
 								</a>
 							</li>
 
 							<li class=" wp-block-navigation-item wp-block-navigation-link">
-								<a class="wp-block-navigation-item__content"  href="cgv/index.html">
+								<a class="wp-block-navigation-item__content"  href="/cgv">
 									<span class="wp-block-navigation-item__label">CGV</span>
 								</a>
 							</li>
 
 							<li style="font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.196), 16px);" class=" wp-block-navigation-item wp-block-navigation-link">
-								<a class="wp-block-navigation-item__content"  href="index.php/politique-de-confidentialite/index.html">
+								<a class="wp-block-navigation-item__content"  href="/politique-de-confidentialite">
 									<span class="wp-block-navigation-item__label">Politique de Confidentialité</span>
 								</a>
 							</li>
