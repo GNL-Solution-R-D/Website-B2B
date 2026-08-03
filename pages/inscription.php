@@ -292,6 +292,7 @@ gnl_auth_head('Créer un compte', 'inscription', true, $wantOrg ? 'has-org' : ''
             <label for="org_siret">SIRET <span class="req">*</span></label>
             <input class="gnl-in" type="text" id="org_siret" name="org_siret" value="<?php echo $v('org_siret'); ?>"
                    inputmode="numeric" autocomplete="off" placeholder="942 358 805 00011" data-req="1">
+            <p class="gnl-hint" id="siret-status" aria-live="polite" style="min-height:1.05em"></p>
           </div>
 
           <div class="gnl-field">
@@ -389,6 +390,8 @@ gnl_auth_head('Créer un compte', 'inscription', true, $wantOrg ? 'has-org' : ''
         var tvaIn  = document.getElementById('org_tva');
         var siret  = document.getElementById('org_siret');
         var siren  = document.getElementById('siren_display');
+        var statusEl = document.getElementById('siret-status');
+        var lastLookup = ''; var lookupTimer = null;
 
         function group(d, sizes){
           var out = [], i = 0;
@@ -408,11 +411,45 @@ gnl_auth_head('Créer un compte', 'inscription', true, $wantOrg ? 'has-org' : ''
           for (var i = 0; i < reqs.length; i++) setReq(reqs[i], on);
           syncTva();
         }
+        function setStatus(txt, cls){
+          if (!statusEl) return;
+          statusEl.textContent = txt || '';
+          statusEl.style.color = cls === 'ok' ? '#1f6323' : (cls === 'err' ? '#8e2a1e' : '#8a8f85');
+        }
+        function fillField(id, val){ var el = document.getElementById(id); if (el && val != null && val !== '') el.value = val; }
+        function lookup(siretDigits){
+          if (siretDigits === lastLookup) return;
+          lastLookup = siretDigits;
+          setStatus('Recherche de l\'entreprise…', '');
+          fetch('/entreprise-lookup?siret=' + encodeURIComponent(siretDigits), { headers: { 'Accept': 'application/json' } })
+            .then(function(r){ return r.json(); })
+            .then(function(j){
+              if (!j || !j.ok || !j.data){ setStatus('Aucune entreprise trouvée pour ce SIRET.', 'err'); return; }
+              var d = j.data;
+              fillField('org_nom_commercial', d.nom_commercial);
+              fillField('org_raison', d.raison);
+              fillField('org_entite_legal', d.entite_legal);
+              fillField('org_voie_nbr', d.voie_nbr);
+              fillField('org_voie_name', d.voie_name);
+              fillField('org_cp', d.cp);
+              fillField('org_commune', d.commune);
+              fillField('org_pays', d.pays || 'France');
+              if (tvaIn && d.tva) tvaIn.value = d.tva;
+              var name = d.nom_commercial || d.raison || 'Entreprise trouvée';
+              if (d.etat === 'F') setStatus('⚠ ' + name + ' — établissement fermé, vérifiez le SIRET', 'err');
+              else setStatus('✓ ' + name, 'ok');
+            })
+            .catch(function(){ setStatus('Recherche indisponible pour le moment.', 'err'); });
+        }
         function fmtSiret(){
           if (!siret) return;
           var d = siret.value.replace(/\D/g, '').slice(0, 14);
           siret.value = group(d, [3,3,3,5]);
           if (siren) siren.value = group(d.slice(0, 9), [3,3,3]);
+          if (d.length === 14){
+            clearTimeout(lookupTimer);
+            lookupTimer = setTimeout(function(){ lookup(d); }, 400);
+          } else { lastLookup = ''; setStatus('', ''); }
         }
         if (pt)     pt.addEventListener('change', syncCard);
         if (tvaChk) tvaChk.addEventListener('change', syncTva);
