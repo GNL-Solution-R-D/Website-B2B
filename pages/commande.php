@@ -1364,51 +1364,51 @@ function gnl_render_recap_from_order($order) {
         </div>
 
         <div class="gnl-card" style="margin-top:1rem">
-          <h3 style="margin-top:0">Votre entreprise <small style="font-weight:400;opacity:.6">(facultatif)</small></h3>
+          <h3 style="margin-top:0">Votre entreprise</h3>
           <div class="gnl-form-grid">
             <div class="gnl-field gnl-col2">
               <label>Raison sociale</label>
-              <input type="text" name="raison_social" value="<?php echo gnl_e($client['raison_social']); ?>" autocomplete="organization">
+              <input type="text" name="raison_social" value="<?php echo gnl_e($client['raison_social']); ?>" readonly autocomplete="organization">
             </div>
             <div class="gnl-field">
               <label>Nom commercial</label>
-              <input type="text" name="nom_commercial" value="<?php echo gnl_e($client['nom_commercial']); ?>">
+              <input type="text" name="nom_commercial" value="<?php echo gnl_e($client['nom_commercial']); ?>" readonly>
             </div>
             <div class="gnl-field">
               <label>Forme juridique</label>
-              <input type="text" name="entite_legal" value="<?php echo gnl_e($client['entite_legal']); ?>">
+              <input type="text" name="entite_legal" value="<?php echo gnl_e($client['entite_legal']); ?>" readonly>
             </div>
             <div class="gnl-field">
               <label>SIRET</label>
-              <input type="text" name="siret" value="<?php echo gnl_e($client['siret']); ?>" inputmode="numeric">
+              <input type="text" name="siret" value="<?php echo gnl_e($client['siret']); ?>" readonly inputmode="numeric">
             </div>
             <div class="gnl-field">
               <label>SIREN</label>
-              <input type="text" name="siren" value="<?php echo gnl_e($client['siren']); ?>" inputmode="numeric">
+              <input type="text" name="siren" value="<?php echo gnl_e($client['siren']); ?>" readonly inputmode="numeric">
             </div>
             <div class="gnl-field">
               <label>N° TVA intracom.</label>
-              <input type="text" name="tva" value="<?php echo gnl_e($client['tva']); ?>">
+              <input type="text" name="tva" value="<?php echo gnl_e($client['tva']); ?>" readonly>
             </div>
             <div class="gnl-field">
               <label>E-mail de facturation</label>
-              <input type="email" name="ent_email" value="<?php echo gnl_e($client['ent_email']); ?>">
+              <input type="email" name="ent_email" value="<?php echo gnl_e($client['ent_email']); ?>" readonly>
             </div>
             <div class="gnl-field gnl-col2">
               <label>Adresse</label>
-              <input type="text" name="adr_voie" value="<?php echo gnl_e($client['adr_voie']); ?>" autocomplete="street-address">
+              <input type="text" name="adr_voie" value="<?php echo gnl_e($client['adr_voie']); ?>" readonly autocomplete="street-address">
             </div>
             <div class="gnl-field">
               <label>Code postal</label>
-              <input type="text" name="adr_cp" value="<?php echo gnl_e($client['adr_cp']); ?>" autocomplete="postal-code">
+              <input type="text" name="adr_cp" value="<?php echo gnl_e($client['adr_cp']); ?>" readonly autocomplete="postal-code">
             </div>
             <div class="gnl-field">
               <label>Ville</label>
-              <input type="text" name="adr_ville" value="<?php echo gnl_e($client['adr_ville']); ?>" autocomplete="address-level2">
+              <input type="text" name="adr_ville" value="<?php echo gnl_e($client['adr_ville']); ?>" readonly autocomplete="address-level2">
             </div>
             <div class="gnl-field gnl-col2">
               <label>Pays</label>
-              <input type="text" name="adr_pays" value="<?php echo gnl_e($client['adr_pays']); ?>" autocomplete="country-name">
+              <input type="text" name="adr_pays" value="<?php echo gnl_e($client['adr_pays']); ?>" readonly autocomplete="country-name">
             </div>
             <?php if ($client['organization'] !== ''): ?>
             <div class="gnl-field gnl-col2">
@@ -1422,7 +1422,7 @@ function gnl_render_recap_from_order($order) {
         <div class="gnl-card" style="margin-top:1rem">
           <div class="gnl-form-grid">
             <div class="gnl-field gnl-col2">
-              <label>Message (facultatif)</label>
+              <label>Une information a corriger ?</label>
               <textarea name="message" placeholder="Précisions sur votre projet, contraintes particulières…"><?php echo gnl_e($client['message']); ?></textarea>
             </div>
           </div>
