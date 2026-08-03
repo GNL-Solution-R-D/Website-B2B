@@ -1484,7 +1484,7 @@ function gnl_render_recap_from_order($order) {
 
           <label class="gnl-cgv <?php echo isset($errors['cgv']) ? 'err' : ''; ?>">
             <input type="checkbox" name="cgv" value="1" <?php echo (!empty($_POST['cgv'])) ? 'checked' : ''; ?>>
-            <span>J'accepte les <a href="#" target="_blank" rel="noopener">conditions générales de vente</a> et la politique de confidentialité. <span class="req">*</span></span>
+            <span>J'accepte les <a href="/cgv" target="_blank" rel="noopener">conditions générales de vente</a> et la <a href="/politique-de-confidentialite" target="_blank" rel="noopener">politique de confidentialité</a>. <span class="req">*</span></span>
           </label>
           <?php if (isset($errors['cgv'])): ?><p class="gnl-err-msg" style="margin:.2rem 0 0">Vous devez accepter les CGV.</p><?php endif; ?>
 
