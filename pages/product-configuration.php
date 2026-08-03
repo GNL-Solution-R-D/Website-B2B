@@ -994,9 +994,8 @@ document.addEventListener('DOMContentLoaded',function(){
 
 <?php
 // Pied de page commun (identique à index.php)
-if (is_readable('./include/footer.php')) {
+
     include './include/footer.php';
-}
 ?>
 </div><!-- .wp-site-blocks -->
 
