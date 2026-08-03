@@ -948,8 +948,8 @@ document.addEventListener('DOMContentLoaded',function(){
 </main>
 
 <?php
-if (is_readable('./include/footer.php')) {
-    include './include/footer.php';
+if (is_readable('../include/footer.php')) {
+    include '../include/footer.php';
 }
 ?>
 </div><!-- .wp-site-blocks -->
