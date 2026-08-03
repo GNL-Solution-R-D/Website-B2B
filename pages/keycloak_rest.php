@@ -332,6 +332,37 @@ if (!function_exists('gnl_kc_detail')) {
     }
 }
 
+/* Message d'erreur DÉTAILLÉ de l'Admin REST API (formats variés selon la
+   version : errorMessage, errors[], field/error, ou corps brut). */
+if (!function_exists('gnl_kc_error_message')) {
+    function gnl_kc_error_message($resp) {
+        if (!is_array($resp)) return '';
+        if (!empty($resp['_transport'])) return 'réseau: ' . $resp['_transport'];
+        foreach (array('errorMessage', 'error_description', 'error') as $k) {
+            if (!empty($resp[$k]) && is_string($resp[$k])) return $resp[$k];
+        }
+        if (!empty($resp['errors']) && is_array($resp['errors'])) {
+            $parts = array();
+            foreach ($resp['errors'] as $e) {
+                if (!is_array($e)) continue;
+                $m = isset($e['errorMessage']) ? $e['errorMessage'] : (isset($e['error']) ? $e['error'] : '');
+                $f = isset($e['field']) ? $e['field'] : (isset($e['attribute']) ? $e['attribute'] : '');
+                if ($m !== '') $parts[] = ($f !== '' ? $f . ' : ' : '') . $m;
+            }
+            if ($parts) return implode(' ; ', $parts);
+        }
+        if (!empty($resp['field'])) {
+            return trim(((string) $resp['field']) . ' : ' . (isset($resp['error']) ? (string) $resp['error'] : ''));
+        }
+        if (!empty($resp['_raw']) && is_string($resp['_raw'])) {
+            $s = trim($resp['_raw']);
+            if ($s !== '' && $s[0] !== '<') return substr($s, 0, 300); // pas du HTML
+        }
+        if (!empty($resp['_status'])) return 'HTTP ' . $resp['_status'];
+        return '';
+    }
+}
+
 /* --------------------------- userinfo ------------------------------- */
 if (!function_exists('gnl_kc_userinfo')) {
     function gnl_kc_userinfo($bearer) {
@@ -434,35 +465,48 @@ if (!function_exists('gnl_kc_create_user')) {
     function gnl_kc_create_user($email, $password, $firstName, $lastName, $attributes = array()) {
         $required = array();
         if (KEYCLOAK_REG_VERIFY_EMAIL) $required[] = 'VERIFY_EMAIL';
-        $payload = array(
-            'username'      => $email,
-            'email'         => $email,
-            'firstName'     => $firstName,
-            'lastName'      => $lastName,
-            'enabled'       => true,
-            'emailVerified' => (bool) KEYCLOAK_REG_EMAIL_VERIFIED,
-            'attributes'    => (object) $attributes,
-            'credentials'   => array(array(
-                'type'      => 'password',
-                'value'     => $password,
-                'temporary' => false,
-            )),
-        );
-        if ($required) $payload['requiredActions'] = $required;
 
-        $r = gnl_http('POST', gnl_kc_admin()['base'] . '/users',
-            json_encode($payload),
-            array('Authorization: Bearer ' . gnl_kc_admin_token(),
-                  'Content-Type: application/json', 'Accept: application/json'));
+        $build = function ($withAttrs) use ($email, $firstName, $lastName, $password, $attributes, $required) {
+            $p = array(
+                'username'      => $email,
+                'email'         => $email,
+                'firstName'     => $firstName,
+                'lastName'      => $lastName,
+                'enabled'       => true,
+                'emailVerified' => (bool) KEYCLOAK_REG_EMAIL_VERIFIED,
+                'credentials'   => array(array('type' => 'password', 'value' => $password, 'temporary' => false)),
+            );
+            if ($withAttrs && !empty($attributes)) $p['attributes'] = (object) $attributes;
+            if ($required) $p['requiredActions'] = $required;
+            return $p;
+        };
+        $post = function ($payload) {
+            return gnl_http('POST', gnl_kc_admin()['base'] . '/users', json_encode($payload),
+                array('Authorization: Bearer ' . gnl_kc_admin_token(),
+                      'Content-Type: application/json', 'Accept: application/json'));
+        };
 
-        $status = isset($r['_status']) ? (int) $r['_status'] : 0;
-        if ($status === 201) {
-            // Retrouve l'id créé (l'en-tête Location n'est pas exposé simplement -> relecture)
-            $u = gnl_kc_find_user('email', $email);
-            return array('id' => $u ? (isset($u['id']) ? $u['id'] : '') : '');
+        $r  = $post($build(true));
+        $st = isset($r['_status']) ? (int) $r['_status'] : 0;
+
+        /* Keycloak 24+ : le User Profile déclaratif refuse les attributs non
+           déclarés (civilite, phone…) par un 400. Si des attributs custom
+           étaient envoyés, on retente SANS eux pour que le compte se crée
+           quand même (attributs abandonnés, à déclarer côté realm si voulus). */
+        $attrDropped = false;
+        if ($st === 400 && !empty($attributes)) {
+            $r2  = $post($build(false));
+            $st2 = isset($r2['_status']) ? (int) $r2['_status'] : 0;
+            if ($st2 === 201) { $r = $r2; $st = 201; $attrDropped = true; }
         }
-        if ($status === 409) return array('error' => 'exists');
-        return array('error' => gnl_kc_detail($r) !== '' ? gnl_kc_detail($r) : ('HTTP ' . $status));
+
+        if ($st === 201) {
+            $u = gnl_kc_find_user('email', $email);
+            return array('id' => $u ? (isset($u['id']) ? $u['id'] : '') : '', 'attr_dropped' => $attrDropped);
+        }
+        if ($st === 409) return array('error' => 'exists');
+        $msg = gnl_kc_error_message($r);
+        return array('error' => $msg !== '' ? $msg : ('HTTP ' . $st));
     }
 }
 
@@ -544,7 +588,8 @@ if (!function_exists('gnl_kc_create_organization')) {
             return array('id' => ($org && isset($org['id'])) ? $org['id'] : '', 'alias' => $usedAlias);
         }
         if ($st === 403) return array('error' => 'droits insuffisants (rôle manage-organizations manquant sur le compte de service)');
-        return array('error' => gnl_kc_detail($r) !== '' ? gnl_kc_detail($r) : ('HTTP ' . $st));
+        $msg = gnl_kc_error_message($r);
+        return array('error' => $msg !== '' ? $msg : ('HTTP ' . $st));
     }
 }
 
@@ -731,7 +776,8 @@ if (!function_exists('gnl_csrf_check')) {
    Carte centrée, police Manrope, vert #6c9400 / teal #009494 / ink #353535,
    dans l'esprit des pages /cart et /commande. */
 if (!function_exists('gnl_auth_head')) {
-    function gnl_auth_head($title, $active = 'connexion') {
+    function gnl_auth_head($title, $active = 'connexion', $bare = false, $mainClass = '') {
+        $GLOBALS['gnl_auth_bare'] = $bare;
         header('Content-Type: text/html; charset=UTF-8');
         $logo = gnl_e(KEYCLOAK_LOGO_URL);
         ?><!DOCTYPE html>
@@ -813,13 +859,25 @@ select.gnl-in{appearance:none; background-image:url("data:image/svg+xml,%3Csvg x
 .gnl-sep::before,.gnl-sep::after{content:""; height:1px; background:var(--gnl-line); flex:1}
 .gnl-foot{margin-top:1.4rem; text-align:center; font-size:.76rem; color:#9aa093}
 .gnl-foot a{color:inherit}
+/* --- Mise en page 2 colonnes (inscription entreprise) --- */
+.gnl-auth.gnl-auth-wide{max-width:440px; transition:max-width .28s ease}
+.gnl-auth.gnl-auth-wide.has-org{max-width:940px}
+.gnl-auth-cols{display:flex; gap:1.1rem; align-items:flex-start; justify-content:center; flex-wrap:wrap}
+.gnl-auth-cols>.gnl-card{flex:1 1 400px; max-width:460px; min-width:0; margin:0}
+.gnl-orgcard{display:none}
+.gnl-auth.has-org .gnl-orgcard{display:block}
+.gnl-orgcard h2{font-size:1.1rem; font-weight:700; margin:.1rem 0 .2rem}
+.gnl-orgcard .sub{margin:0 0 1.2rem}
+.req{color:var(--gnl-danger); font-weight:700; margin-left:.1em}
+.gnl-derived{background:var(--gnl-soft); color:#5c6157; letter-spacing:.06em}
+@media(max-width:900px){ .gnl-auth.gnl-auth-wide.has-org{max-width:460px} }
 @media(max-width:480px){ .gnl-card{padding:1.5rem 1.25rem} .gnl-field.row{flex-direction:column; gap:0} }
 </style>
 </head>
 <body>
-<main class="gnl-auth">
+<main class="gnl-auth<?php echo $bare ? ' gnl-auth-wide' : ''; ?><?php echo $mainClass !== '' ? ' ' . $mainClass : ''; ?>">
   <a class="gnl-auth-logo" href="/" aria-label="GNL Solution"><img src="<?php echo $logo; ?>" alt="GNL Solution"></a>
-  <div class="gnl-card">
+  <?php if (!$bare): ?><div class="gnl-card"><?php endif; ?>
 <?php
     }
 }
@@ -827,7 +885,7 @@ select.gnl-in{appearance:none; background-image:url("data:image/svg+xml,%3Csvg x
 if (!function_exists('gnl_auth_foot')) {
     function gnl_auth_foot() {
         ?>
-  </div>
+  <?php if (empty($GLOBALS['gnl_auth_bare'])): ?></div><?php endif; ?>
   <p class="gnl-foot">Espace sécurisé GNL Solution &middot; <a href="/">Retour au site</a></p>
 </main>
 <script>
