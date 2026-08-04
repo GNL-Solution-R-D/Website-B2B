@@ -357,7 +357,9 @@ if (isset($_GET['mollie']) && $_GET['mollie'] === 'retry' && isset($_GET['ref'])
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 function gnl_cart_get()   { return (isset($_SESSION['gnl_cart']) && is_array($_SESSION['gnl_cart'])) ? $_SESSION['gnl_cart'] : array(); }
-function gnl_cart_clear() { unset($_SESSION['gnl_cart']); }
+function gnl_cart_clear() { unset($_SESSION['gnl_cart']);
+    if (!headers_sent()) { setcookie('gnl_cart_count', '0', array('expires'=>time()-3600,'path'=>'/','secure'=>!empty($_SERVER['HTTPS']),'httponly'=>false,'samesite'=>'Lax')); }
+    $_COOKIE['gnl_cart_count'] = '0'; }
 
 /* Identifiants uniques (ligne produit et option). Ils s'AJOUTENT au slug
    produit et au n° de commande, et sont transmis au webhook n8n. */
