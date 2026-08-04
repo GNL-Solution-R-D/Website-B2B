@@ -1015,7 +1015,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
 <style>
     /* ============================ Page « status » ============================ */
-    .gnlst-wrap{max-width:900px;margin:0 auto;padding:2.5rem 1.25rem 3.5rem;font-family:"Manrope",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#353535}
+    .gnlst-wrap{margin:0 auto;padding:2.5rem 1.25rem 3.5rem;font-family:"Manrope",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#353535}
     .gnlst-head{margin-bottom:1.5rem}
     .gnlst-head h1{font-size:1.9rem;font-weight:800;margin:0 0 .35rem;letter-spacing:-.01em}
     .gnlst-sub{margin:0;color:#6b7280;font-size:1rem}
@@ -1024,7 +1024,7 @@ document.addEventListener('DOMContentLoaded',function(){
     .gnlst-wrap{--up:#16a34a;--up-bg:#dcfce7;--deg:#f59e0b;--deg-bg:#fef3c7;--down:#ef4444;--down-bg:#fee2e2;--nd:#d1d5db;--line:#e5e7eb}
 
     /* Bandeau global */
-    .gnlst-banner{display:flex;align-items:center;gap:.9rem;padding:1.1rem 1.25rem;border-radius:14px;border:1px solid var(--line);background:#fff;box-shadow:0 1px 2px rgba(13,19,30,.05);margin-bottom:1.75rem;border-left-width:5px}
+    .gnlst-banner{display:flex;align-items:center;gap:.9rem;padding:1.1rem 1.25rem;border-radius:3px;border:1px solid var(--line);background:#fff;box-shadow:0 1px 2px rgba(13,19,30,.05);margin-bottom:1.75rem;border-left-width:5px}
     .gnlst-banner.up{border-left-color:var(--up)}
     .gnlst-banner.degraded{border-left-color:var(--deg)}
     .gnlst-banner.down{border-left-color:var(--down)}
@@ -1058,7 +1058,7 @@ document.addEventListener('DOMContentLoaded',function(){
     .gnlst-maint-targets{margin-top:.35rem;font-size:.78rem;color:#9ca3af}
 
     /* Cartes de composants */
-    .gnlst-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.25rem;margin-bottom:1.1rem;box-shadow:0 1px 2px rgba(13,19,30,.05)}
+    .gnlst-card{background:#fff;border:1px solid var(--line);border-radius:3px;padding:1.1rem 1.25rem;margin-bottom:1.1rem;box-shadow:0 1px 2px rgba(13,19,30,.05)}
     .gnlst-card-title{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin:0 0 .9rem}
     .gnlst-row{padding:.85rem 0;border-top:1px solid var(--line)}
     .gnlst-row:first-of-type{border-top:0;padding-top:0}
