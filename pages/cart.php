@@ -144,7 +144,27 @@ function gnl_flag($code) {
 /* ---------- Panier en session -------------------------------------- */
 if (session_status() === PHP_SESSION_NONE) session_start();
 function gnl_cart_get()   { return (isset($_SESSION['gnl_cart']) && is_array($_SESSION['gnl_cart'])) ? $_SESSION['gnl_cart'] : array(); }
-function gnl_cart_save($c) { $_SESSION['gnl_cart'] = array_values($c); }
+function gnl_cart_count_total($c) {
+    $n = 0;
+    foreach ((array) $c as $ci) { $n += isset($ci['qty']) ? max(0, (int) $ci['qty']) : 1; }
+    return $n;
+}
+/* Cookie lisible par JavaScript, valable sur tout le domaine (path=/), pour que
+   l'icone panier s'affiche sur TOUTES les pages (y compris celles rendues par
+   WordPress, qui n'ont pas acces a la session de ce panier maison). */
+function gnl_cart_sync_cookie($n) {
+    $n = (int) $n;
+    if (headers_sent()) return;
+    setcookie('gnl_cart_count', (string) $n, array(
+        'expires'  => $n > 0 ? 0 : time() - 3600, // 0 = cookie de session, meme duree que le panier
+        'path'     => '/',
+        'secure'   => !empty($_SERVER['HTTPS']),
+        'httponly' => false, // doit rester lisible par JavaScript
+        'samesite' => 'Lax',
+    ));
+    $_COOKIE['gnl_cart_count'] = (string) $n;
+}
+function gnl_cart_save($c) { $_SESSION['gnl_cart'] = array_values($c); gnl_cart_sync_cookie(gnl_cart_count_total($_SESSION['gnl_cart'])); }
 
 /* Identifiants uniques (ligne produit et option) dans le panier.
    Ils s'AJOUTENT au slug produit et au n° de commande : ils permettent de
@@ -271,6 +291,7 @@ elseif ($action === 'qty' && isset($_GET['id'])) {
 }
 elseif ($action === 'clear') {
     unset($_SESSION['gnl_cart']);
+    gnl_cart_sync_cookie(0);
     gnl_cart_redirect();
 }
 
@@ -281,6 +302,7 @@ foreach (gnl_cart_get() as $ci) {
     if ($line) { $items[] = $line; $cartMonthly += $line['line_monthly']; $cartOnce += $line['line_once']; }
 }
 $cartCount = 0; foreach ($items as $it) $cartCount += $it['qty'];
+gnl_cart_sync_cookie($cartCount);
 ?>
 <!DOCTYPE html>
 <html lang="fr-FR">
