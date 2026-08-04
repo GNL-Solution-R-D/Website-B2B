@@ -497,6 +497,75 @@ function gnlst_get_state($cfg) {
     return $fresh;
 }
 
+/* =====================================================================
+   Diagnostic (facultatif) — pour comprendre pourquoi une maintenance
+   (ou un composant) ne remonte pas.
+   ---------------------------------------------------------------------
+   Sécurité : désactivé par défaut. Pour l'activer, définir la variable
+   d'environnement  ZABBIX_STATS_DEBUG=1  puis visiter  stats.php?debug=1
+   Le jeton n'est jamais affiché. Pensez à remettre ZABBIX_STATS_DEBUG=0
+   (ou à retirer la variable) une fois le diagnostic terminé.
+   ===================================================================== */
+if (isset($_GET['debug']) && gnl_env('ZABBIX_STATS_DEBUG', '') === '1') {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, max-age=0');
+
+    $dbg = array('now' => date('c'), 'url_configured' => $GNLST['url'] !== '');
+    $endpoint = gnlst_endpoint($GNLST['url']);
+    $dbg['endpoint'] = $endpoint;
+    $dbg['auth_method'] = $GNLST['token'] !== '' ? 'token' : ($GNLST['user'] !== '' ? 'user/password' : 'aucun');
+
+    $zbx = new GnlstZabbix($endpoint, $GNLST['token'], $GNLST['user'], $GNLST['pass'], $GNLST['insecure']);
+    $dbg['connect_ok'] = $zbx->connect();
+    $dbg['version']    = $zbx->version;
+    $dbg['connect_error'] = $zbx->error;
+
+    if ($dbg['connect_ok']) {
+        // 1) maintenance.get AVEC cibles
+        $zbx->error = '';
+        $m1 = $zbx->call('maintenance.get', array(
+            'output'           => array('maintenanceid','name','maintenance_type','active_since','active_till'),
+            'selectHostGroups' => array('name'),
+            'selectHosts'      => array('name'),
+        ));
+        $dbg['maintenance_get_with_selects'] = array(
+            'error' => $zbx->error,
+            'count' => is_array($m1) ? count($m1) : null,
+            'items' => is_array($m1) ? array_map(function ($x) {
+                return array(
+                    'name'        => isset($x['name']) ? $x['name'] : '',
+                    'active_since'=> isset($x['active_since']) ? date('c', (int)$x['active_since']) : null,
+                    'active_till' => isset($x['active_till']) ? date('c', (int)$x['active_till']) : null,
+                    'hosts'       => isset($x['hosts']) ? count($x['hosts']) : 0,
+                    'hostgroups'  => isset($x['hostgroups']) ? count($x['hostgroups']) : 0,
+                );
+            }, $m1) : null,
+        );
+
+        // 2) maintenance.get SANS cibles (au cas où selectHostGroups/selectHosts pose souci)
+        $zbx->error = '';
+        $m2 = $zbx->call('maintenance.get', array('output' => 'extend'));
+        $dbg['maintenance_get_plain'] = array(
+            'error' => $zbx->error,
+            'count' => is_array($m2) ? count($m2) : null,
+        );
+
+        // 3) Contexte : hôtes / services visibles par ce jeton
+        $zbx->error = '';
+        $h = $zbx->call('host.get', array('countOutput' => true));
+        $dbg['host_get'] = array('error' => $zbx->error, 'count' => $h);
+        $zbx->error = '';
+        $s = $zbx->call('service.get', array('countOutput' => true));
+        $dbg['service_get'] = array('error' => $zbx->error, 'count' => $s);
+
+        // 4) Ce que la page en déduit
+        $dbg['page_maintenances'] = count(gnlst_build_maintenances($zbx));
+    }
+
+    echo json_encode($dbg, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 /* --------------------------- Calcul de l'état ----------------------- */
 $STATE = gnlst_get_state($GNLST);
 
