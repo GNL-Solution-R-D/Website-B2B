@@ -691,6 +691,8 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 </script>
+
+<script src="assets/js/gnl-cart-badge.js" id="scookie-law-info-js"></script>
 </head>
 
 <body class="home wp-singular page-template-default page page-id-6 wp-custom-logo wp-embed-responsive wp-theme-twentytwentyfive surecart-theme-light">
