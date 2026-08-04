@@ -110,6 +110,8 @@ function gnlst_http($url, $payload, $headers, $insecure = false) {
             CURLOPT_SSL_VERIFYHOST => $insecure ? 0 : 2,
         ));
         $body = curl_exec($ch);
+        // Note : curl_close() est inutile depuis PHP 8.0 (déprécié en 8.5) — le
+        // handle est libéré automatiquement quand $ch sort de portée.
         return $body === false ? null : $body;
     }
     $opts = array('http' => array(
@@ -381,10 +383,61 @@ function gnlst_overall($components) {
     return 'up';
 }
 
+/* =====================================================================
+   Maintenances planifiées (Zabbix maintenance.get)
+   ---------------------------------------------------------------------
+   On renvoie les maintenances EN COURS ou À VENIR (celles déjà terminées
+   sont ignorées). L'état ("active" / "scheduled") est déduit de la fenêtre
+   active_since / active_till renseignée dans Zabbix.
+   ===================================================================== */
+function gnlst_build_maintenances($zbx) {
+    $now = time();
+    $fields = array('maintenanceid', 'name', 'description', 'maintenance_type', 'active_since', 'active_till');
+
+    $m = $zbx->call('maintenance.get', array(
+        'output'           => $fields,
+        'selectHostGroups' => array('name'),
+        'selectHosts'      => array('name'),
+        'sortfield'        => array('active_since'),
+    ));
+    // Replis : selectGroups (Zabbix < 6.2), puis sans cibles.
+    if (!is_array($m)) { $zbx->error = ''; $m = $zbx->call('maintenance.get', array(
+        'output' => $fields, 'selectGroups' => array('name'), 'selectHosts' => array('name'), 'sortfield' => array('active_since'),
+    )); }
+    if (!is_array($m)) { $zbx->error = ''; $m = $zbx->call('maintenance.get', array(
+        'output' => $fields, 'sortfield' => array('active_since'),
+    )); }
+    if (!is_array($m)) return array();
+
+    $out = array();
+    foreach ($m as $mt) {
+        $since = (int) $mt['active_since'];
+        $till  = (int) $mt['active_till'];
+        if ($till > 0 && $till < $now) continue;   // déjà terminée -> ignorée
+
+        $targets = array();
+        $grp = !empty($mt['hostgroups']) ? $mt['hostgroups'] : (!empty($mt['groups']) ? $mt['groups'] : array());
+        foreach ($grp as $g) if (!empty($g['name'])) $targets[] = $g['name'];
+        if (!empty($mt['hosts'])) foreach ($mt['hosts'] as $h) if (!empty($h['name'])) $targets[] = $h['name'];
+
+        $out[] = array(
+            'id'      => 'mnt' . $mt['maintenanceid'],
+            'name'    => $mt['name'],
+            'desc'    => isset($mt['description']) ? $mt['description'] : '',
+            'state'   => ($since <= $now && ($till === 0 || $now <= $till)) ? 'active' : 'scheduled',
+            'from'    => $since,
+            'till'    => $till,
+            'type'    => ((int) $mt['maintenance_type'] === 1) ? 'nodata' : 'data',
+            'targets' => $targets,
+        );
+    }
+    return $out;
+}
+
 function gnlst_compute($cfg) {
     $writable = gnlst_dir($cfg['cache_dir']);
     $state = array('ok' => false, 'error' => '', 'mode' => '', 'overall' => 'unknown',
-                   'components' => array(), 'updated' => time(), 'stale' => false);
+                   'components' => array(), 'maintenances' => array(), 'updated' => time(), 'stale' => false);
 
     $endpoint = gnlst_endpoint($cfg['url']);
     if ($endpoint === '') { $state['error'] = 'ZABBIX_API_URL n’est pas configurée.'; return $state; }
@@ -400,6 +453,9 @@ function gnlst_compute($cfg) {
     $state['components'] = $res['components'];
     $state['overall']    = gnlst_overall($res['components']);
     $state['version']    = $zbx->version;
+
+    // Maintenances planifiées (en cours ou à venir).
+    $state['maintenances'] = gnlst_build_maintenances($zbx);
 
     // Historique + disponibilité (best effort ; n'empêche jamais l'affichage).
     if ($writable) {
@@ -482,6 +538,35 @@ function gnlst_strip_cells($days) {
     return $out;
 }
 
+function gnlst_fmt_dt($ts) {
+    if (!$ts) return '';
+    $mois = array(1=>'janv.',2=>'févr.',3=>'mars',4=>'avr.',5=>'mai',6=>'juin',
+                  7=>'juil.',8=>'août',9=>'sept.',10=>'oct.',11=>'nov.',12=>'déc.');
+    return (int) date('j', $ts) . ' ' . $mois[(int) date('n', $ts)] . ' ' . date('Y', $ts) . ' à ' . date('H:i', $ts);
+}
+
+function gnlst_render_maintenance($list) {
+    $rows = '';
+    foreach ($list as $m) {
+        $cls = $m['state'] === 'active' ? 'active' : 'scheduled';
+        $lbl = $m['state'] === 'active' ? 'En cours' : 'Planifiée';
+        $period = gnlst_fmt_dt($m['from']);
+        if (!empty($m['till'])) $period .= ' → ' . gnlst_fmt_dt($m['till']);
+
+        $rows .= '<div class="gnlst-maint-row">';
+        $rows .=   '<div class="gnlst-maint-head">';
+        $rows .=     '<svg class="gnlst-maint-ic" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M22.7 19.3l-6.4-6.4a5.5 5.5 0 0 0-6.9-7L12.6 3 11 1.4 7.7 4.6a5.5 5.5 0 0 0 7 6.9l6.4 6.4a1 1 0 0 0 1.4 0l.2-.2a1 1 0 0 0 0-1.4z"/></svg>';
+        $rows .=     '<span class="gnlst-maint-name">' . gnlst_h($m['name']) . '</span>';
+        $rows .=     '<span class="gnlst-maint-badge ' . $cls . '">' . $lbl . '</span>';
+        $rows .=   '</div>';
+        if ($period !== '')          $rows .= '<div class="gnlst-maint-period">' . gnlst_h($period) . '</div>';
+        if (!empty($m['desc']))      $rows .= '<div class="gnlst-maint-desc">' . gnlst_h($m['desc']) . '</div>';
+        if (!empty($m['targets']))   $rows .= '<div class="gnlst-maint-targets">' . gnlst_h(implode(' · ', $m['targets'])) . '</div>';
+        $rows .= '</div>';
+    }
+    return '<section class="gnlst-card gnlst-maint"><h2 class="gnlst-card-title">Maintenances planifiées</h2>' . $rows . '</section>';
+}
+
 function gnlst_render($state, $meta, $overallMeta) {
     $om = isset($overallMeta[$state['overall']]) ? $overallMeta[$state['overall']] : $overallMeta['unknown'];
 
@@ -496,6 +581,11 @@ function gnlst_render($state, $meta, $overallMeta) {
     }
     echo   '</div>';
     echo '</div>';
+
+    // Carte « Maintenances planifiées » (entre le bandeau et les composants)
+    if (!empty($state['maintenances'])) {
+        echo gnlst_render_maintenance($state['maintenances']);
+    }
 
     if (empty($state['components'])) {
         echo '<div class="gnlst-empty">';
@@ -925,7 +1015,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
 <style>
     /* ============================ Page « status » ============================ */
-    .gnlst-wrap{max-width:1700px;margin:0 auto;padding:2.5rem 1.25rem 3.5rem;font-family:"Manrope",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#353535}
+    .gnlst-wrap{max-width:900px;margin:0 auto;padding:2.5rem 1.25rem 3.5rem;font-family:"Manrope",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#353535}
     .gnlst-head{margin-bottom:1.5rem}
     .gnlst-head h1{font-size:1.9rem;font-weight:800;margin:0 0 .35rem;letter-spacing:-.01em}
     .gnlst-sub{margin:0;color:#6b7280;font-size:1rem}
@@ -934,7 +1024,7 @@ document.addEventListener('DOMContentLoaded',function(){
     .gnlst-wrap{--up:#16a34a;--up-bg:#dcfce7;--deg:#f59e0b;--deg-bg:#fef3c7;--down:#ef4444;--down-bg:#fee2e2;--nd:#d1d5db;--line:#e5e7eb}
 
     /* Bandeau global */
-    .gnlst-banner{display:flex;align-items:center;gap:.9rem;padding:1.1rem 1.25rem;border-radius:3px;border:1px solid var(--line);background:#fff;box-shadow:0 1px 2px rgba(13,19,30,.05);margin-bottom:1.75rem;border-left-width:5px}
+    .gnlst-banner{display:flex;align-items:center;gap:.9rem;padding:1.1rem 1.25rem;border-radius:14px;border:1px solid var(--line);background:#fff;box-shadow:0 1px 2px rgba(13,19,30,.05);margin-bottom:1.75rem;border-left-width:5px}
     .gnlst-banner.up{border-left-color:var(--up)}
     .gnlst-banner.degraded{border-left-color:var(--deg)}
     .gnlst-banner.down{border-left-color:var(--down)}
@@ -952,8 +1042,23 @@ document.addEventListener('DOMContentLoaded',function(){
     .gnlst-banner.up .gnlst-dot{box-shadow:0 0 0 0 rgba(22,163,74,.5);animation:gnlst-pulse 2.4s infinite}
     @keyframes gnlst-pulse{0%{box-shadow:0 0 0 0 rgba(22,163,74,.45)}70%{box-shadow:0 0 0 8px rgba(22,163,74,0)}100%{box-shadow:0 0 0 0 rgba(22,163,74,0)}}
 
+    /* Carte « Maintenances planifiées » */
+    .gnlst-maint{border-left:5px solid #2563eb}
+    .gnlst-maint .gnlst-card-title{color:#2563eb}
+    .gnlst-maint-row{padding:.75rem 0;border-top:1px solid var(--line)}
+    .gnlst-maint-row:first-of-type{border-top:0;padding-top:0}
+    .gnlst-maint-head{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+    .gnlst-maint-ic{color:#2563eb;flex:0 0 auto}
+    .gnlst-maint-name{font-weight:600;font-size:1rem}
+    .gnlst-maint-badge{font-size:.72rem;font-weight:600;padding:.12rem .55rem;border-radius:999px}
+    .gnlst-maint-badge.active{color:#1d4ed8;background:#dbeafe}
+    .gnlst-maint-badge.scheduled{color:#3730a3;background:#e0e7ff}
+    .gnlst-maint-period{margin-top:.3rem;font-size:.85rem;color:#374151;font-variant-numeric:tabular-nums}
+    .gnlst-maint-desc{margin-top:.2rem;font-size:.85rem;color:#6b7280}
+    .gnlst-maint-targets{margin-top:.35rem;font-size:.78rem;color:#9ca3af}
+
     /* Cartes de composants */
-    .gnlst-card{background:#fff;border:1px solid var(--line);border-radius:3px;padding:1.1rem 1.25rem;margin-bottom:1.1rem;box-shadow:0 1px 2px rgba(13,19,30,.05)}
+    .gnlst-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.25rem;margin-bottom:1.1rem;box-shadow:0 1px 2px rgba(13,19,30,.05)}
     .gnlst-card-title{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin:0 0 .9rem}
     .gnlst-row{padding:.85rem 0;border-top:1px solid var(--line)}
     .gnlst-row:first-of-type{border-top:0;padding-top:0}
@@ -1117,6 +1222,32 @@ if (is_readable('../include/footer.php')) {
     function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML; }
     function nf(n){ return Number(n).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
 
+    var MOIS = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+    function fmtDt(ts){
+        if(!ts) return '';
+        var d = new Date(ts*1000);
+        function p(n){ return (n<10?'0':'')+n; }
+        return d.getDate()+' '+MOIS[d.getMonth()]+' '+d.getFullYear()+' à '+p(d.getHours())+':'+p(d.getMinutes());
+    }
+    function maintHTML(list){
+        if(!list || !list.length) return '';
+        var html = '<section class="gnlst-card gnlst-maint"><h2 class="gnlst-card-title">Maintenances planifiées</h2>';
+        list.forEach(function(m){
+            var cls = m.state==='active' ? 'active' : 'scheduled';
+            var lbl = m.state==='active' ? 'En cours' : 'Planifiée';
+            var period = fmtDt(m.from) + (m.till ? ' → '+fmtDt(m.till) : '');
+            html += '<div class="gnlst-maint-row"><div class="gnlst-maint-head">'
+                 +  '<svg class="gnlst-maint-ic" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M22.7 19.3l-6.4-6.4a5.5 5.5 0 0 0-6.9-7L12.6 3 11 1.4 7.7 4.6a5.5 5.5 0 0 0 7 6.9l6.4 6.4a1 1 0 0 0 1.4 0l.2-.2a1 1 0 0 0 0-1.4z"/></svg>'
+                 +  '<span class="gnlst-maint-name">'+esc(m.name)+'</span>'
+                 +  '<span class="gnlst-maint-badge '+cls+'">'+lbl+'</span></div>';
+            if (period)      html += '<div class="gnlst-maint-period">'+esc(period)+'</div>';
+            if (m.desc)      html += '<div class="gnlst-maint-desc">'+esc(m.desc)+'</div>';
+            if (m.targets && m.targets.length) html += '<div class="gnlst-maint-targets">'+esc(m.targets.join(' · '))+'</div>';
+            html += '</div>';
+        });
+        return html + '</section>';
+    }
+
     function stripHTML(days){
         days = (days||[]).slice(-90);
         var html = '', pad = 90 - days.length, i;
@@ -1138,6 +1269,8 @@ if (is_readable('../include/footer.php')) {
         if (state.stale) html += '<span class="gnlst-note">Données de secours — connexion à Zabbix momentanément indisponible.</span>';
         else if (!state.ok && state.error) html += '<span class="gnlst-note">'+esc(state.error)+'</span>';
         html += '</div></div>';
+
+        html += maintHTML(state.maintenances);
 
         var comps = state.components || [];
         if (!comps.length){
