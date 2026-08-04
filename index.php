@@ -732,8 +732,8 @@ document.addEventListener('DOMContentLoaded',function(){
 
 <?php
 // Pied de page commun (identique à index.php)
-if (is_readable('../include/header.php')) {
-    include '../include/header.php';
+if (is_readable('./include/header.php')) {
+    include './include/header.php';
 }
 ?>
 
