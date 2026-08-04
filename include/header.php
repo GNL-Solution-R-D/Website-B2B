@@ -54,7 +54,7 @@ if (!empty($_SESSION['gnl_cart']) && is_array($_SESSION['gnl_cart'])) {
 
 <a
 	class="menu-link wp-block-surecart-cart-menu-icon-button"
-	href="/cart"
+	href="cart"
 	aria-label="Voir le panier (<?php echo (int) $gnl_cart_count; ?> article<?php echo $gnl_cart_count > 1 ? 's' : ''; ?>)"<?php echo $gnl_cart_count > 0 ? '' : ' hidden'; ?>
 >
 	<div class="sc-cart-icon">
