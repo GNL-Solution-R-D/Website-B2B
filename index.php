@@ -952,15 +952,15 @@ class="has-arrow-type-chevron wp-block-surecart-product-pagination-next" aria-la
 
 
 <div class="wp-block-group alignwide is-content-justification-center is-layout-flex wp-container-core-group-is-layout-2c471116 wp-block-group-is-layout-flex">
-<figure class="wp-block-image size-large is-resized"><img loading="lazy" decoding="async" width="1393" height="783" src="./assets/img/Sans-titre45-edited.png" alt="" class="wp-image-698" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="./assets/img/Sans-titre45-edited.png 1393w, ./assets/img/Sans-titre45-edited-300x169.png 300w, ./assets/img/Sans-titre45-edited-1024x576.png 1024w, ./assets/img/Sans-titre45-edited-768x432.png 768w" sizes="auto, (max-width: 1393px) 100vw, 1393px" /></figure>
+<figure class="wp-block-image size-large is-resized"><img loading="lazy" decoding="async" width="1393" height="783" src="./assets/img/partener_brand/Sans-titre45-edited.png" alt="" class="wp-image-698" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="./assets/img/partener_brand/Sans-titre45-edited.png 1393w, ./assets/img/partener_brand/Sans-titre45-edited-300x169.png 300w, ./assets/img/partener_brand/Sans-titre45-edited-1024x576.png 1024w, ./assets/img/partener_brand/Sans-titre45-edited-768x432.png 768w" sizes="auto, (max-width: 1393px) 100vw, 1393px" /></figure>
 
 
 
-<figure class="wp-block-image size-full is-resized"><img loading="lazy" decoding="async" width="523" height="294" src="./assets/img/Screenshot-2025-12-08-021622-edited.png" alt="" class="wp-image-683" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="./assets/img/Screenshot-2025-12-08-021622-edited.png 523w, ./assets/img/Screenshot-2025-12-08-021622-edited-300x169.png 300w" sizes="auto, (max-width: 523px) 100vw, 523px" /></figure>
+<figure class="wp-block-image size-full is-resized"><img loading="lazy" decoding="async" width="523" height="294" src="./assets/img/partener_brand/Screenshot-2025-12-08-021622-edited.png" alt="" class="wp-image-683" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="./assets/img/partener_brand/Screenshot-2025-12-08-021622-edited.png 523w, ./assets/img/partener_brand/Screenshot-2025-12-08-021622-edited-300x169.png 300w" sizes="auto, (max-width: 523px) 100vw, 523px" /></figure>
 
 
 
-<figure class="wp-block-image size-full is-resized"><a href="http://game-reduction.fr/"><img loading="lazy" decoding="async" width="1120" height="630" src="./assets/img/banniere-game-reduction-edited.png" alt="" class="wp-image-674" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="./assets/img/banniere-game-reduction-edited.png 1120w, ./assets/img/banniere-game-reduction-edited-300x169.png 300w, ./assets/img/banniere-game-reduction-edited-1024x576.png 1024w, ./assets/img/banniere-game-reduction-edited-768x432.png 768w" sizes="auto, (max-width: 1120px) 100vw, 1120px" /></a></figure>
+<figure class="wp-block-image size-full is-resized"><a href="http://game-reduction.fr/"><img loading="lazy" decoding="async" width="1120" height="630" src="./assets/img/partener_brand/banniere-game-reduction-edited.png" alt="" class="wp-image-674" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="./assets/img/partener_brand/banniere-game-reduction-edited.png 1120w, ./assets/img/partener_brand/banniere-game-reduction-edited-300x169.png 300w, ./assets/img/partener_brand/banniere-game-reduction-edited-1024x576.png 1024w, ./assets/img/partener_brand/banniere-game-reduction-edited-768x432.png 768w" sizes="auto, (max-width: 1120px) 100vw, 1120px" /></a></figure>
 
 
 
