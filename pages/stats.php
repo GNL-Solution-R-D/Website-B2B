@@ -61,6 +61,8 @@ $GNLST = array(
     'group'      => gnl_env('ZABBIX_STATS_HOSTGROUP', ''),
     'ttl'        => max(10, (int) gnl_env('ZABBIX_STATS_TTL', '45')),
     'cache_dir'  => gnl_env('ZABBIX_STATS_CACHE_DIR', rtrim(sys_get_temp_dir(), '/\\') . '/gnl_status'),
+    'linktag'    => gnl_env('ZABBIX_STATS_LINK_TAG', 'clustersla'),
+    'grouptag'   => gnl_env('ZABBIX_STATS_GROUP_TAG', 'type'),
     'insecure'   => gnl_env('ZABBIX_API_INSECURE', '') === '1',
 );
 
@@ -222,15 +224,88 @@ function gnlst_severity_to_status($sev) {          // 0..5 (sévérité problèm
     return 'down';                                  // moyen / haut / désastre
 }
 
-function gnlst_build_components($zbx, $mode, $groupName) {
+/* Valeurs de lien (problem tags) d'un service et de ses descendants. */
+function gnlst_service_link($svc, $byId, $tagName) {
+    $out = array(); $seen = array(); $stack = array($svc['serviceid']);
+    while ($stack) {
+        $id = array_pop($stack);
+        if (isset($seen[$id])) continue; $seen[$id] = true;
+        $node = isset($byId[$id]) ? $byId[$id] : null;
+        if (!$node) continue;
+        if (!empty($node['problem_tags'])) foreach ($node['problem_tags'] as $pt) {
+            if (isset($pt['tag']) && $pt['tag'] === $tagName) {
+                $out[] = array('v' => isset($pt['value']) ? (string) $pt['value'] : '',
+                               'op' => isset($pt['operator']) ? (int) $pt['operator'] : 0);
+            }
+        }
+        if (!empty($node['children'])) foreach ($node['children'] as $ch)
+            if (!empty($ch['serviceid'])) $stack[] = $ch['serviceid'];
+    }
+    return $out;
+}
+
+/* Valeurs de lien (tags d'hôte) -> règles "equals". */
+function gnlst_tag_link($tags, $tagName) {
+    $out = array();
+    if (is_array($tags)) foreach ($tags as $t)
+        if (isset($t['tag']) && $t['tag'] === $tagName)
+            $out[] = array('v' => isset($t['value']) ? (string) $t['value'] : '', 'op' => 0);
+    return $out;
+}
+
+/* Un service (règles de problem tags) matche-t-il une valeur de tag d'hôte ? */
+function gnlst_link_match($serviceLink, $hostValues) {
+    foreach ($serviceLink as $sl) {
+        foreach ($hostValues as $hv) {
+            $hv = (string) $hv;
+            if ((int) $sl['op'] === 2) {                 // "contient"
+                if ($sl['v'] !== '' && strpos($hv, $sl['v']) !== false) return true;
+            } else {                                     // "égal" (ou tag présent si valeur vide)
+                if ($sl['v'] === '' || $sl['v'] === $hv) return true;
+            }
+        }
+    }
+    return false;
+}
+
+/* Groupe d'affichage d'un service = valeur de son tag $groupTag (ex. "type").
+   -> tous les services partageant la même valeur seront réunis dans une carte.
+   Renvoie "Autres" si le service n'a pas ce tag, "Services" si le regroupement
+   est désactivé ($groupTag vide). */
+function gnlst_service_group($tags, $groupTag) {
+    if ($groupTag === '') return 'Services';
+    if (is_array($tags)) {
+        foreach ($tags as $t) {
+            if (isset($t['tag']) && strcasecmp((string) $t['tag'], $groupTag) === 0) {
+                $v = isset($t['value']) ? trim((string) $t['value']) : '';
+                if ($v !== '') return $v;
+            }
+        }
+    }
+    return 'Autres';
+}
+
+function gnlst_build_components($zbx, $mode, $groupName, $linkTag = '', $groupTag = '') {
     /* --- Mode Services (IT Services Zabbix) --------------------------- */
     if ($mode === 'auto' || $mode === 'services') {
         $svc = $zbx->call('service.get', array(
-            'output'        => array('serviceid', 'name', 'description', 'status'),
-            'selectParents' => array('serviceid'),
-            'sortfield'     => array('name'),
+            'output'            => array('serviceid', 'name', 'description', 'status'),
+            'selectParents'     => array('serviceid'),
+            'selectChildren'    => array('serviceid'),
+            'selectProblemTags' => 'extend',
+            'selectTags'        => 'extend',
+            'sortfield'         => array('name'),
         ));
+        // Repli si selectProblemTags/selectChildren indisponibles.
+        if (!is_array($svc)) { $zbx->error = ''; $svc = $zbx->call('service.get', array(
+            'output' => array('serviceid', 'name', 'description', 'status'),
+            'selectParents' => array('serviceid'), 'selectTags' => 'extend', 'sortfield' => array('name'),
+        )); }
         if (is_array($svc) && count($svc) > 0) {
+            // Index de TOUS les services (pour agréger les tags des enfants).
+            $byId = array();
+            foreach ($svc as $s) $byId[$s['serviceid']] = $s;
+
             // On garde les services racine (sans parent) ; sinon tous.
             $roots = array();
             foreach ($svc as $s) if (empty($s['parents'])) $roots[] = $s;
@@ -242,12 +317,24 @@ function gnlst_build_components($zbx, $mode, $groupName) {
                 $status = $st < 0 ? 'up' : ($st <= 2 ? 'degraded' : 'down');
                 $components[] = array(
                     'id'     => 'svc' . $s['serviceid'],
+                    'kind'   => 'service',
+                    'zid'    => (string) $s['serviceid'],
                     'name'   => $s['name'],
-                    'group'  => 'Services',
+                    'group'  => gnlst_service_group(isset($s['tags']) ? $s['tags'] : array(), $groupTag),
                     'status' => $status,
                     'detail' => isset($s['description']) ? $s['description'] : '',
+                    'link'   => ($linkTag !== '') ? gnlst_service_link($s, $byId, $linkTag) : array(),
                 );
             }
+            // Ordre des cartes : groupes triés alphabétiquement ("Autres" en
+            // dernier), puis services triés par nom au sein de chaque groupe.
+            usort($components, function ($a, $b) {
+                $ga = $a['group'] === 'Autres' ? 1 : 0;
+                $gb = $b['group'] === 'Autres' ? 1 : 0;
+                if ($ga !== $gb) return $ga - $gb;
+                $c = strcasecmp($a['group'], $b['group']);
+                return $c !== 0 ? $c : strcasecmp($a['name'], $b['name']);
+            });
             return array('components' => $components, 'mode' => 'services');
         }
         if ($mode === 'services') return array('components' => array(), 'mode' => 'services');
@@ -262,6 +349,7 @@ function gnlst_build_components($zbx, $mode, $groupName) {
 
     // host.get — on tente selectHostGroups (6.2+), repli selectGroups, puis sans groupe.
     $base = array('output' => array('hostid', 'name', 'status'), 'sortfield' => 'name', 'filter' => array('status' => 0));
+    if ($linkTag !== '') $base['selectTags'] = 'extend';
     if ($groupids) $base['groupids'] = $groupids;
 
     $hosts = $zbx->call('host.get', $base + array('selectHostGroups' => array('name')));
@@ -318,10 +406,13 @@ function gnlst_build_components($zbx, $mode, $groupName) {
         elseif (!empty($h['groups'][0]['name']))    $grp = $h['groups'][0]['name'];
         $components[] = array(
             'id'     => 'host' . $hid,
+            'kind'   => 'host',
+            'zid'    => (string) $hid,
             'name'   => $h['name'],
             'group'  => $grp,
             'status' => gnlst_severity_to_status($sev),
             'detail' => $sev < 0 ? '' : (isset($probByHost[$hid]) ? $probByHost[$hid] : ''),
+            'link'   => ($linkTag !== '' && !empty($h['tags'])) ? gnlst_tag_link($h['tags'], $linkTag) : array(),
         );
     }
     return array('components' => $components, 'mode' => 'hosts');
@@ -390,19 +481,106 @@ function gnlst_overall($components) {
    sont ignorées). L'état ("active" / "scheduled") est déduit de la fenêtre
    active_since / active_till renseignée dans Zabbix.
    ===================================================================== */
-function gnlst_build_maintenances($zbx) {
+/* Jetons alphanumériques d'un libellé (minuscules), pour la correspondance. */
+function gnlst_maint_tokens($s) {
+    $s = function_exists('mb_strtolower') ? mb_strtolower($s, 'UTF-8') : strtolower($s);
+    $parts = preg_split('/[^a-z0-9]+/', $s, -1, PREG_SPLIT_NO_EMPTY);
+    return $parts ? $parts : array();
+}
+
+/* Détermine les composants (services/hôtes affichés) impactés par une
+   maintenance, à partir des hôtes/groupes qu'elle cible.
+   - correspondance exacte/sous-chaîne sur le nom,
+   - ou jeton significatif partagé (>= 4 caractères, hors mots génériques).
+   En mode "hosts" la correspondance est exacte (hôte = composant). */
+function gnlst_maint_impacted($targets, $components) {
+    if (empty($components) || empty($targets)) return array();
+    $stop = array('linux','windows','server','servers','serveur','serveurs','prod','production',
+                  'test','hosts','host','hote','hotes','zabbix','cluster','node','nodes','group',
+                  'groupe','kubelet','kubernetes','vm','vms','app','apps','service','services');
+    $tgt = array();
+    foreach ($targets as $t) {
+        $tl = function_exists('mb_strtolower') ? mb_strtolower($t, 'UTF-8') : strtolower($t);
+        $tgt[] = array('l' => $tl, 'tok' => gnlst_maint_tokens($t));
+    }
+    $impacted = array();
+    foreach ($components as $c) {
+        $name = isset($c['name']) ? $c['name'] : '';
+        if ($name === '') continue;
+        $cl   = function_exists('mb_strtolower') ? mb_strtolower($name, 'UTF-8') : strtolower($name);
+        $ctok = gnlst_maint_tokens($name);
+        $hit  = false;
+        foreach ($tgt as $t) {
+            if ($t['l'] === '') continue;
+            if (strpos($cl, $t['l']) !== false || strpos($t['l'], $cl) !== false) { $hit = true; break; }
+            foreach ($t['tok'] as $tok) {
+                if (strlen($tok) >= 4 && !in_array($tok, $stop, true) && in_array($tok, $ctok, true)) { $hit = true; break; }
+            }
+            if ($hit) break;
+        }
+        if ($hit) $impacted[] = $name;
+    }
+    return array_values(array_unique($impacted));
+}
+
+/* Services/hôtes impactés via le lien  maintenance -> hôtes -> tag -> service.
+   - mode "hosts" : composant impacté si son hôte fait partie de la maintenance.
+   - mode "services" : on lit les valeurs du tag de liaison (ex. clustersla) sur
+     les hôtes de la maintenance, puis on garde les services dont un problem tag
+     de même nom matche l'une de ces valeurs. */
+function gnlst_maint_link_impacted($zbx, $components, $hostids, $groupids, $linkTag) {
+    if (empty($components)) return array();
+
+    // 1) Hôtes effectifs = hôtes explicites + membres des groupes ciblés.
+    $eff = array();
+    foreach ($hostids as $h) if ($h !== '') $eff[$h] = true;
+    if (!empty($groupids)) {
+        $gh = $zbx->call('host.get', array('output' => array('hostid'), 'groupids' => $groupids));
+        if (is_array($gh)) foreach ($gh as $h) $eff[$h['hostid']] = true;
+    }
+    $eff = array_keys($eff);
+    if (empty($eff)) return array();
+
+    // 2) A-t-on des services à relier par tag ?
+    $hasService = false;
+    foreach ($components as $c) if (isset($c['kind']) && $c['kind'] === 'service') { $hasService = true; break; }
+
+    // 3) Valeurs du tag de liaison portées par les hôtes de la maintenance.
+    $vals = array();
+    if ($hasService && $linkTag !== '') {
+        $ht = $zbx->call('host.get', array('output' => array('hostid'), 'hostids' => $eff, 'selectTags' => 'extend'));
+        if (is_array($ht)) foreach ($ht as $h) if (!empty($h['tags'])) foreach ($h['tags'] as $t)
+            if (isset($t['tag']) && $t['tag'] === $linkTag) $vals[] = isset($t['value']) ? (string) $t['value'] : '';
+        $vals = array_values(array_unique($vals));
+    }
+
+    // 4) Correspondance composant par composant.
+    $effSet = array_flip($eff);
+    $impacted = array();
+    foreach ($components as $c) {
+        $kind = isset($c['kind']) ? $c['kind'] : '';
+        if ($kind === 'host') {
+            if (isset($c['zid']) && isset($effSet[$c['zid']])) $impacted[] = $c['name'];
+        } elseif ($kind === 'service') {
+            if (!empty($c['link']) && $vals && gnlst_link_match($c['link'], $vals)) $impacted[] = $c['name'];
+        }
+    }
+    return array_values(array_unique($impacted));
+}
+
+function gnlst_build_maintenances($zbx, $components = array(), $linkTag = '', $mode = '') {
     $now = time();
     $fields = array('maintenanceid', 'name', 'description', 'maintenance_type', 'active_since', 'active_till');
 
     $m = $zbx->call('maintenance.get', array(
         'output'           => $fields,
-        'selectHostGroups' => array('name'),
-        'selectHosts'      => array('name'),
+        'selectHostGroups' => array('groupid', 'name'),
+        'selectHosts'      => array('hostid', 'name'),
         'sortfield'        => array('active_since'),
     ));
     // Replis : selectGroups (Zabbix < 6.2), puis sans cibles.
     if (!is_array($m)) { $zbx->error = ''; $m = $zbx->call('maintenance.get', array(
-        'output' => $fields, 'selectGroups' => array('name'), 'selectHosts' => array('name'), 'sortfield' => array('active_since'),
+        'output' => $fields, 'selectGroups' => array('groupid', 'name'), 'selectHosts' => array('hostid', 'name'), 'sortfield' => array('active_since'),
     )); }
     if (!is_array($m)) { $zbx->error = ''; $m = $zbx->call('maintenance.get', array(
         'output' => $fields, 'sortfield' => array('active_since'),
@@ -428,7 +606,8 @@ function gnlst_build_maintenances($zbx) {
             'from'    => $since,
             'till'    => $till,
             'type'    => ((int) $mt['maintenance_type'] === 1) ? 'nodata' : 'data',
-            'targets' => $targets,
+            'targets'  => $targets,
+            'impacted' => gnlst_maint_impacted($targets, $components),
         );
     }
     return $out;
@@ -445,7 +624,7 @@ function gnlst_compute($cfg) {
     $zbx = new GnlstZabbix($endpoint, $cfg['token'], $cfg['user'], $cfg['pass'], $cfg['insecure']);
     if (!$zbx->connect()) { $state['error'] = $zbx->error; return $state; }
 
-    $res = gnlst_build_components($zbx, $cfg['mode'], $cfg['group']);
+    $res = gnlst_build_components($zbx, $cfg['mode'], $cfg['group'], $cfg['linktag'], $cfg['grouptag']);
     if (!$res['components'] && $zbx->error !== '') { $state['error'] = $zbx->error; return $state; }
 
     $state['ok']         = true;
@@ -455,7 +634,7 @@ function gnlst_compute($cfg) {
     $state['version']    = $zbx->version;
 
     // Maintenances planifiées (en cours ou à venir).
-    $state['maintenances'] = gnlst_build_maintenances($zbx);
+    $state['maintenances'] = gnlst_build_maintenances($zbx, $res['components']);
 
     // Historique + disponibilité (best effort ; n'empêche jamais l'affichage).
     if ($writable) {
@@ -498,15 +677,15 @@ function gnlst_get_state($cfg) {
 }
 
 /* =====================================================================
-   Diagnostic (facultatif) — pour comprendre pourquoi une maintenance
+   Diagnostic (TEMPORAIRE) — pour comprendre pourquoi une maintenance
    (ou un composant) ne remonte pas.
    ---------------------------------------------------------------------
-   Sécurité : désactivé par défaut. Pour l'activer, définir la variable
-   d'environnement  ZABBIX_STATS_DEBUG=1  puis visiter  stats.php?debug=1
-   Le jeton n'est jamais affiché. Pensez à remettre ZABBIX_STATS_DEBUG=0
-   (ou à retirer la variable) une fois le diagnostic terminé.
+   Accès :  stats.php?debug=1   → renvoie un JSON de diagnostic.
+   Le jeton n'est JAMAIS affiché. ⚠️ Pensez à SUPPRIMER ce bloc (ou à le
+   re-protéger) une fois le diagnostic terminé, car il expose des noms
+   d'hôtes / de maintenances et les messages d'erreur de l'API.
    ===================================================================== */
-if (isset($_GET['debug']) && gnl_env('ZABBIX_STATS_DEBUG', '') === '1') {
+if (isset($_GET['debug'])) {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store, max-age=0');
 
@@ -630,7 +809,8 @@ function gnlst_render_maintenance($list) {
         $rows .=   '</div>';
         if ($period !== '')          $rows .= '<div class="gnlst-maint-period">' . gnlst_h($period) . '</div>';
         if (!empty($m['desc']))      $rows .= '<div class="gnlst-maint-desc">' . gnlst_h($m['desc']) . '</div>';
-        if (!empty($m['targets']))   $rows .= '<div class="gnlst-maint-targets">' . gnlst_h(implode(' · ', $m['targets'])) . '</div>';
+        if (!empty($m['impacted']))  $rows .= '<div class="gnlst-maint-impacted"><span class="gnlst-maint-lbl">Service(s) impacté(s)</span>' . gnlst_h(implode(' · ', $m['impacted'])) . '</div>';
+        if (!empty($m['targets']))   $rows .= '<div class="gnlst-maint-targets"><span class="gnlst-maint-lbl">Hôtes concernés</span>' . gnlst_h(implode(' · ', $m['targets'])) . '</div>';
         $rows .= '</div>';
     }
     return '<section class="gnlst-card gnlst-maint"><h2 class="gnlst-card-title">Maintenances planifiées</h2>' . $rows . '</section>';
@@ -1124,7 +1304,9 @@ document.addEventListener('DOMContentLoaded',function(){
     .gnlst-maint-badge.scheduled{color:#3730a3;background:#e0e7ff}
     .gnlst-maint-period{margin-top:.3rem;font-size:.85rem;color:#374151;font-variant-numeric:tabular-nums}
     .gnlst-maint-desc{margin-top:.2rem;font-size:.85rem;color:#6b7280}
+    .gnlst-maint-impacted{margin-top:.35rem;font-size:.82rem;color:#1e3a8a}
     .gnlst-maint-targets{margin-top:.35rem;font-size:.78rem;color:#9ca3af}
+    .gnlst-maint-lbl{display:inline-block;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;margin-right:.45rem}
 
     /* Cartes de composants */
     .gnlst-card{background:#fff;border:1px solid var(--line);border-radius:3px;padding:1.1rem 1.25rem;margin-bottom:1.1rem;box-shadow:0 1px 2px rgba(13,19,30,.05)}
@@ -1311,7 +1493,8 @@ if (is_readable('../include/footer.php')) {
                  +  '<span class="gnlst-maint-badge '+cls+'">'+lbl+'</span></div>';
             if (period)      html += '<div class="gnlst-maint-period">'+esc(period)+'</div>';
             if (m.desc)      html += '<div class="gnlst-maint-desc">'+esc(m.desc)+'</div>';
-            if (m.targets && m.targets.length) html += '<div class="gnlst-maint-targets">'+esc(m.targets.join(' · '))+'</div>';
+            if (m.impacted && m.impacted.length) html += '<div class="gnlst-maint-impacted"><span class="gnlst-maint-lbl">Service(s) impacté(s)</span>'+esc(m.impacted.join(' · '))+'</div>';
+            if (m.targets && m.targets.length) html += '<div class="gnlst-maint-targets"><span class="gnlst-maint-lbl">Hôtes concernés</span>'+esc(m.targets.join(' · '))+'</div>';
             html += '</div>';
         });
         return html + '</section>';
