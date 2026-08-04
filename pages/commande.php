@@ -1139,14 +1139,11 @@ document.addEventListener('DOMContentLoaded',function(){
 					</div>
 				</div></nav>
 
-<a hidden
-	data-wp-interactive='{ "namespace": "surecart/checkout" }'
-	class="menu-link wp-block-surecart-cart-menu-icon-button"	data-wp-context='{"formId":596,"mode":"test","cartMenuAlwaysShown":false}'	data-wp-on--click="surecart/cart::actions.toggle"
-	data-wp-on--keydown="surecart/cart::actions.toggle"
-	data-wp-bind--hidden="!state.showCartMenuIcon"
-	tabindex="0"
-	role="button"
-	aria-label="Open cart"
+<?php $gnl_cart_count = 0; foreach (gnl_cart_get() as $gnl_ci) { $gnl_cart_count += isset($gnl_ci['qty']) ? max(0, (int) $gnl_ci['qty']) : 1; } ?>
+<a
+	class="menu-link wp-block-surecart-cart-menu-icon-button"
+	href="/cart"
+	aria-label="Voir le panier (<?php echo (int) $gnl_cart_count; ?> article<?php echo $gnl_cart_count > 1 ? 's' : ''; ?>)"<?php echo $gnl_cart_count > 0 ? '' : ' hidden'; ?>
 >
 	<div class="sc-cart-icon">
 		<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1155,12 +1152,8 @@ document.addEventListener('DOMContentLoaded',function(){
   <path d="M16 10a4 4 0 0 1-8 0" />
 </svg>
 		<span
-			class="sc-cart-count"
-			data-wp-text="state.itemsCount"
-			data-wp-bind--hidden="!state.hasItems"
-			data-wp-bind--aria-label="state.itemsCountAriaLabel"
-			hidden
-		>0</span>
+			class="sc-cart-count"<?php echo $gnl_cart_count > 0 ? '' : ' hidden'; ?>
+		><?php echo (int) $gnl_cart_count; ?></span>
 	</div>
 </a></div>
 </div>
