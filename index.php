@@ -181,7 +181,7 @@ function gnl_flag($code) {
     $code = strtoupper((string) $code);
     if ($code === 'FR') {
         return '<figure class="wp-block-image alignright size-full is-resized" style="margin-bottom:0">'
-             . '<img decoding="async" width="1000" height="563" src="wp-content/uploads/2025/12/icon-flag-edited.png" '
+             . '<img decoding="async" width="1000" height="563" src="./assets/img/icon-flag-edited.png" '
              . 'alt="Datacenter France" class="wp-image-573" style="width:20px;height:auto" /></figure>';
     }
     $emoji = array('DE' => '🇩🇪', 'SW' => '🇨🇭', 'CH' => '🇨🇭', 'BE' => '🇧🇪', 'FR' => '🇫🇷');
@@ -641,10 +641,10 @@ window.SureCartAffiliatesConfig = {
 @font-face{font-family:Manrope;font-style:normal;font-weight:200 800;font-display:fallback;src:url('wp-content/themes/twentytwentyfive/assets/fonts/manrope/Manrope-VariableFont_wght.woff2') format('woff2');}
 @font-face{font-family:"Fira Code";font-style:normal;font-weight:300 700;font-display:fallback;src:url('wp-content/themes/twentytwentyfive/assets/fonts/fira-code/FiraCode-VariableFont_wght.woff2') format('woff2');}
 </style>
-<link rel="icon" href="wp-content/uploads/2025/12/cropped-Sans-titre37-32x32.png" sizes="32x32" />
-<link rel="icon" href="wp-content/uploads/2025/12/cropped-Sans-titre37-192x192.png" sizes="192x192" />
-<link rel="apple-touch-icon" href="wp-content/uploads/2025/12/cropped-Sans-titre37-180x180.png" />
-<meta name="msapplication-TileImage" content="https://gnl-solution.fr/wp-content/uploads/2025/12/cropped-Sans-titre37-270x270.png" />
+<link rel="icon" href="./assets/img/cropped-Sans-titre37-32x32.png" sizes="32x32" />
+<link rel="icon" href="./assets/img/cropped-Sans-titre37-192x192.png" sizes="192x192" />
+<link rel="apple-touch-icon" href="./assets/img/cropped-Sans-titre37-180x180.png" />
+<meta name="msapplication-TileImage" content="https://gnl-solution.fr/./assets/img/cropped-Sans-titre37-270x270.png" />
 <style id="gnl-carousel-css">
 .gnl-cat{margin-top:var(--wp--preset--spacing--40,2rem)}
 .gnl-cat-title{margin:0 0 var(--wp--preset--spacing--20,1rem);font-weight:600;line-height:1.2}
@@ -710,7 +710,7 @@ if (is_readable('./include/header.php')) {
 <div class="wp-block-query alignfull is-layout-flow wp-block-query-is-layout-flow"><ul class="alignfull wp-block-post-template is-layout-flow wp-block-post-template-is-layout-flow"><li class="wp-block-post post-6 page type-page status-publish hentry">
 
 <div class="wp-block-group alignfull has-global-padding is-layout-constrained wp-block-group-is-layout-constrained" style="margin-top:0;margin-bottom:0;padding-top:0;padding-bottom:0"><div class="entry-content alignfull wp-block-post-content has-medium-font-size has-global-padding is-layout-constrained wp-block-post-content-is-layout-constrained">
-<div class="wp-block-cover alignfull has-parallax has-custom-content-position is-position-bottom-center" style="margin-top:0;margin-bottom:0;padding-top:var(--wp--preset--spacing--50);padding-right:var(--wp--preset--spacing--50);padding-bottom:var(--wp--preset--spacing--50);padding-left:var(--wp--preset--spacing--50);min-height:710px;aspect-ratio:unset;"><div class="wp-block-cover__image-background wp-image-429 size-large has-parallax" style="background-position:50% 50%;background-image:url(wp-content/uploads/2025/12/DSC_5141-2-min-1024x681.jpg)"></div><span aria-hidden="true" class="wp-block-cover__background has-contrast-background-color has-background-dim-60 has-background-dim"></span><div class="wp-block-cover__inner-container has-global-padding is-layout-constrained wp-container-core-cover-is-layout-d89aad35 wp-block-cover-is-layout-constrained">
+<div class="wp-block-cover alignfull has-parallax has-custom-content-position is-position-bottom-center" style="margin-top:0;margin-bottom:0;padding-top:var(--wp--preset--spacing--50);padding-right:var(--wp--preset--spacing--50);padding-bottom:var(--wp--preset--spacing--50);padding-left:var(--wp--preset--spacing--50);min-height:710px;aspect-ratio:unset;"><div class="wp-block-cover__image-background wp-image-429 size-large has-parallax" style="background-position:50% 50%;background-image:url(./assets/img/DSC_5141-2-min-1024x681.jpg)"></div><span aria-hidden="true" class="wp-block-cover__background has-contrast-background-color has-background-dim-60 has-background-dim"></span><div class="wp-block-cover__inner-container has-global-padding is-layout-constrained wp-container-core-cover-is-layout-d89aad35 wp-block-cover-is-layout-constrained">
 <div class="wp-block-group alignwide has-global-padding is-content-justification-left is-layout-constrained wp-container-core-group-is-layout-12dd3699 wp-block-group-is-layout-constrained">
 <h2 class="wp-block-heading has-text-align-left has-xx-large-font-size">Optez pour l’hébergement 100% EU</h2>
 
@@ -933,7 +933,7 @@ class="has-arrow-type-chevron wp-block-surecart-product-pagination-next" aria-la
 
 
 <div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow">
-<div class="wp-block-cover" style="min-height:100%;aspect-ratio:unset;"><img decoding="async" width="2560" height="1703" class="wp-block-cover__image-background wp-image-426 size-full" alt="" src="wp-content/uploads/2025/12/DSC_5140-min-scaled.jpg" data-object-fit="cover" srcset="https://gnl-solution.fr/wp-content/uploads/2025/12/DSC_5140-min-scaled.jpg 2560w, https://gnl-solution.fr/wp-content/uploads/2025/12/DSC_5140-min-scaled-600x399.jpg 600w, https://gnl-solution.fr/wp-content/uploads/2025/12/DSC_5140-min-300x200.jpg 300w, https://gnl-solution.fr/wp-content/uploads/2025/12/DSC_5140-min-1024x681.jpg 1024w, https://gnl-solution.fr/wp-content/uploads/2025/12/DSC_5140-min-768x511.jpg 768w, https://gnl-solution.fr/wp-content/uploads/2025/12/DSC_5140-min-1536x1022.jpg 1536w, https://gnl-solution.fr/wp-content/uploads/2025/12/DSC_5140-min-2048x1363.jpg 2048w" sizes="(max-width: 2560px) 100vw, 2560px" /><span aria-hidden="true" class="wp-block-cover__background has-background-dim-0 has-background-dim" style="background-color:#788177"></span><div class="wp-block-cover__inner-container is-layout-flow wp-block-cover-is-layout-flow">
+<div class="wp-block-cover" style="min-height:100%;aspect-ratio:unset;"><img decoding="async" width="2560" height="1703" class="wp-block-cover__image-background wp-image-426 size-full" alt="" src="./assets/img/DSC_5140-min-scaled.jpg" data-object-fit="cover" srcset="https://gnl-solution.fr//DSC_5140-min-scaled.jpg 2560w, https://gnl-solution.fr/./assets/img/DSC_5140-min-scaled-600x399.jpg 600w, https://gnl-solution.fr/./assets/img/DSC_5140-min-300x200.jpg 300w, https://gnl-solution.fr/./assets/img/DSC_5140-min-1024x681.jpg 1024w, https://gnl-solution.fr/./assets/img/DSC_5140-min-768x511.jpg 768w, https://gnl-solution.fr/./assets/img/DSC_5140-min-1536x1022.jpg 1536w, https://gnl-solution.fr/./assets/img/DSC_5140-min-2048x1363.jpg 2048w" sizes="(max-width: 2560px) 100vw, 2560px" /><span aria-hidden="true" class="wp-block-cover__background has-background-dim-0 has-background-dim" style="background-color:#788177"></span><div class="wp-block-cover__inner-container is-layout-flow wp-block-cover-is-layout-flow">
 <div style="height:129px" aria-hidden="true" class="wp-block-spacer"></div>
 </div></div>
 </div>
@@ -952,19 +952,19 @@ class="has-arrow-type-chevron wp-block-surecart-product-pagination-next" aria-la
 
 
 <div class="wp-block-group alignwide is-content-justification-center is-layout-flex wp-container-core-group-is-layout-2c471116 wp-block-group-is-layout-flex">
-<figure class="wp-block-image size-large is-resized"><img loading="lazy" decoding="async" width="1393" height="783" src="wp-content/uploads/2025/12/Sans-titre45-edited.png" alt="" class="wp-image-698" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="https://gnl-solution.fr/wp-content/uploads/2025/12/Sans-titre45-edited.png 1393w, https://gnl-solution.fr/wp-content/uploads/2025/12/Sans-titre45-edited-300x169.png 300w, https://gnl-solution.fr/wp-content/uploads/2025/12/Sans-titre45-edited-1024x576.png 1024w, https://gnl-solution.fr/wp-content/uploads/2025/12/Sans-titre45-edited-768x432.png 768w" sizes="auto, (max-width: 1393px) 100vw, 1393px" /></figure>
+<figure class="wp-block-image size-large is-resized"><img loading="lazy" decoding="async" width="1393" height="783" src="./assets/img/Sans-titre45-edited.png" alt="" class="wp-image-698" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="https://gnl-solution.fr/./assets/img/Sans-titre45-edited.png 1393w, https://gnl-solution.fr/./assets/img/Sans-titre45-edited-300x169.png 300w, https://gnl-solution.fr/./assets/img/Sans-titre45-edited-1024x576.png 1024w, https://gnl-solution.fr/./assets/img/Sans-titre45-edited-768x432.png 768w" sizes="auto, (max-width: 1393px) 100vw, 1393px" /></figure>
 
 
 
-<figure class="wp-block-image size-full is-resized"><img loading="lazy" decoding="async" width="523" height="294" src="wp-content/uploads/2025/12/Screenshot-2025-12-08-021622-edited.png" alt="" class="wp-image-683" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="https://gnl-solution.fr/wp-content/uploads/2025/12/Screenshot-2025-12-08-021622-edited.png 523w, https://gnl-solution.fr/wp-content/uploads/2025/12/Screenshot-2025-12-08-021622-edited-300x169.png 300w" sizes="auto, (max-width: 523px) 100vw, 523px" /></figure>
+<figure class="wp-block-image size-full is-resized"><img loading="lazy" decoding="async" width="523" height="294" src="./assets/img/Screenshot-2025-12-08-021622-edited.png" alt="" class="wp-image-683" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="https://gnl-solution.fr/./assets/img/Screenshot-2025-12-08-021622-edited.png 523w, https://gnl-solution.fr/./assets/img/Screenshot-2025-12-08-021622-edited-300x169.png 300w" sizes="auto, (max-width: 523px) 100vw, 523px" /></figure>
 
 
 
-<figure class="wp-block-image size-full is-resized"><a href="http://game-reduction.fr/"><img loading="lazy" decoding="async" width="1120" height="630" src="wp-content/uploads/2025/12/banniere-game-reduction-edited.png" alt="" class="wp-image-674" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="https://gnl-solution.fr/wp-content/uploads/2025/12/banniere-game-reduction-edited.png 1120w, https://gnl-solution.fr/wp-content/uploads/2025/12/banniere-game-reduction-edited-300x169.png 300w, https://gnl-solution.fr/wp-content/uploads/2025/12/banniere-game-reduction-edited-1024x576.png 1024w, https://gnl-solution.fr/wp-content/uploads/2025/12/banniere-game-reduction-edited-768x432.png 768w" sizes="auto, (max-width: 1120px) 100vw, 1120px" /></a></figure>
+<figure class="wp-block-image size-full is-resized"><a href="http://game-reduction.fr/"><img loading="lazy" decoding="async" width="1120" height="630" src="./assets/img/banniere-game-reduction-edited.png" alt="" class="wp-image-674" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="https://gnl-solution.fr/./assets/img/banniere-game-reduction-edited.png 1120w, https://gnl-solution.fr/./assets/img/banniere-game-reduction-edited-300x169.png 300w, https://gnl-solution.fr/./assets/img/banniere-game-reduction-edited-1024x576.png 1024w, https://gnl-solution.fr/./assets/img/banniere-game-reduction-edited-768x432.png 768w" sizes="auto, (max-width: 1120px) 100vw, 1120px" /></a></figure>
 
 
 
-<figure class="wp-block-image size-full is-resized"><a href="https://www.slapia.com/"><img loading="lazy" decoding="async" width="1920" height="1080" src="wp-content/uploads/2026/04/Sans-titre7-edited.jpg" alt="" class="wp-image-744" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="https://gnl-solution.fr/wp-content/uploads/2026/04/Sans-titre7-edited.jpg 1920w, https://gnl-solution.fr/wp-content/uploads/2026/04/Sans-titre7-edited-300x169.jpg 300w, https://gnl-solution.fr/wp-content/uploads/2026/04/Sans-titre7-edited-1024x576.jpg 1024w, https://gnl-solution.fr/wp-content/uploads/2026/04/Sans-titre7-edited-768x432.jpg 768w, https://gnl-solution.fr/wp-content/uploads/2026/04/Sans-titre7-edited-1536x864.jpg 1536w" sizes="auto, (max-width: 1920px) 100vw, 1920px" /></a></figure>
+<figure class="wp-block-image size-full is-resized"><a href="https://www.slapia.com/"><img loading="lazy" decoding="async" width="1920" height="1080" src="./assets/img/partener_brand/slapia.jpg" alt="" class="wp-image-744" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="https://gnl-solution.fr/./assets/img/partener_brand/slapia.jpg 1920w, https://gnl-solution.fr/./assets/img/partener_brand/slapia-300x169.jpg 300w, https://gnl-solution.fr/./assets/img/partener_brand/slapia-1024x576.jpg 1024w, https://gnl-solution.fr/./assets/img/partener_brand/slapia-768x432.jpg 768w, https://gnl-solution.fr/./assets/img/partener_brand/slapia-1536x864.jpg 1536w" sizes="auto, (max-width: 1920px) 100vw, 1920px" /></a></figure>
 </div>
 </div>
 </div></div>
