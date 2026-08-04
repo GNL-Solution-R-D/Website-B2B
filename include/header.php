@@ -1,10 +1,10 @@
 <?php
 /* ---------------------------------------------------------------------
-   Icone panier de l'en-tete — pilotee par le panier « maison »
-   (session $_SESSION['gnl_cart'], voir cart.php). On additionne les
-   quantites pour afficher l'icone des qu'il y a un article et la garder
-   visible tant que le panier n'est pas vide. Aucune dependance a l'etat
-   JavaScript de SureCart, qui ne reflete pas ce panier. */
+   Icone panier de l'en-tete, pilotee cote serveur par le panier maison
+   ($_SESSION['gnl_cart'], voir cart.php). Ce header etant inclus sur
+   toutes les pages, l'icone apparait des qu'il y a un article et reste
+   visible tant que le panier n'est pas vide. Aucune dependance WordPress
+   ni SureCart. */
 if (session_status() === PHP_SESSION_NONE && !headers_sent()) { session_start(); }
 $gnl_cart_count = 0;
 if (!empty($_SESSION['gnl_cart']) && is_array($_SESSION['gnl_cart'])) {
