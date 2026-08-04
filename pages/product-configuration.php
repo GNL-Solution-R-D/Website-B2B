@@ -191,7 +191,7 @@ function gnl_price($v) {
 function gnl_flag($code) {
     $code = strtoupper((string) $code);
     if ($code === 'FR') {
-        return '<img decoding="async" width="20" height="auto" src="wp-content/uploads/2025/12/icon-flag-edited.png" '
+        return '<img decoding="async" width="20" height="auto" src="./assets/img/icon-flag-edited.png" '
              . 'alt="Datacenter France" style="width:20px;height:auto;vertical-align:middle" />';
     }
     $emoji = array('DE' => "\xf0\x9f\x87\xa9\xf0\x9f\x87\xaa", 'SW' => "\xf0\x9f\x87\xa8\xf0\x9f\x87\xad", 'CH' => "\xf0\x9f\x87\xa8\xf0\x9f\x87\xad", 'BE' => "\xf0\x9f\x87\xa7\xf0\x9f\x87\xaa");
@@ -646,10 +646,10 @@ window.SureCartAffiliatesConfig = {
 @font-face{font-family:Manrope;font-style:normal;font-weight:200 800;font-display:fallback;src:url('wp-content/themes/twentytwentyfive/assets/fonts/manrope/Manrope-VariableFont_wght.woff2') format('woff2');}
 @font-face{font-family:"Fira Code";font-style:normal;font-weight:300 700;font-display:fallback;src:url('wp-content/themes/twentytwentyfive/assets/fonts/fira-code/FiraCode-VariableFont_wght.woff2') format('woff2');}
 </style>
-<link rel="icon" href="wp-content/uploads/2025/12/cropped-Sans-titre37-32x32.png" sizes="32x32" />
-<link rel="icon" href="wp-content/uploads/2025/12/cropped-Sans-titre37-192x192.png" sizes="192x192" />
-<link rel="apple-touch-icon" href="wp-content/uploads/2025/12/cropped-Sans-titre37-180x180.png" />
-<meta name="msapplication-TileImage" content="https://gnl-solution.fr/wp-content/uploads/2025/12/cropped-Sans-titre37-270x270.png" />
+<link rel="icon" href="./assets/img/cropped-Sans-titre37-32x32.png" sizes="32x32" />
+<link rel="icon" href="./assets/img/cropped-Sans-titre37-192x192.png" sizes="192x192" />
+<link rel="apple-touch-icon" href="./assets/img/cropped-Sans-titre37-180x180.png" />
+<meta name="msapplication-TileImage" content="https://gnl-solution.fr/./assets/img/cropped-Sans-titre37-270x270.png" />
 <style id="gnl-carousel-css">
 .gnl-cat{margin-top:var(--wp--preset--spacing--40,2rem)}
 .gnl-cat-title{margin:0 0 var(--wp--preset--spacing--20,1rem);font-weight:600;line-height:1.2}
