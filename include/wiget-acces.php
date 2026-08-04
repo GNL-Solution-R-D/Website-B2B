@@ -28,8 +28,8 @@
 	background-color: #1863DC !important;
 	color: #ffffff !important;
 	border: 0 !important;
-	border-radius: 10px !important;
-	box-shadow: var(--wp--preset--shadow--natural, 6px 6px 9px rgba(0,0,0,.2)) !important;
+	border-radius: 3px !important;
+	box-shadow: var(--wp--preset--shadow--natural, 6px 6px 3px rgba(0,0,0,.2)) !important;
 	text-decoration: none !important;
 }
 .ea11y-skip-to-content-link:hover{
