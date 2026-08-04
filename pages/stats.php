@@ -110,7 +110,6 @@ function gnlst_http($url, $payload, $headers, $insecure = false) {
             CURLOPT_SSL_VERIFYHOST => $insecure ? 0 : 2,
         ));
         $body = curl_exec($ch);
-        curl_close($ch);
         return $body === false ? null : $body;
     }
     $opts = array('http' => array(
