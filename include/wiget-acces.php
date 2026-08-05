@@ -29,7 +29,7 @@
 	color: #ffffff !important;
 	border: 0 !important;
 	border-radius: 3px !important;
-	box-shadow: var(--wp--preset--shadow--natural, 6px 6px 3px rgba(0,0,0,.2)) !important;
+	box-shadow: var(--wp--preset--shadow--natural, 6px 6px 9px rgba(0,0,0,.2)) !important;
 	text-decoration: none !important;
 }
 .ea11y-skip-to-content-link:hover{
@@ -86,7 +86,7 @@
 
 <!-- Configuration + chargement du widget (config AVANT le loader) -->
 <script id="ea11y-widget-js-extra">
-var ea11yWidget = {"iconSettings":{"style":{"icon":"eye","size":"medium","color":"#1863DC","cornerRadius":{"radius":12,"unit":"px"}},"position":{"desktop":{"hidden":false,"enableExactPosition":false,"exactPosition":{"horizontal":{"direction":"right","value":10,"unit":"px"},"vertical":{"direction":"bottom","value":10,"unit":"px"}},"position":"bottom-right"},"mobile":{"hidden":false,"enableExactPosition":false,"exactPosition":{"horizontal":{"direction":"right","value":10,"unit":"px"},"vertical":{"direction":"bottom","value":10,"unit":"px"}},"position":"bottom-right"}}},"toolsSettings":{"bigger-text":{"enabled":true},"bigger-line-height":{"enabled":true},"text-align":{"enabled":true},"readable-font":{"enabled":true},"grayscale":{"enabled":true},"contrast":{"enabled":true},"page-structure":{"enabled":true},"sitemap":{"enabled":false,"url":"https://gnl-solution.fr/wp-sitemap.xml"},"reading-mask":{"enabled":true},"hide-images":{"enabled":true},"pause-animations":{"enabled":true},"highlight-links":{"enabled":true},"focus-outline":{"enabled":true},"screen-reader":{"enabled":false},"remove-elementor-label":{"enabled":false}},"accessibilityStatementURL":"","analytics":{"enabled":false,"url":null}};
+var ea11yWidget = {"iconSettings":{"style":{"icon":"eye","size":"medium","color":"#1863DC","cornerRadius":{"radius":3,"unit":"px"}},"position":{"desktop":{"hidden":false,"enableExactPosition":false,"exactPosition":{"horizontal":{"direction":"right","value":10,"unit":"px"},"vertical":{"direction":"bottom","value":10,"unit":"px"}},"position":"bottom-right"},"mobile":{"hidden":false,"enableExactPosition":false,"exactPosition":{"horizontal":{"direction":"right","value":10,"unit":"px"},"vertical":{"direction":"bottom","value":10,"unit":"px"}},"position":"bottom-right"}}},"toolsSettings":{"bigger-text":{"enabled":true},"bigger-line-height":{"enabled":true},"text-align":{"enabled":true},"readable-font":{"enabled":true},"grayscale":{"enabled":true},"contrast":{"enabled":true},"page-structure":{"enabled":true},"sitemap":{"enabled":false,"url":"https://gnl-solution.fr/wp-sitemap.xml"},"reading-mask":{"enabled":true},"hide-images":{"enabled":true},"pause-animations":{"enabled":true},"highlight-links":{"enabled":true},"focus-outline":{"enabled":true},"screen-reader":{"enabled":false},"remove-elementor-label":{"enabled":false}},"accessibilityStatementURL":"","analytics":{"enabled":false,"url":null}};
 //# sourceURL=ea11y-widget-js-extra
 </script>
 <script src="https://cdn.elementor.com/a11y/widget.js?api_key=ea11y-68734028-9c2f-4c2a-a091-10c4eea21500&amp;ver=4.1.1" id="ea11y-widget-js" referrerpolicy="origin"></script>
