@@ -952,11 +952,11 @@ class="has-arrow-type-chevron wp-block-surecart-product-pagination-next" aria-la
 
 
 <div class="wp-block-group alignwide is-content-justification-center is-layout-flex wp-container-core-group-is-layout-2c471116 wp-block-group-is-layout-flex">
-<figure class="wp-block-image size-large is-resized"><img loading="lazy" decoding="async" width="1393" height="783" src="./assets/img/partener_brand/Sans-titre45-edited.png" alt="" class="wp-image-698" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="./assets/img/partener_brand/Sans-titre45-edited.png 1393w, ./assets/img/partener_brand/Sans-titre45-edited-300x169.png 300w, ./assets/img/partener_brand/Sans-titre45-edited-1024x576.png 1024w, ./assets/img/partener_brand/Sans-titre45-edited-768x432.png 768w" sizes="auto, (max-width: 1393px) 100vw, 1393px" /></figure>
+<figure class="wp-block-image size-large is-resized"><img loading="lazy" decoding="async" width="1393" height="783" src="./assets/img/partener_brand/banniere-protec-doubs-edited.png" alt="" class="wp-image-698" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="./assets/img/partener_brand/banniere-protec-doubs-edited.png 1393w, ./assets/img/partener_brand/banniere-protec-doubs-edited-300x169.png 300w, ./assets/img/partener_brand/banniere-protec-doubs-edited-1024x576.png 1024w, ./assets/img/partener_brand/banniere-protec-doubs-edited-768x432.png 768w" sizes="auto, (max-width: 1393px) 100vw, 1393px" /></figure>
 
 
 
-<figure class="wp-block-image size-full is-resized"><img loading="lazy" decoding="async" width="523" height="294" src="./assets/img/partener_brand/Screenshot-2025-12-08-021622-edited.png" alt="" class="wp-image-683" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="./assets/img/partener_brand/Screenshot-2025-12-08-021622-edited.png 523w, ./assets/img/partener_brand/Screenshot-2025-12-08-021622-edited-300x169.png 300w" sizes="auto, (max-width: 523px) 100vw, 523px" /></figure>
+<figure class="wp-block-image size-full is-resized"><img loading="lazy" decoding="async" width="523" height="294" src="./assets/img/partener_brand/banniere-ecrin-monastere-edited.png" alt="" class="wp-image-683" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="./assets/img/partener_brand/banniere-ecrin-monastere-edited.png 523w, ./assets/img/partener_brand/banniere-ecrin-monastere-edited-300x169.png 300w" sizes="auto, (max-width: 523px) 100vw, 523px" /></figure>
 
 
 
@@ -964,7 +964,7 @@ class="has-arrow-type-chevron wp-block-surecart-product-pagination-next" aria-la
 
 
 
-<figure class="wp-block-image size-full is-resized"><a href="https://www.slapia.com/"><img loading="lazy" decoding="async" width="1920" height="1080" src="./assets/img/partener_brand/Sans-titre7-edited.jpg" alt="" class="wp-image-744" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="./assets/img/partener_brand/Sans-titre7-edited.jpg 1920w, ./assets/img/partener_brand/Sans-titre7-edited-300x169.jpg 300w, ./assets/img/partener_brand/Sans-titre7-edited-1024x576.jpg 1024w, ./assets/img/partener_brand/Sans-titre7-edited-768x432.jpg 768w, ./assets/img/partener_brand/Sans-titre7-edited-1536x864.jpg 1536w" sizes="auto, (max-width: 1920px) 100vw, 1920px" /></a></figure>
+<figure class="wp-block-image size-full is-resized"><a href="https://www.slapia.com/"><img loading="lazy" decoding="async" width="1920" height="1080" src="./assets/img/partener_brand/banniere-slapia-edited.jpg" alt="" class="wp-image-744" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="./assets/img/partener_brand/banniere-slapia-edited.jpg 1920w, ./assets/img/partener_brand/banniere-slapia-edited-300x169.jpg 300w, ./assets/img/partener_brand/banniere-slapia-edited-1024x576.jpg 1024w, ./assets/img/partener_brand/banniere-slapia-edited-768x432.jpg 768w, ./assets/img/partener_brand/banniere-slapia-edited-1536x864.jpg 1536w" sizes="auto, (max-width: 1920px) 100vw, 1920px" /></a></figure>
 </div>
 </div>
 </div></div>
