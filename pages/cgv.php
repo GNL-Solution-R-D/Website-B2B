@@ -145,14 +145,14 @@ if (is_readable('../include/header.php')) {
 
     <p class="back-top"><a href="#">↑ Revenir en haut</a></p>
 
+</div>
+
 <?php
 // Pied de page commun (identique à index.php)
 if (is_readable('../include/footer.php')) {
     include '../include/footer.php';
 }
 ?>
-
-</div>
 
 </body>
 </html>
