@@ -13,6 +13,39 @@ if (!empty($_SESSION['gnl_cart']) && is_array($_SESSION['gnl_cart'])) {
     }
 }
 ?>
+
+<head>
+	
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+	// IDENTITE
+	<title>GNL Solution</title>
+	<meta name="application-name" content="Boutique GNL Solution" />
+	<meta name="description" content="Voici un exemple de description" />
+	<meta name="keywords" content="HTML, CSS, JavaScript">
+	<meta name="author" content="GNL Solution">
+	<meta name="copyright" content="GNL Solution"/>
+
+	// FAVICON IMG
+	<link rel="icon" href="./assets/img/favicon/favicon-32x32.png" sizes="32x32" />
+	<link rel="icon" href="./assets/img/favicon/favicon-192x192.png" sizes="192x192" />
+	<link rel="apple-touch-icon" href="./assets/img/favicon/favicon-180x180.png" />
+
+	// POST META
+	<meta name="msapplication-TileColor" content="#ffffff" />
+	<meta name="msapplication-TileImage" content="./assets/img/favicon/favicon-270x270.png" />
+
+	// SECURITY
+	<meta http-equiv="content-security-policy" content="default-src 'self'">
+
+	// ROBOT
+	<meta name='robots' content='max-image-preview:large' />
+	<meta name="robots" content="noimageindex">
+	<meta name="robots" content="noimageindex">
+
+</head>
+
 <header class="wp-block-template-part">
 <div class="wp-block-group alignfull is-layout-flow wp-block-group-is-layout-flow">
 <div class="wp-block-group has-global-padding is-layout-constrained wp-block-group-is-layout-constrained">
