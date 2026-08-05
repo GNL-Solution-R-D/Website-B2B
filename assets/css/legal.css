@@ -14,8 +14,8 @@
     --panel:      #f5f7fb;
     --panel-warn: #fff7ed;
     --panel-warn-bd: #f0d9b8;
-    --radius: 10px;
-    --maxw: 78ch;
+    --radius: 3px;
+    --maxw: 85%;
 }
 
 * { box-sizing: border-box; }
@@ -37,6 +37,7 @@ body {
     max-width: var(--maxw);
     margin: 0 auto;
     padding: 0 20px 96px;
+    background-color: var(--bg);
 }
 
 /* --- En-tête --- */
@@ -124,7 +125,7 @@ li { margin: .3em 0; }
 
 /* --- Sommaire --- */
 .toc {
-    background: var(--bg);
+    background: var(--panel);
     border: 1px solid var(--line);
     border-radius: var(--radius);
     padding: 18px 22px;
