@@ -918,27 +918,6 @@ class="has-arrow-type-chevron wp-block-surecart-product-pagination-next" aria-la
 
 
 </div>
-<div class="wp-block-group alignfull is-style-section-4 has-background has-global-padding is-layout-constrained wp-block-group-is-layout-constrained is-style-section-4--4" style="background-color:#009494;min-height:0vh;margin-top:0;margin-bottom:0">
-<div class="wp-block-columns alignfull is-layout-flex wp-container-core-columns-is-layout-28f84493 wp-block-columns-is-layout-flex">
-<div class="wp-block-column is-vertically-aligned-center is-layout-flow wp-block-column-is-layout-flow">
-<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow" style="padding-top:var(--wp--preset--spacing--30);padding-right:var(--wp--preset--spacing--40);padding-bottom:var(--wp--preset--spacing--30);padding-left:var(--wp--preset--spacing--40)">
-<h2 class="wp-block-heading has-base-color has-text-color has-link-color wp-elements-1ed71c052aa8720800ca98718a397fce">Nous cherchons de nouveaux partenaires !</h2>
-
-
-
-<p class="has-base-color has-text-color has-link-color wp-elements-e3b256cef02dac0762f4abf21de54357">Rejoignez-nous pour développer vos compétences et contribuer à des projets innovants.</p>
-</div>
-</div>
-
-
-
-<div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow">
-<div class="wp-block-cover" style="min-height:100%;aspect-ratio:unset;"><img decoding="async" width="2560" height="1703" class="wp-block-cover__image-background wp-image-426 size-full" alt="" src="./assets/img/illustration/DSC_5140-min-scaled.jpg" data-object-fit="cover" srcset="./assets/img/illustration/DSC_5140-min-scaled.jpg 2560w, ./assets/img/illustration/DSC_5140-min-scaled-600x399.jpg 600w, ./assets/img/illustration/DSC_5140-min-300x200.jpg 300w, ./assets/img/illustration/DSC_5140-min-1024x681.jpg 1024w, ./assets/img/illustration/DSC_5140-min-768x511.jpg 768w, ./assets/img/illustration/DSC_5140-min-1536x1022.jpg 1536w, ./assets/img/illustration/DSC_5140-min-2048x1363.jpg 2048w" sizes="(max-width: 2560px) 100vw, 2560px" /><span aria-hidden="true" class="wp-block-cover__background has-background-dim-0 has-background-dim" style="background-color:#788177"></span><div class="wp-block-cover__inner-container is-layout-flow wp-block-cover-is-layout-flow">
-<div style="height:129px" aria-hidden="true" class="wp-block-spacer"></div>
-</div></div>
-</div>
-</div>
-</div>
 
 
 
@@ -978,6 +957,30 @@ class="has-arrow-type-chevron wp-block-surecart-product-pagination-next" aria-la
 
 <div class="wp-block-group alignwide has-global-padding is-layout-constrained wp-block-group-is-layout-constrained"></div>
 </div>
+
+<div class="wp-block-group alignfull is-style-section-4 has-background has-global-padding is-layout-constrained wp-block-group-is-layout-constrained is-style-section-4--4" style="background-color:#009494;min-height:0vh;margin-top:0;margin-bottom:0">
+<div class="wp-block-columns alignfull is-layout-flex wp-container-core-columns-is-layout-28f84493 wp-block-columns-is-layout-flex">
+<div class="wp-block-column is-vertically-aligned-center is-layout-flow wp-block-column-is-layout-flow">
+<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow" style="padding-top:var(--wp--preset--spacing--30);padding-right:var(--wp--preset--spacing--40);padding-bottom:var(--wp--preset--spacing--30);padding-left:var(--wp--preset--spacing--40)">
+<h2 class="wp-block-heading has-base-color has-text-color has-link-color wp-elements-1ed71c052aa8720800ca98718a397fce">Nous cherchons de nouveaux partenaires !</h2>
+
+
+
+<p class="has-base-color has-text-color has-link-color wp-elements-e3b256cef02dac0762f4abf21de54357">Rejoignez-nous pour développer vos compétences et contribuer à des projets innovants.</p>
+</div>
+</div>
+
+
+
+<div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow">
+<div class="wp-block-cover" style="min-height:100%;aspect-ratio:unset;"><img decoding="async" width="2560" height="1703" class="wp-block-cover__image-background wp-image-426 size-full" alt="" src="./assets/img/illustration/DSC_5140-min-scaled.jpg" data-object-fit="cover" srcset="./assets/img/illustration/DSC_5140-min-scaled.jpg 2560w, ./assets/img/illustration/DSC_5140-min-scaled-600x399.jpg 600w, ./assets/img/illustration/DSC_5140-min-300x200.jpg 300w, ./assets/img/illustration/DSC_5140-min-1024x681.jpg 1024w, ./assets/img/illustration/DSC_5140-min-768x511.jpg 768w, ./assets/img/illustration/DSC_5140-min-1536x1022.jpg 1536w, ./assets/img/illustration/DSC_5140-min-2048x1363.jpg 2048w" sizes="(max-width: 2560px) 100vw, 2560px" /><span aria-hidden="true" class="wp-block-cover__background has-background-dim-0 has-background-dim" style="background-color:#788177"></span><div class="wp-block-cover__inner-container is-layout-flow wp-block-cover-is-layout-flow">
+<div style="height:129px" aria-hidden="true" class="wp-block-spacer"></div>
+</div></div>
+</div>
+</div>
+</div>
+
+
 </main>
 
 <?php
