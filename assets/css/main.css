@@ -1,0 +1,91 @@
+@font-face{
+    font-family:Manrope;
+    font-style:normal;
+    font-weight:200 800;
+    font-display:fallback;
+    src:url('wp-content/themes/twentytwentyfive/assets/fonts/manrope/Manrope-VariableFont_wght.woff2') format('woff2');
+}
+@font-face{
+    font-family:"Fira Code";
+    font-style:normal;
+    font-weight:300 700;
+    font-display:fallback;
+    src:url('wp-content/themes/twentytwentyfive/assets/fonts/fira-code/FiraCode-VariableFont_wght.woff2') format('woff2');
+}
+.gnl-cat{
+    margin-top:var(--wp--preset--spacing--40,2rem)
+}
+.gnl-cat-title{
+    margin:0 0 var(--wp--preset--spacing--20,1rem);
+    font-weight:600;line-height:1.2
+}
+.gnl-carousel{
+    position:relative
+}
+.gnl-viewport{
+    overflow:hidden;width:100%
+}
+.gnl-track{
+    box-sizing:border-box;
+    list-style:none;
+    margin:0;
+    padding:2px 0;
+    display:flex!important;
+    flex-wrap:nowrap!important;
+    grid-template-columns:none!important;
+    gap:30px;
+    transition:transform .35s ease;
+    will-change:transform
+}
+.gnl-track>li{
+    flex:0 0 calc((100% - 60px)/3);
+    max-width:calc((100% - 60px)/3);
+    min-width:0;box-sizing:border-box
+}
+@media(max-width:900px){
+    .gnl-track>li{
+        flex-basis:calc((100% - 30px)/2);
+        max-width:calc((100% - 30px)/2)
+    }
+}
+@media(max-width:600px){
+    .gnl-track>li{
+        flex-basis:100%;
+        max-width:100%
+    }
+}
+.gnl-nav{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:1rem;
+    margin-top:var(--wp--preset--spacing--20,1rem)
+}
+.gnl-nav[hidden]{
+    display:none!important
+}
+.gnl-prev,.gnl-next{
+    position:relative;
+    z-index:2;
+    cursor:pointer;
+    pointer-events:auto!important;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    color:inherit;
+    line-height:0;
+    -webkit-user-select:none;
+    user-select:none;
+    transition:opacity .15s ease
+}
+.gnl-prev svg,.gnl-next svg{
+    pointer-events:none
+}
+.gnl-prev[aria-disabled="true"],.gnl-next[aria-disabled="true"]{
+    opacity:.3;
+    cursor:default;
+    pointer-events:none!important
+}
+.wp-block-surecart-product-list>.wp-block-surecart-product-pagination{
+    display:none!important
+}
