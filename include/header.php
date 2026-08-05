@@ -22,7 +22,7 @@ if (!empty($_SESSION['gnl_cart']) && is_array($_SESSION['gnl_cart'])) {
 	// IDENTITE
 	<title>GNL Solution</title>
 	<meta name="application-name" content="Boutique GNL Solution" />
-	<meta name="description" content="Voici un exemple de description" />
+	<meta name="description" content="Optez pour l’hébergement 100% Européen" />
 	<meta name="keywords" content="HTML, CSS, JavaScript">
 	<meta name="author" content="GNL Solution">
 	<meta name="copyright" content="GNL Solution"/>
