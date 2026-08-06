@@ -19,7 +19,7 @@ if (!empty($_SESSION['gnl_cart']) && is_array($_SESSION['gnl_cart'])) {
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 
-	// IDENTITE
+	<!-- IDENTITE -->
 	<title>GNL Solution</title>
 	<meta name="application-name" content="Boutique GNL Solution" />
 	<meta name="description" content="Optez pour l’hébergement 100% Européen" />
@@ -27,21 +27,20 @@ if (!empty($_SESSION['gnl_cart']) && is_array($_SESSION['gnl_cart'])) {
 	<meta name="author" content="GNL Solution">
 	<meta name="copyright" content="GNL Solution"/>
 
-	// FAVICON IMG
+	<!-- FAVICON IMG -->
 	<link rel="icon" href="./assets/img/favicon/favicon-32x32.png" sizes="32x32" />
 	<link rel="icon" href="./assets/img/favicon/favicon-192x192.png" sizes="192x192" />
 	<link rel="apple-touch-icon" href="./assets/img/favicon/favicon-180x180.png" />
 
-	// POST META
+	<!-- POST META -->
 	<meta name="msapplication-TileColor" content="#ffffff" />
 	<meta name="msapplication-TileImage" content="./assets/img/favicon/favicon-270x270.png" />
 
-	// SECURITY
+	<!-- SECURITY -->
 	<meta http-equiv="content-security-policy" content="default-src 'self'">
 
-	// ROBOT
+	<!-- ROBOT -->
 	<meta name='robots' content='max-image-preview:large' />
-	<meta name="robots" content="noimageindex">
 	<meta name="robots" content="noimageindex">
 
 </head>
