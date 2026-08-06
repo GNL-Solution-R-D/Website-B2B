@@ -697,7 +697,7 @@ class="has-arrow-type-chevron wp-block-surecart-product-pagination-next" aria-la
 
 <h6 class="wp-block-heading alignwide">NOUS TRAVAILLONS SUR DE NOUVELLES SOLUTION POUR VOUS !</h6>
 
-<?php gnl_render_soon_cards(); ?>
+<?php gnl_render_category('soon', null, 'Services Prochainement Disponible'); ?>
 
 </div>
 
