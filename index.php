@@ -27,6 +27,21 @@ if (!defined('GNL_CACHE_TTL')) {
     define('GNL_CACHE_TTL', 300); // durée du cache local en secondes
 }
 
+/* --- Partenaires ("Nous avons contribué à leurs projets") -----------
+   Source : datatable n8n "partner" via webhook POST
+        https://api.gnl-solution.fr/webhook/partner
+   Repli automatique sur partner.csv (mêmes colonnes) si indisponible.
+   Colonnes attendues : id, comercial_name, url, banner_logo_file,
+                        createdAt, updatedAt
+   ------------------------------------------------------------------ */
+if (!defined('GNL_PARTNER_WEBHOOK_URL')) {
+    define('GNL_PARTNER_WEBHOOK_URL', 'https://api.gnl-solution.fr/webhook/partner');
+}
+if (!defined('GNL_PARTNER_CSV_FALLBACK')) {
+    define('GNL_PARTNER_CSV_FALLBACK', __DIR__ . '/partner.csv');
+}
+
+
 /* --- Appel du webhook n8n (POST) -> corps brut de la réponse --------- */
 function gnl_fetch_from_webhook() {
     $payload = json_encode(array('source' => 'index.php', 'action' => 'product.list'));
@@ -302,8 +317,148 @@ function gnl_render_category($type, $categorie, $title) {
     echo '</div></div>' . "\n";
 }
 
+/* --- Partenaires : webhook n8n (POST) -> corps brut ---------------- */
+function gnl_fetch_partners_from_webhook() {
+    $payload = json_encode(array('source' => 'index.php', 'action' => 'partner.list'));
+
+    if (function_exists('curl_init')) {
+        $ch = curl_init(GNL_PARTNER_WEBHOOK_URL);
+        curl_setopt_array($ch, array(
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $payload,
+            CURLOPT_HTTPHEADER     => array('Content-Type: application/json', 'Accept: application/json'),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 6,
+            CURLOPT_CONNECTTIMEOUT => 4,
+        ));
+        $body = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        unset($ch);
+        if ($body !== false && $code >= 200 && $code < 300) {
+            return gnl_decode_partner_rows($body);
+        }
+        return null;
+    }
+
+    // Repli sans cURL
+    $ctx = stream_context_create(array('http' => array(
+        'method'        => 'POST',
+        'header'        => "Content-Type: application/json\r\nAccept: application/json\r\n",
+        'content'       => $payload,
+        'timeout'       => 6,
+        'ignore_errors' => true,
+    )));
+    $body = @file_get_contents(GNL_PARTNER_WEBHOOK_URL, false, $ctx);
+    if ($body === false) return null;
+    return gnl_decode_partner_rows($body);
+}
+
+/* --- Décodage tolérant de la réponse JSON partenaires -------------- */
+function gnl_decode_partner_rows($body) {
+    $data = json_decode($body, true);
+    if (!is_array($data)) return null;
+
+    // Déballe les enveloppes n8n les plus courantes
+    foreach (array('data', 'partners', 'partner', 'rows', 'items', 'result') as $k) {
+        if (isset($data[$k]) && is_array($data[$k])) { $data = $data[$k]; break; }
+    }
+    // Objet unique -> liste à un élément
+    if (isset($data['id']) || isset($data['comercial_name']) || isset($data['banner_logo_file'])) {
+        $data = array($data);
+    }
+
+    $rows = array();
+    foreach ($data as $item) {
+        if (!is_array($item)) continue;
+        if (isset($item['json']) && is_array($item['json'])) $item = $item['json']; // format {json:{...}}
+        $rows[] = $item;
+    }
+    return $rows ? $rows : null;
+}
+
+/* --- Repli sur partner.csv ----------------------------------------- */
+function gnl_fetch_partners_from_csv() {
+    if (!is_readable(GNL_PARTNER_CSV_FALLBACK)) return array();
+    $rows = array();
+    if (($h = fopen(GNL_PARTNER_CSV_FALLBACK, 'r')) !== false) {
+        $header = fgetcsv($h);
+        if ($header) {
+            $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]); // retire un BOM éventuel
+            while (($line = fgetcsv($h)) !== false) {
+                if ($line === array(null) || (count($line) === 1 && $line[0] === null)) continue;
+                $line = array_pad($line, count($header), '');
+                $line = array_slice($line, 0, count($header));
+                $rows[] = array_combine($header, $line);
+            }
+        }
+        fclose($h);
+    }
+    return $rows;
+}
+
+/* --- Chargement partenaires (webhook -> cache -> csv) -------------- */
+function gnl_load_partners() {
+    $cacheFile = sys_get_temp_dir() . '/gnl_partners_cache.json';
+
+    // Cache frais ?
+    if (is_readable($cacheFile) && (time() - filemtime($cacheFile) < GNL_CACHE_TTL)) {
+        $cached = json_decode(@file_get_contents($cacheFile), true);
+        if (is_array($cached) && $cached) return gnl_normalize_partners($cached);
+    }
+
+    $rows = gnl_fetch_partners_from_webhook();
+    if ($rows) {
+        @file_put_contents($cacheFile, json_encode($rows)); // best effort
+    } else {
+        $rows = gnl_fetch_partners_from_csv();
+    }
+    return gnl_normalize_partners($rows);
+}
+
+/* --- Normalisation d'une ligne partenaire (clés stables) ---------- */
+function gnl_normalize_partners($rows) {
+    $out = array();
+    if (!is_array($rows)) return $out;
+    foreach ($rows as $r) {
+        if (!is_array($r)) continue;
+        $g = function ($k) use ($r) { return isset($r[$k]) ? $r[$k] : ''; };
+        $name = trim((string) $g('comercial_name'));
+        $logo = trim((string) $g('banner_logo_file'));
+        if ($name === '' && $logo === '') continue; // ligne vide -> ignorée
+        $out[] = array(
+            'id'   => $g('id'),
+            'name' => $name,
+            'url'  => trim((string) $g('url')),
+            'logo' => $logo,
+        );
+    }
+    return $out;
+}
+
+/* --- Cartes partenaires (logos cliquables + infobulle) ------------ */
+function gnl_render_partner_cards() {
+    global $GNL_PARTNERS;
+    if (!is_array($GNL_PARTNERS)) return;
+    foreach ($GNL_PARTNERS as $p) {
+        $logo = ltrim((string) $p['logo'], '/');
+        if ($logo === '') continue;
+        $src  = './assets/img/partener_brand/' . gnl_e($logo);
+        $name = gnl_e($p['name']);
+        $img  = '<img loading="lazy" decoding="async" src="' . $src . '" alt="' . $name . '" title="' . $name . '" style="aspect-ratio:4/3;object-fit:contain;width:150px" />';
+
+        $url = trim((string) $p['url']);
+        if ($url !== '') {
+            $href = gnl_e($url);
+            echo '<figure class="wp-block-image size-full is-resized"><a href="' . $href . '" title="' . $name . '" target="_blank" rel="noopener noreferrer">' . $img . '</a></figure>' . "\n";
+        } else {
+            echo '<figure class="wp-block-image size-full is-resized">' . $img . '</figure>' . "\n";
+        }
+    }
+}
+
 /* --- Chargement effectif ------------------------------------------- */
 $GNL_PRODUCTS = gnl_load_products();
+$GNL_PARTNERS = gnl_load_partners();
 ?>
 <!DOCTYPE html>
 <html lang="fr-FR">
@@ -1329,19 +1484,7 @@ class="has-arrow-type-chevron wp-block-surecart-product-pagination-next" aria-la
 
 
 <div class="wp-block-group alignwide is-content-justification-center is-layout-flex wp-container-core-group-is-layout-2c471116 wp-block-group-is-layout-flex">
-<figure class="wp-block-image size-large is-resized"><img loading="lazy" decoding="async" width="1393" height="783" src="./assets/img/partener_brand/banniere-protec-doubs-edited.png" alt="" class="wp-image-698" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="./assets/img/partener_brand/banniere-protec-doubs-edited.png 1393w, ./assets/img/partener_brand/banniere-protec-doubs-edited-300x169.png 300w, ./assets/img/partener_brand/banniere-protec-doubs-edited-1024x576.png 1024w, ./assets/img/partener_brand/banniere-protec-doubs-edited-768x432.png 768w" sizes="auto, (max-width: 1393px) 100vw, 1393px" /></figure>
-
-
-
-<figure class="wp-block-image size-full is-resized"><img loading="lazy" decoding="async" width="523" height="294" src="./assets/img/partener_brand/banniere-ecrin-monastere-edited.png" alt="" class="wp-image-683" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="./assets/img/partener_brand/banniere-ecrin-monastere-edited.png 523w, ./assets/img/partener_brand/banniere-ecrin-monastere-edited-300x169.png 300w" sizes="auto, (max-width: 523px) 100vw, 523px" /></figure>
-
-
-
-<figure class="wp-block-image size-full is-resized"><a href="http://game-reduction.fr/"><img loading="lazy" decoding="async" width="1120" height="630" src="./assets/img/partener_brand/banniere-game-reduction-edited.png" alt="" class="wp-image-674" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="./assets/img/partener_brand/banniere-game-reduction-edited.png 1120w, ./assets/img/partener_brand/banniere-game-reduction-edited-300x169.png 300w, ./assets/img/partener_brand/banniere-game-reduction-edited-1024x576.png 1024w, ./assets/img/partener_brand/banniere-game-reduction-edited-768x432.png 768w" sizes="auto, (max-width: 1120px) 100vw, 1120px" /></a></figure>
-
-
-
-<figure class="wp-block-image size-full is-resized"><a href="https://www.slapia.com/"><img loading="lazy" decoding="async" width="1920" height="1080" src="./assets/img/partener_brand/banniere-slapia-edited.jpg" alt="" class="wp-image-744" style="aspect-ratio:4/3;object-fit:contain;width:150px" srcset="./assets/img/partener_brand/banniere-slapia-edited.jpg 1920w, ./assets/img/partener_brand/banniere-slapia-edited-300x169.jpg 300w, ./assets/img/partener_brand/banniere-slapia-edited-1024x576.jpg 1024w, ./assets/img/partener_brand/banniere-slapia-edited-768x432.jpg 768w, ./assets/img/partener_brand/banniere-slapia-edited-1536x864.jpg 1536w" sizes="auto, (max-width: 1920px) 100vw, 1920px" /></a></figure>
+<?php gnl_render_partner_cards(); ?>
 </div>
 </div>
 </div></div>
