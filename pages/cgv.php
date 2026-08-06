@@ -20,6 +20,7 @@ $page_titre = 'Conditions Générales de Vente';
     <meta name="robots" content="index,follow">
     <link rel="canonical" href="<?= e(rtrim($LEGAL['site_url'], '/')) ?>/cgv.php">
     <link rel="stylesheet" href="../assets/css/legal.css">
+    <link rel="stylesheet" href="../assets/css/main.css">
 </head>
 <body>
 
