@@ -28,15 +28,12 @@ if (!defined('GNL_CACHE_TTL')) {
 }
 
 /* --- Partenaires ("Nous avons contribué à leurs projets") -----------
-   Source : datatable n8n "partner" via webhook POST
-        https://api.gnl-solution.fr/webhook/partner
+   Source : datatable n8n "partner" via le MÊME webhook que la boutique
+        https://api.gnl-solution.fr/webhook/boutique   (action = partner.list)
    Repli automatique sur partner.csv (mêmes colonnes) si indisponible.
    Colonnes attendues : id, comercial_name, url, banner_logo_file,
                         createdAt, updatedAt
    ------------------------------------------------------------------ */
-if (!defined('GNL_PARTNER_WEBHOOK_URL')) {
-    define('GNL_PARTNER_WEBHOOK_URL', 'https://api.gnl-solution.fr/webhook/partner');
-}
 if (!defined('GNL_PARTNER_CSV_FALLBACK')) {
     define('GNL_PARTNER_CSV_FALLBACK', __DIR__ . '/partner.csv');
 }
@@ -322,7 +319,7 @@ function gnl_fetch_partners_from_webhook() {
     $payload = json_encode(array('source' => 'index.php', 'action' => 'partner.list'));
 
     if (function_exists('curl_init')) {
-        $ch = curl_init(GNL_PARTNER_WEBHOOK_URL);
+        $ch = curl_init(GNL_WEBHOOK_URL);
         curl_setopt_array($ch, array(
             CURLOPT_POST           => true,
             CURLOPT_POSTFIELDS     => $payload,
@@ -348,7 +345,7 @@ function gnl_fetch_partners_from_webhook() {
         'timeout'       => 6,
         'ignore_errors' => true,
     )));
-    $body = @file_get_contents(GNL_PARTNER_WEBHOOK_URL, false, $ctx);
+    $body = @file_get_contents(GNL_WEBHOOK_URL, false, $ctx);
     if ($body === false) return null;
     return gnl_decode_partner_rows($body);
 }
