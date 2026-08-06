@@ -7,6 +7,158 @@
  */
 require_once __DIR__ . '/config-legal.php';
 $page_titre = 'Politique de confidentialité';
+
+/* -------------------------------------------------------------------
+   Détail des traitements (art. 4) — chargé dynamiquement
+   Source : datatable n8n "traitement" via le MÊME webhook que la boutique
+        https://api.gnl-solution.fr/webhook/boutique   (action = traitement.list)
+   Repli automatique sur traitement_rgpd.csv si le webhook est indisponible.
+   Colonnes attendues : id, finalite, base_legal, duree, createdAt, updatedAt
+   ------------------------------------------------------------------- */
+if (!defined('GNL_WEBHOOK_URL')) {
+    define('GNL_WEBHOOK_URL', 'https://api.gnl-solution.fr/webhook/boutique');
+}
+if (!defined('GNL_CACHE_TTL')) {
+    define('GNL_CACHE_TTL', 300); // durée du cache local en secondes
+}
+if (!defined('RGPD_CSV_FALLBACK')) {
+    define('RGPD_CSV_FALLBACK', __DIR__ . '/traitement_rgpd.csv');
+}
+
+/* --- Appel du webhook n8n (POST) -> corps brut de la réponse ------- */
+function rgpd_fetch_from_webhook() {
+    $payload = json_encode(array('source' => 'politique-de-confidentialite.php', 'action' => 'traitement.list'));
+
+    if (function_exists('curl_init')) {
+        $ch = curl_init(GNL_WEBHOOK_URL);
+        curl_setopt_array($ch, array(
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $payload,
+            CURLOPT_HTTPHEADER     => array('Content-Type: application/json', 'Accept: application/json'),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 6,
+            CURLOPT_CONNECTTIMEOUT => 4,
+        ));
+        $body = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        unset($ch);
+        if ($body !== false && $code >= 200 && $code < 300) {
+            return rgpd_decode_rows($body);
+        }
+        return null;
+    }
+
+    // Repli sans cURL
+    $ctx = stream_context_create(array('http' => array(
+        'method'        => 'POST',
+        'header'        => "Content-Type: application/json\r\nAccept: application/json\r\n",
+        'content'       => $payload,
+        'timeout'       => 6,
+        'ignore_errors' => true,
+    )));
+    $body = @file_get_contents(GNL_WEBHOOK_URL, false, $ctx);
+    if ($body === false) return null;
+    return rgpd_decode_rows($body);
+}
+
+/* --- Décodage tolérant de la réponse JSON en liste de lignes ------- */
+function rgpd_decode_rows($body) {
+    $data = json_decode($body, true);
+    if (!is_array($data)) return null;
+
+    // Déballe les enveloppes n8n les plus courantes
+    foreach (array('data', 'traitements', 'traitement', 'rows', 'items', 'result') as $k) {
+        if (isset($data[$k]) && is_array($data[$k])) { $data = $data[$k]; break; }
+    }
+    // Objet unique -> liste à un élément
+    if (isset($data['id']) || isset($data['finalite']) || isset($data['base_legal'])) {
+        $data = array($data);
+    }
+
+    $rows = array();
+    foreach ($data as $item) {
+        if (!is_array($item)) continue;
+        if (isset($item['json']) && is_array($item['json'])) $item = $item['json']; // format {json:{...}}
+        $rows[] = $item;
+    }
+    return $rows ? $rows : null;
+}
+
+/* --- Repli sur traitement_rgpd.csv -------------------------------- */
+function rgpd_fetch_from_csv() {
+    if (!is_readable(RGPD_CSV_FALLBACK)) return array();
+    $rows = array();
+    if (($h = fopen(RGPD_CSV_FALLBACK, 'r')) !== false) {
+        $header = fgetcsv($h);
+        if ($header) {
+            $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]); // retire un BOM éventuel
+            while (($line = fgetcsv($h)) !== false) {
+                if ($line === array(null) || (count($line) === 1 && $line[0] === null)) continue;
+                $line = array_pad($line, count($header), '');
+                $line = array_slice($line, 0, count($header));
+                $rows[] = array_combine($header, $line);
+            }
+        }
+        fclose($h);
+    }
+    return $rows;
+}
+
+/* --- Chargement (webhook -> cache -> csv) ------------------------- */
+function rgpd_load_traitements() {
+    $cacheFile = sys_get_temp_dir() . '/gnl_traitements_cache.json';
+
+    // Cache frais ?
+    if (is_readable($cacheFile) && (time() - filemtime($cacheFile) < GNL_CACHE_TTL)) {
+        $cached = json_decode(@file_get_contents($cacheFile), true);
+        if (is_array($cached) && $cached) return rgpd_normalize($cached);
+    }
+
+    $rows = rgpd_fetch_from_webhook();
+    if ($rows) {
+        @file_put_contents($cacheFile, json_encode($rows)); // best effort
+    } else {
+        $rows = rgpd_fetch_from_csv();
+    }
+    return rgpd_normalize($rows);
+}
+
+/* --- Normalisation d'une ligne (clés stables + nettoyage) --------- */
+function rgpd_normalize($rows) {
+    $out = array();
+    if (!is_array($rows)) return $out;
+    foreach ($rows as $r) {
+        if (!is_array($r)) continue;
+        $g = function ($k) use ($r) { return isset($r[$k]) ? $r[$k] : ''; };
+        $finalite = trim((string) $g('finalite'));
+        $base     = trim((string) $g('base_legal'));
+        $duree    = trim((string) $g('duree'));
+        if ($finalite === '' && $base === '' && $duree === '') continue; // ligne vide
+        $out[] = array(
+            'id'       => $g('id'),
+            'finalite' => $finalite,
+            'base'     => $base,
+            'duree'    => $duree,
+        );
+    }
+    return $out;
+}
+
+/* --- Rendu des lignes du tableau (art. 4) ------------------------- */
+function rgpd_render_traitement_rows() {
+    global $RGPD_TRAITEMENTS;
+    if (!is_array($RGPD_TRAITEMENTS)) return;
+    foreach ($RGPD_TRAITEMENTS as $t) {
+        echo '            <tr>' . "\n";
+        echo '                <td>' . e($t['finalite']) . '</td>' . "\n";
+        echo '                <td>' . e($t['base']) . '</td>' . "\n";
+        echo '                <td>' . e($t['duree']) . '</td>' . "\n";
+        echo '            </tr>' . "\n";
+    }
+}
+
+/* --- Chargement effectif ------------------------------------------ */
+$RGPD_TRAITEMENTS = rgpd_load_traitements();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -81,41 +233,7 @@ if (is_readable('../include/header.php')) {
             <tr><th>Finalité</th><th>Base légale</th><th>Durée de conservation</th></tr>
         </thead>
         <tbody>
-            <tr>
-                <td>Gestion des commandes et de la relation client</td>
-                <td>Exécution du contrat</td>
-                <td>Durée de la relation contractuelle</td>
-            </tr>
-            <tr>
-                <td>Facturation et obligations comptables</td>
-                <td>Obligation légale</td>
-                <td>10 ans</td>
-            </tr>
-            <tr>
-                <td>Gestion du compte utilisateur</td>
-                <td>Exécution du contrat</td>
-                <td>Jusqu’à suppression du compte + 3 ans d’inactivité</td>
-            </tr>
-            <tr>
-                <td>Envoi de communications commerciales (newsletter)</td>
-                <td>Consentement</td>
-                <td>Jusqu’au retrait du consentement (désinscription)</td>
-            </tr>
-            <tr>
-                <td>Réponse aux demandes via le formulaire de contact</td>
-                <td>Intérêt légitime</td>
-                <td>3 ans à compter du dernier contact</td>
-            </tr>
-            <tr>
-                <td>Mesure d’audience et amélioration du Site</td>
-                <td>Consentement (cookies)</td>
-                <td>13 mois maximum (cookies)</td>
-            </tr>
-            <tr>
-                <td>Sécurité et prévention de la fraude</td>
-                <td>Intérêt légitime</td>
-                <td>1 an (journaux de connexion)</td>
-            </tr>
+<?php rgpd_render_traitement_rows(); ?>
         </tbody>
     </table>
     <div class="callout warn">
