@@ -236,9 +236,6 @@ if (is_readable('../include/header.php')) {
 <?php rgpd_render_traitement_rows(); ?>
         </tbody>
     </table>
-    <div class="callout warn">
-        <p><strong>À ajuster.</strong> Ce tableau est un exemple. Ne conserve que les lignes correspondant aux traitements que tu réalises réellement, et vérifie chaque durée de conservation.</p>
-    </div>
 
     <h2 id="art5"><span class="num">5.</span>Destinataires des données</h2>
     <p>Vos données sont destinées aux services habilités du responsable de traitement. Elles peuvent être transmises, dans la limite de leurs missions respectives, à des sous-traitants et prestataires (hébergeur, prestataire de paiement, transporteur, outil d’e-mailing, solution de mesure d’audience). Ces prestataires n’agissent que sur instruction et présentent des garanties conformes au RGPD.</p>
