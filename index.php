@@ -572,7 +572,7 @@ if (is_readable('./include/header.php')) {
 </div>
 
 <div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow">
-<h3 class="wp-block-heading"><a href="http://espace-client.gnl-solution.fr/" data-type="link" data-id="http://espace-client.gnl-solution.fr" target="_blank" rel="noreferrer noopener">L&rsquo;Espace Client</a></h3>
+<h3 class="wp-block-heading"><a href="https://b2b-portal.eu.gnl-solution.com" data-type="link" data-id="http://espace-client.gnl-solution.fr" target="_blank" rel="noreferrer noopener">L&rsquo;Espace Client</a></h3>
 
 <p class="has-medium-font-size"><strong>L&rsquo;Espace Client</strong> est le portail unique des associations et micro-entreprises adhérentes, l'Espace Client centralise la gestion de vos services. Suivez vos ressources, gérez vos abonnements et retrouvez l'ensemble de vos fonctionnalités depuis une interface claire, au même endroit.</p>
 </div>
