@@ -131,15 +131,35 @@ if (!function_exists('gnl_flatten_attrs')) {
         return $out;
     }
 }
-/* Extrait le claim "organization" -> array('name'=>.., 'attributes'=>[..]). */
+/* Identifiant (UUID Keycloak) d'une organisation, quelle que soit la forme
+   du claim : {"id":..}, {"uid":..} ou attribut "organization_uid"/"uid". */
+if (!function_exists('gnl_org_uid_from')) {
+    function gnl_org_uid_from($data) {
+        if (!is_array($data)) return '';
+        foreach (array('id', 'uid', 'organization_uid', 'organization_id') as $k) {
+            if (isset($data[$k])) {
+                $v = is_array($data[$k]) ? (isset($data[$k][0]) ? $data[$k][0] : '') : $data[$k];
+                $v = trim((string) $v);
+                if ($v !== '') return $v;
+            }
+        }
+        if (isset($data['attributes']) && is_array($data['attributes'])) {
+            return gnl_org_uid_from($data['attributes']);
+        }
+        return '';
+    }
+}
+/* Extrait le claim "organization" -> array('name'=>.., 'id'=>.., 'alias'=>.., 'attributes'=>[..]). */
 if (!function_exists('gnl_org_extract')) {
     function gnl_org_extract($org) {
-        $res = array('name' => '', 'attributes' => array());
+        $res = array('name' => '', 'id' => '', 'alias' => '', 'attributes' => array());
         if (!is_array($org) || !$org) return $res;
         $keys = array_keys($org);
         if ($keys === range(0, count($org) - 1)) { $res['name'] = (string) $org[0]; return $res; }
         if (isset($org['attributes']) || isset($org['name']) || isset($org['id']) || isset($org['alias'])) {
-            $res['name'] = isset($org['name']) ? (string) $org['name'] : (isset($org['alias']) ? (string) $org['alias'] : '');
+            $res['name']  = isset($org['name']) ? (string) $org['name'] : (isset($org['alias']) ? (string) $org['alias'] : '');
+            $res['alias'] = isset($org['alias']) ? (string) $org['alias'] : '';
+            $res['id']    = gnl_org_uid_from($org);
             $attrs = (isset($org['attributes']) && is_array($org['attributes'])) ? $org['attributes'] : $org;
             $res['attributes'] = gnl_flatten_attrs($attrs);
             return $res;
@@ -147,6 +167,8 @@ if (!function_exists('gnl_org_extract')) {
         foreach ($org as $name => $data) {
             $res['name'] = (string) $name;
             if (is_array($data)) {
+                $res['id']    = gnl_org_uid_from($data);
+                $res['alias'] = isset($data['alias']) ? (string) $data['alias'] : '';
                 $attrs = (isset($data['attributes']) && is_array($data['attributes'])) ? $data['attributes'] : $data;
                 $res['attributes'] = gnl_flatten_attrs($attrs);
             }
@@ -170,9 +192,11 @@ if (!function_exists('gnl_org_extract_all')) {
                 if (is_array($v)) {
                     $name  = isset($v['name']) ? (string) $v['name'] : (isset($v['alias']) ? (string) $v['alias'] : '');
                     $attrs = (isset($v['attributes']) && is_array($v['attributes'])) ? $v['attributes'] : $v;
-                    $list[] = array('name' => $name, 'attributes' => gnl_flatten_attrs($attrs));
+                    $list[] = array('name' => $name, 'id' => gnl_org_uid_from($v),
+                                    'alias' => isset($v['alias']) ? (string) $v['alias'] : '',
+                                    'attributes' => gnl_flatten_attrs($attrs));
                 } else {
-                    $list[] = array('name' => (string) $v, 'attributes' => array());
+                    $list[] = array('name' => (string) $v, 'id' => '', 'alias' => '', 'attributes' => array());
                 }
             }
             return $list;
@@ -181,7 +205,9 @@ if (!function_exists('gnl_org_extract_all')) {
         if (isset($org['attributes']) || isset($org['name']) || isset($org['id']) || isset($org['alias'])) {
             $name  = isset($org['name']) ? (string) $org['name'] : (isset($org['alias']) ? (string) $org['alias'] : '');
             $attrs = (isset($org['attributes']) && is_array($org['attributes'])) ? $org['attributes'] : $org;
-            $list[] = array('name' => $name, 'attributes' => gnl_flatten_attrs($attrs));
+            $list[] = array('name' => $name, 'id' => gnl_org_uid_from($org),
+                            'alias' => isset($org['alias']) ? (string) $org['alias'] : '',
+                            'attributes' => gnl_flatten_attrs($attrs));
             return $list;
         }
         // Map indexée par nom d'organisation : {"orgA":{..}, "orgB":{..}}
@@ -190,7 +216,10 @@ if (!function_exists('gnl_org_extract_all')) {
             if (is_array($data)) {
                 $attrs = (isset($data['attributes']) && is_array($data['attributes'])) ? $data['attributes'] : $data;
             }
-            $list[] = array('name' => (string) $name, 'attributes' => gnl_flatten_attrs($attrs));
+            $list[] = array('name' => (string) $name,
+                            'id'    => is_array($data) ? gnl_org_uid_from($data) : '',
+                            'alias' => (is_array($data) && isset($data['alias'])) ? (string) $data['alias'] : '',
+                            'attributes' => gnl_flatten_attrs($attrs));
         }
         return $list;
     }
@@ -202,7 +231,10 @@ if (!function_exists('gnl_org_fields')) {
         $A = function ($k) use ($oa) { return isset($oa[$k]) ? (string) $oa[$k] : ''; };
         $voie = trim($A('voie_nbr') . ' ' . $A('voie_name'));
         return array(
-            'organization'   => isset($org['name']) ? (string) $org['name'] : '',
+            'organization'       => isset($org['name']) ? (string) $org['name'] : '',
+            // UUID Keycloak de l'organisation : transmis tel quel à n8n avec la commande.
+            'organization_uid'   => isset($org['id']) ? (string) $org['id'] : '',
+            'organization_alias' => (isset($org['alias']) && $org['alias'] !== '') ? (string) $org['alias'] : $A('namespace'),
             'raison_social'  => $A('raison') !== '' ? $A('raison') : $A('raison_social'),
             'nom_commercial' => $A('nom_commercial'),
             'entite_legal'   => $A('entite_legal'),
@@ -702,11 +734,20 @@ if (!function_exists('gnl_kc_populate_session')) {
 /* Finalise la connexion avec une organisation donnée (0..1 org). */
 if (!function_exists('gnl_finalize_login')) {
     function gnl_finalize_login($base, $org, $idToken = '') {
-        $_SESSION['gnl_user'] = array_merge(
-            $base,
-            gnl_org_fields(is_array($org) ? $org : array('name' => '', 'attributes' => array())),
-            array('auth_at' => time())
-        );
+        $fields = gnl_org_fields(is_array($org) ? $org : array('name' => '', 'attributes' => array()));
+        /* Repli : si le mapper Keycloak n'ajoute pas l'id de l'organisation au
+           jeton ("Add organization id" désactivé), on le retrouve via l'Admin
+           REST API à partir de l'alias / namespace. Sans cela, organization_uid
+           serait vide dans la commande envoyée à n8n. */
+        if ($fields['organization_uid'] === '' && $fields['organization_alias'] !== ''
+            && function_exists('gnl_kc_find_organization')) {
+            $found = gnl_kc_find_organization($fields['organization_alias']);
+            if (is_array($found) && !empty($found['id'])) $fields['organization_uid'] = (string) $found['id'];
+        }
+        if ($fields['organization_uid'] === '' && $fields['organization'] !== '') {
+            error_log('[GNL REST] organization_uid introuvable pour "' . $fields['organization'] . '" — activez « Add organization id » sur le mapper du scope organization.');
+        }
+        $_SESSION['gnl_user'] = array_merge($base, $fields, array('auth_at' => time()));
         if ($idToken !== '') $_SESSION['gnl_id_token'] = $idToken;
         unset($_SESSION['gnl_pending_auth']);
         session_regenerate_id(true); // anti-fixation, conserve le panier

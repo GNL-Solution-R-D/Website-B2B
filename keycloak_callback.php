@@ -81,16 +81,31 @@ function gnl_flatten_attrs($attrs) {
     }
     return $out;
 }
-/* Extrait le claim "organization" -> array('name'=>..., 'attributes'=>array(cle=>valeur)).
+/* UUID Keycloak de l'organisation, quelle que soit la forme du claim. */
+function gnl_org_uid_from($data) {
+    if (!is_array($data)) return '';
+    foreach (array('id', 'uid', 'organization_uid', 'organization_id') as $k) {
+        if (isset($data[$k])) {
+            $v = is_array($data[$k]) ? (isset($data[$k][0]) ? $data[$k][0] : '') : $data[$k];
+            $v = trim((string) $v);
+            if ($v !== '') return $v;
+        }
+    }
+    if (isset($data['attributes']) && is_array($data['attributes'])) return gnl_org_uid_from($data['attributes']);
+    return '';
+}
+/* Extrait le claim "organization" -> array('name'=>.., 'id'=>.., 'alias'=>.., 'attributes'=>[..]).
    Gère les formats : {"couturemania":{"attributes":{...}}}, {"couturemania":{...}},
    {"name":"..","attributes":{...}} et ["couturemania", ...]. */
 function gnl_org_extract($org) {
-    $res = array('name' => '', 'attributes' => array());
+    $res = array('name' => '', 'id' => '', 'alias' => '', 'attributes' => array());
     if (!is_array($org) || !$org) return $res;
     $keys = array_keys($org);
     if ($keys === range(0, count($org) - 1)) { $res['name'] = (string) $org[0]; return $res; }
     if (isset($org['attributes']) || isset($org['name']) || isset($org['id']) || isset($org['alias'])) {
-        $res['name'] = isset($org['name']) ? (string) $org['name'] : (isset($org['alias']) ? (string) $org['alias'] : '');
+        $res['name']  = isset($org['name']) ? (string) $org['name'] : (isset($org['alias']) ? (string) $org['alias'] : '');
+        $res['alias'] = isset($org['alias']) ? (string) $org['alias'] : '';
+        $res['id']    = gnl_org_uid_from($org);
         $attrs = (isset($org['attributes']) && is_array($org['attributes'])) ? $org['attributes'] : $org;
         $res['attributes'] = gnl_flatten_attrs($attrs);
         return $res;
@@ -98,6 +113,8 @@ function gnl_org_extract($org) {
     foreach ($org as $name => $data) {
         $res['name'] = (string) $name;
         if (is_array($data)) {
+            $res['id']    = gnl_org_uid_from($data);
+            $res['alias'] = isset($data['alias']) ? (string) $data['alias'] : '';
             $attrs = (isset($data['attributes']) && is_array($data['attributes'])) ? $data['attributes'] : $data;
             $res['attributes'] = gnl_flatten_attrs($attrs);
         }
@@ -257,7 +274,10 @@ if ($action === 'callback') {
         'civilite'       => (string) $get('civilite'),
         'phone'          => (string) $phone,
         // --- Société (organisation Keycloak) ---
-        'organization'   => $org['name'],
+        'organization'       => $org['name'],
+        // UUID Keycloak de l'organisation : transmis tel quel à n8n avec la commande.
+        'organization_uid'   => isset($org['id']) ? (string) $org['id'] : '',
+        'organization_alias' => isset($org['alias']) && $org['alias'] !== '' ? (string) $org['alias'] : $A('namespace'),
         'raison_social'  => $A('raison') !== '' ? $A('raison') : $A('raison_social'),
         'nom_commercial' => $A('nom_commercial'),
         'entite_legal'   => $A('entite_legal'),
@@ -293,4 +313,4 @@ if ($action === 'logout') {
 }
 
 header('Location: ' . gnl_site_base() . '/');
-exit;
+exit;

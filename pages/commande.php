@@ -334,6 +334,9 @@ if (isset($_GET['mollie']) && $_GET['mollie'] === 'webhook') {
             gnl_store_order($order);
             gnl_send_order(array(
                 'action' => 'order.payment', 'reference' => $ref, 'status' => $order['payment_status'],
+                // Même organisation que celle envoyée avec order.create
+                'organization_uid' => isset($order['organization_uid']) ? $order['organization_uid'] : '',
+                'organization'     => isset($order['organization']) ? $order['organization'] : '',
                 'mollie_payment_id' => $pid, 'subscription_id' => isset($order['subscription_id']) ? $order['subscription_id'] : null,
                 'billing' => isset($order['billing']) ? $order['billing'] : null,
                 'next_renewal' => isset($order['next_renewal']) ? $order['next_renewal'] : null,
@@ -531,10 +534,21 @@ if ($view === 'form' && !empty($items) && (isset($_POST['step']) && $_POST['step
         // Le 1er règlement a lieu aujourd'hui ; le renouvellement suit d'une période complète.
         $nextRenewal = date('Y-m-d', strtotime('+' . $plan['months'] . ' month'));
 
+        /* Organisation (Keycloak) du client : l'UUID vient TOUJOURS de la
+           session, jamais du POST, pour qu'il ne puisse pas être falsifié. */
+        $orgUid   = ($gnlUser && !empty($gnlUser['organization_uid']))   ? (string) $gnlUser['organization_uid']   : '';
+        $orgName  = ($gnlUser && !empty($gnlUser['organization']))       ? (string) $gnlUser['organization']       : '';
+        $orgAlias = ($gnlUser && !empty($gnlUser['organization_alias'])) ? (string) $gnlUser['organization_alias'] : '';
+        if ($orgUid === '') error_log('[GNL] commande ' . $orderRef . ' sans organization_uid (organisation : ' . ($orgName !== '' ? $orgName : 'aucune') . ')');
+
         $order = array(
             'reference' => $orderRef, 'date' => date('c'), 'payment_status' => 'created',
+            // --- Organisation propriétaire de la commande (attendu par n8n) ---
+            'organization_uid'   => $orgUid,      // ex. ef0c8c3b-4d64-4019-9cf3-8aa4e4a4c98b
+            'organization'       => $orgName,     // ex. SlapIA
+            'organization_alias' => $orgAlias,
             'items'     => $orderItems, 'client' => $client,
-            'user'      => $gnlUser ? array('sub'=>$gnlUser['sub'], 'email'=>$gnlUser['email']) : null,
+            'user'      => $gnlUser ? array('sub'=>$gnlUser['sub'], 'email'=>$gnlUser['email'], 'organization_uid'=>$orgUid) : null,
             'billing'   => array(
                 'frequence'       => $plan['key'],       // mensuel | trimestriel | annuel
                 'label'           => $plan['label'],
@@ -560,7 +574,7 @@ if ($view === 'form' && !empty($items) && (isset($_POST['step']) && $_POST['step
             if (!empty($r['checkout'])) { header('Location: ' . $r['checkout']); exit; }
             // Échec de création du paiement : confirmation dégradée
             $mollieError = true;
-            gnl_send_order(array('action'=>'order.payment_error', 'reference'=>$orderRef, 'detail'=>isset($r['_error'])?$r['_error']:'unknown'));
+            gnl_send_order(array('action'=>'order.payment_error', 'reference'=>$orderRef, 'organization_uid'=>$orgUid, 'detail'=>isset($r['_error'])?$r['_error']:'unknown'));
         }
         $view = 'done'; $done = true; // Mollie non configuré, gratuit, ou erreur -> récap final
     }
