@@ -694,7 +694,7 @@ document.addEventListener('DOMContentLoaded',function(){
 </script>
 <style id="gnl-cart-css">
 :root{--gnl-green:#6c9400;--gnl-teal:#009494;--gnl-ink:#353535;--gnl-line:color-mix(in srgb, currentColor 18%, transparent);}
-.gnl-config-wrap{max-width:1100px;margin:0 auto;padding:var(--wp--preset--spacing--40,2rem) var(--wp--preset--spacing--30,1.2rem) var(--wp--preset--spacing--60,3rem);}
+.gnl-config-wrap{max-width:100%;margin:0 auto;padding:var(--wp--preset--spacing--40,2rem) var(--wp--preset--spacing--30,1.2rem) var(--wp--preset--spacing--60,3rem);}
 .gnl-breadcrumb{font-size:.85rem;opacity:.7;margin:0 0 var(--wp--preset--spacing--20,1rem);}
 .gnl-breadcrumb a{color:inherit;text-decoration:none;}
 .gnl-breadcrumb a:hover{text-decoration:underline;}
@@ -743,7 +743,7 @@ document.addEventListener('DOMContentLoaded',function(){
 .gnl-spin{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:gnlspin .7s linear infinite;vertical-align:-2px;}
 @keyframes gnlspin{to{transform:rotate(360deg)}}
 /* ---- Résumé ---- */
-.gnl-summary{position:sticky;top:1rem;background:#fff;border:1px solid var(--gnl-line);border-radius:12px;padding:1.15rem 1.25rem;}
+.gnl-summary{position:sticky;top:1rem;background:#fff;border:1px solid var(--gnl-line);border-radius:3px;padding:1.15rem 1.25rem;}
 .gnl-summary h3{margin:0 0 .8rem;font-size:1.05rem;font-weight:600;}
 .gnl-sum-lines{list-style:none;margin:0;padding:0;}
 .gnl-sum-lines li{display:flex;justify-content:space-between;gap:1rem;font-size:.9rem;padding:.4rem 0;border-bottom:1px solid var(--gnl-line);}
@@ -765,7 +765,7 @@ document.addEventListener('DOMContentLoaded',function(){
 .gnl-btn.ghost{opacity:.85;}
 .gnl-btn.danger{color:#c0392b;border-color:color-mix(in srgb,#c0392b 40%,transparent);}
 /* ---- Lignes du panier ---- */
-.gnl-cart-item{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;background:#fff;border:1px solid var(--gnl-line);border-radius:12px;padding:1rem 1.15rem;margin-bottom:.9rem;}
+.gnl-cart-item{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;background:#fff;border:1px solid var(--gnl-line);border-radius:3px;padding:1rem 1.15rem;margin-bottom:.9rem;}
 .gnl-ci-main h3{margin:0 0 .3rem;font-size:1.05rem;font-weight:600;}
 .gnl-ci-opts{list-style:none;margin:.2rem 0 0;padding:0;font-size:.86rem;opacity:.85;}
 .gnl-ci-opts li{padding:.1rem 0;}
