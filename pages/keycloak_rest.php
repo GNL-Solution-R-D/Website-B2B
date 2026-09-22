@@ -632,6 +632,31 @@ if (!function_exists('gnl_kc_set_user_attribute')) {
     }
 }
 
+/* Lit un attribut (1re valeur) d'un utilisateur. Retourne '' s'il est absent,
+   null si Keycloak ne répond pas correctement. */
+if (!function_exists('gnl_kc_get_user_attribute')) {
+    function gnl_kc_get_user_attribute($userId, $name) {
+        if ($userId === '' || $name === '') return '';
+        $r  = gnl_kc_admin_request('GET', '/users/' . rawurlencode($userId));
+        $st = isset($r['_status']) ? (int) $r['_status'] : 0;
+        if ($st < 200 || $st >= 300) {
+            error_log('[GNL REST] lecture de "' . $name . '" impossible pour ' . $userId . ' : ' . gnl_kc_error_message($r));
+            return null;
+        }
+        if (!isset($r['attributes'][$name])) return '';
+        $v = $r['attributes'][$name];
+        return trim(is_array($v) ? (isset($v[0]) ? (string) $v[0] : '') : (string) $v);
+    }
+}
+
+/* Identifiant client Mollie mémorisé dans Keycloak ('' si aucun). */
+if (!function_exists('gnl_kc_get_mollie_customer_id')) {
+    function gnl_kc_get_mollie_customer_id($userId) {
+        $v = gnl_kc_get_user_attribute((string) $userId, 'moliecliid');
+        return is_string($v) ? $v : '';
+    }
+}
+
 /* Enregistre l'identifiant client Mollie (ex. cst_KKaFdk527v) dans l'attribut
    Keycloak "moliecliid" de l'utilisateur, en créant l'attribut au besoin. */
 if (!function_exists('gnl_kc_save_mollie_customer_id')) {
