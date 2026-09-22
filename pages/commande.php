@@ -299,6 +299,26 @@ function gnl_mollie_start(&$order) {
     $order['mollie_customer_id'] = $customerId;
     $order['mollie_payment_id']  = $pay['id'];
     $order['payment_status']     = isset($pay['status']) ? $pay['status'] : 'open';
+
+    /* Renvoie l'identifiant client Mollie (cst_xxx) à Keycloak : attribut
+       utilisateur "moliecliid", créé dans le profil du realm s'il n'existe pas.
+       Un échec ici ne bloque jamais le paiement (simple log). */
+    $kcUserId = (isset($order['user']['sub']) && $order['user']['sub'] !== '') ? (string) $order['user']['sub'] : '';
+    if ($kcUserId !== '') {
+        $ok = false;
+        try {
+            if (is_readable(__DIR__ . '/keycloak_rest.php')) require_once __DIR__ . '/keycloak_rest.php';
+            if (function_exists('gnl_kc_save_mollie_customer_id')) $ok = gnl_kc_save_mollie_customer_id($kcUserId, $customerId);
+        } catch (Throwable $e) {
+            error_log('[GNL] moliecliid : ' . $e->getMessage());
+        }
+        $order['keycloak_moliecliid_synced'] = $ok;
+        if ($ok && isset($_SESSION['gnl_user']) && is_array($_SESSION['gnl_user'])
+            && isset($_SESSION['gnl_user']['sub']) && $_SESSION['gnl_user']['sub'] === $kcUserId) {
+            $_SESSION['gnl_user']['moliecliid'] = $customerId;
+        }
+        if (!$ok) error_log('[GNL] commande ' . $order['reference'] . ' : moliecliid ' . $customerId . ' non enregistré dans Keycloak pour ' . $kcUserId);
+    }
     gnl_store_order($order);
 
     return array('checkout' => $pay['_links']['checkout']['href']);
