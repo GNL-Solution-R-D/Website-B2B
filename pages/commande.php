@@ -310,8 +310,111 @@ function gnl_mollie_find_existing_customer($order, $orgId, &$kcValue) {
     return null;
 }
 
+/* ---------- Détail de commande envoyé à Mollie ----------------------
+   Taux de TVA appliqué aux lignes (les montants facturés sont considérés
+   TTC, comme l'exige Mollie : unitPrice « including VAT »). */
+if (!defined('GNL_VAT_RATE')) define('GNL_VAT_RATE', (float) (getenv('GNL_VAT_RATE') !== false && getenv('GNL_VAT_RATE') !== '' ? getenv('GNL_VAT_RATE') : 20));
+
+function gnl_mollie_cut($s, $max) {
+    $s = trim(preg_replace('/\s+/u', ' ', (string) $s));
+    return function_exists('mb_substr') ? mb_substr($s, 0, $max, 'UTF-8') : substr($s, 0, $max);
+}
+/* Une ligne Mollie : totalAmount = unitPrice × quantité, vatAmount selon la
+   formule imposée par Mollie : total × taux / (100 + taux). */
+function gnl_mollie_line($desc, $qty, $unit, $sku = '') {
+    $qty   = max(1, (int) $qty);
+    $unit  = round((float) $unit, 2);
+    $total = round($unit * $qty, 2);
+    $rate  = (float) GNL_VAT_RATE;
+    $line  = array(
+        'type'        => 'digital',
+        'description' => gnl_mollie_cut($desc, 200),
+        'quantity'    => $qty,
+        'unitPrice'   => gnl_amount($unit),
+        'totalAmount' => gnl_amount($total),
+        'vatRate'     => number_format($rate, 2, '.', ''),
+        'vatAmount'   => gnl_amount(round($total * $rate / (100 + $rate), 2)),
+    );
+    if ($sku !== '') $line['sku'] = gnl_mollie_cut($sku, 64);
+    return $line;
+}
+/* Lignes du 1er paiement : abonnement de la période (produit + options
+   récurrentes) puis une ligne par option à frais unique. */
+function gnl_mollie_lines($order) {
+    $lines  = array();
+    $months = isset($order['billing']['interval_months']) ? max(1, (int) $order['billing']['interval_months']) : 1;
+    $label  = isset($order['billing']['label']) ? (string) $order['billing']['label'] : 'Mensuel';
+    $per    = $months === 1 ? '1 mois' : ($months . ' mois');
+    $items  = (isset($order['items']) && is_array($order['items'])) ? $order['items'] : array();
+    foreach ($items as $it) {
+        $qty  = isset($it['qty']) ? max(1, (int) $it['qty']) : 1;
+        $name = isset($it['name']) && $it['name'] !== '' ? (string) $it['name'] : (string) $it['slug'];
+        $recOpts = array();
+        if (!empty($it['options']) && is_array($it['options'])) {
+            foreach ($it['options'] as $o) if (empty($o['unique'])) $recOpts[] = (string) $o['name'];
+        }
+        // Abonnement : prix unitaire de la période
+        $monthlyUnit = (float) $it['line_monthly'] / $qty;
+        if ($monthlyUnit > 0) {
+            $desc = $name . ($recOpts ? ' + ' . implode(', ', $recOpts) : '')
+                  . (!empty($it['domaine']['name']) ? ' — ' . $it['domaine']['name'] : '')
+                  . ' — abonnement ' . strtolower($label) . ' (' . $per . ')';
+            $lines[] = gnl_mollie_line($desc, $qty, $monthlyUnit * $months, isset($it['slug']) ? (string) $it['slug'] : '');
+        }
+        // Frais uniques : une ligne par option
+        if (!empty($it['options']) && is_array($it['options'])) {
+            foreach ($it['options'] as $o) {
+                if (empty($o['unique']) || (float) $o['prix'] <= 0) continue;
+                $lines[] = gnl_mollie_line($o['name'] . ' — frais unique (' . $name . ')', $qty, (float) $o['prix'], isset($o['slug']) ? (string) $o['slug'] : '');
+            }
+        }
+    }
+    return $lines;
+}
+/* Code pays ISO 3166-1 alpha-2 à partir de la saisie ("France", "FR"…). */
+function gnl_country_code($v) {
+    $v = trim((string) $v);
+    if ($v === '') return 'FR';
+    if (preg_match('/^[A-Za-z]{2}$/', $v)) return strtoupper($v);
+    $k = strtolower($v);
+    if (function_exists('iconv')) { $t = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $k); if ($t) $k = strtolower($t); }
+    $map = array('france'=>'FR','belgique'=>'BE','belgium'=>'BE','suisse'=>'CH','switzerland'=>'CH','luxembourg'=>'LU',
+                 'allemagne'=>'DE','germany'=>'DE','espagne'=>'ES','spain'=>'ES','italie'=>'IT','italy'=>'IT',
+                 'pays-bas'=>'NL','pays bas'=>'NL','netherlands'=>'NL','monaco'=>'MC','portugal'=>'PT','royaume-uni'=>'GB','united kingdom'=>'GB');
+    return isset($map[$k]) ? $map[$k] : '';
+}
+/* Adresse de facturation (entreprise) ; vide si rien d'exploitable. */
+function gnl_mollie_billing_address($order) {
+    $c = isset($order['client']) && is_array($order['client']) ? $order['client'] : array();
+    $g = function ($k) use ($c) { return isset($c[$k]) ? trim((string) $c[$k]) : ''; };
+    $a = array();
+    $org = $g('raison_social') !== '' ? $g('raison_social') : ($g('nom_commercial') !== '' ? $g('nom_commercial') : (!empty($order['organization']) ? trim((string) $order['organization']) : ''));
+    if ($org !== '') $a['organizationName'] = gnl_mollie_cut($org, 100);
+    // Mollie : prénom / nom d'au moins 2 caractères, pas uniquement des chiffres
+    foreach (array('givenName' => 'prenom', 'familyName' => 'nom') as $mk => $ck) {
+        $v = $g($ck);
+        if ((function_exists('mb_strlen') ? mb_strlen($v, 'UTF-8') : strlen($v)) >= 2 && !ctype_digit($v)) $a[$mk] = gnl_mollie_cut($v, 100);
+    }
+    $email = filter_var($g('ent_email'), FILTER_VALIDATE_EMAIL) ? $g('ent_email') : $g('email');
+    if (filter_var($email, FILTER_VALIDATE_EMAIL)) $a['email'] = $email;
+    // Adresse postale uniquement si complète (sinon Mollie la rejette)
+    $country = gnl_country_code($g('adr_pays'));
+    if ($g('adr_voie') !== '' && $g('adr_ville') !== '' && $country !== '') {
+        $a['streetAndNumber'] = gnl_mollie_cut($g('adr_voie'), 100);
+        if ($g('adr_cp') !== '') $a['postalCode'] = gnl_mollie_cut($g('adr_cp'), 20);
+        $a['city']    = gnl_mollie_cut($g('adr_ville'), 100);
+        $a['country'] = $country;
+    }
+    // Téléphone au format E.164 (numéros français 0X XX XX XX XX -> +33…)
+    $tel = preg_replace('/[^0-9+]/', '', $g('tel'));
+    if (preg_match('/^0[1-9][0-9]{8}$/', $tel)) $tel = '+33' . substr($tel, 1);
+    if (strpos($tel, '00') === 0) $tel = '+' . substr($tel, 2);
+    if (preg_match('/^\+[1-9][0-9]{7,14}$/', $tel)) $a['phone'] = $tel;
+    return $a;
+}
+
 /* Réutilise le client Mollie de l'organisation (sinon en crée un), crée le
-   premier paiement et renvoie l'URL de checkout Mollie */
+   premier paiement (détaillé) et renvoie l'URL de checkout Mollie */
 function gnl_mollie_start(&$order) {
     // Organisation Keycloak propriétaire de la commande (UUID issu de la session)
     $orgId   = (isset($order['organization_uid']) && $order['organization_uid'] !== '') ? (string) $order['organization_uid'] : '';
@@ -346,15 +449,46 @@ function gnl_mollie_start(&$order) {
     $recurring = (float) $order['recurring_amount'];
     $seq = ($recurring > 0) ? 'first' : 'oneoff'; // "first" -> mandat, pour l'abonnement
 
-    $pay = gnl_mollie_request('POST', '/payments', array(
+    /* Paiement "détaillé" = la commande côté Mollie : lignes produits/options,
+       adresse de facturation de l'entreprise et n° de commande GNL-… */
+    $lines = gnl_mollie_lines($order);
+    $linesTotal = 0.0;
+    foreach ($lines as $l) $linesTotal += (float) $l['totalAmount']['value'];
+    $linesTotal = round($linesTotal, 2);
+    if ($lines && abs($linesTotal - $first) >= 0.005) {
+        // Mollie exige somme des lignes = montant ; un écart ne vient que d'arrondis
+        error_log('[GNL] commande ' . $order['reference'] . ' : total des lignes ' . $linesTotal . ' ≠ ' . $first . ' (arrondis) — montant aligné sur les lignes');
+        $first = $linesTotal;
+    }
+
+    $body = array(
         'amount'       => gnl_amount($first),
         'description'  => 'Commande ' . $order['reference'],
         'redirectUrl'  => gnl_self_url('mollie=return&ref=' . rawurlencode($order['reference'])),
         'webhookUrl'   => gnl_self_url('mollie=webhook'),
         'customerId'   => $customerId,
         'sequenceType' => $seq,
-        'metadata'     => array('order_ref' => $order['reference']),
-    ));
+        'locale'       => 'fr_FR',
+        'metadata'     => array(
+            'order_ref'        => $order['reference'],
+            'organization_uid' => isset($order['organization_uid']) ? (string) $order['organization_uid'] : '',
+            'frequence'        => isset($order['billing']['frequence']) ? (string) $order['billing']['frequence'] : 'mensuel',
+        ),
+    );
+    if ($lines) $body['lines'] = $lines;
+    $billing = gnl_mollie_billing_address($order);
+    if ($billing) $body['billingAddress'] = $billing;
+
+    $pay = gnl_mollie_request('POST', '/payments', $body);
+    /* Filet de sécurité : si Mollie refuse le détail (ligne, adresse…), on
+       relance sans lignes ni adresse pour ne jamais bloquer le paiement. */
+    if ((isset($pay['_error']) || empty($pay['_links']['checkout']['href'])) && (isset($body['lines']) || isset($body['billingAddress']))) {
+        error_log('[GNL] commande ' . $order['reference'] . ' : paiement détaillé refusé par Mollie (' . json_encode(isset($pay['detail']) ? $pay['detail'] : $pay, JSON_UNESCAPED_UNICODE) . ') — relance sans lignes');
+        unset($body['lines'], $body['billingAddress']);
+        $body['amount'] = gnl_amount(max(0.01, round($periode + ((float) $order['totaux']['frais_unique']), 2)));
+        $pay = gnl_mollie_request('POST', '/payments', $body);
+        $order['mollie_detail_rejected'] = true;
+    }
     if (isset($pay['_error']) || empty($pay['_links']['checkout']['href'])) return array('_error' => 'payment', 'detail' => $pay);
 
     $order['mollie_customer_id'] = $customerId;
