@@ -550,97 +550,21 @@ if (!function_exists('gnl_kc_execute_actions_email')) {
     }
 }
 
-/* ================ Attributs utilisateur (Admin REST API) ============
-   Keycloak 24+ (User Profile déclaratif) refuse les attributs non déclarés.
-   gnl_kc_ensure_profile_attribute() déclare l'attribut dans le profil
-   utilisateur du realm s'il n'existe pas encore (nécessite le rôle
-   realm-management "manage-realm" sur le compte de service). Sur un
-   Keycloak sans profil déclaratif (404), les attributs sont libres. */
+/* ============ Attributs d'ORGANISATION (Admin REST API) ==============
+   Les attributs d'une organisation Keycloak sont libres (pas de User Profile
+   à déclarer) : écrire une clé absente suffit à créer l'attribut.
+   Nécessite le rôle realm-management "manage-organizations" (+ "view-
+   organizations") sur le compte de service. */
 
-/* Retire les clés techniques ajoutées par gnl_http(). */
-if (!function_exists('gnl_kc_strip_meta')) {
-    function gnl_kc_strip_meta($r) {
-        if (!is_array($r)) return array();
-        unset($r['_status'], $r['_raw'], $r['_transport']);
-        return $r;
-    }
-}
-
-if (!function_exists('gnl_kc_ensure_profile_attribute')) {
-    function gnl_kc_ensure_profile_attribute($name, $displayName = '') {
-        static $done = array();
-        if (isset($done[$name])) return $done[$name];
-
-        $r  = gnl_kc_admin_request('GET', '/users/profile');
-        $st = isset($r['_status']) ? (int) $r['_status'] : 0;
-        if ($st === 404) return $done[$name] = true;           // pas de profil déclaratif : attributs libres
-        if ($st < 200 || $st >= 300) {
-            error_log('[GNL REST] lecture du profil utilisateur impossible (' . $name . ') : ' . gnl_kc_error_message($r));
-            return $done[$name] = false;
-        }
-        // Décodage en OBJETS depuis la réponse brute : conserve à l'identique
-        // la configuration existante ({} restent des {}) lors du PUT.
-        $profile = json_decode(isset($r['_raw']) ? (string) $r['_raw'] : '', false);
-        if (!is_object($profile)) {
-            error_log('[GNL REST] profil utilisateur illisible (' . $name . ')');
-            return $done[$name] = false;
-        }
-        if (!isset($profile->attributes) || !is_array($profile->attributes)) $profile->attributes = array();
-        foreach ($profile->attributes as $a) {
-            if (is_object($a) && isset($a->name) && $a->name === $name) return $done[$name] = true; // déjà déclaré
-        }
-
-        $profile->attributes[] = (object) array(
-            'name'        => $name,
-            'displayName' => $displayName !== '' ? $displayName : $name,
-            'multivalued' => false,
-            'validations' => (object) array('length' => (object) array('max' => 255)),
-            'permissions' => (object) array('view' => array('admin'), 'edit' => array('admin')),
-        );
-
-        $u  = gnl_kc_admin_request('PUT', '/users/profile', $profile);
-        $st = isset($u['_status']) ? (int) $u['_status'] : 0;
-        if ($st >= 200 && $st < 300) return $done[$name] = true;
-        error_log('[GNL REST] création de l\'attribut "' . $name . '" impossible : ' . ($st === 403 ? 'rôle manage-realm manquant sur le compte de service' : gnl_kc_error_message($u)));
-        return $done[$name] = false;
-    }
-}
-
-/* Écrit (ou remplace) un attribut sur un utilisateur, sans toucher aux autres.
-   Retourne true en cas de succès. */
-if (!function_exists('gnl_kc_set_user_attribute')) {
-    function gnl_kc_set_user_attribute($userId, $name, $value) {
-        if ($userId === '' || $name === '') return false;
-        $path = '/users/' . rawurlencode($userId);
-        $r  = gnl_kc_admin_request('GET', $path);
-        $st = isset($r['_status']) ? (int) $r['_status'] : 0;
-        if ($st < 200 || $st >= 300 || empty($r['id'])) {
-            error_log('[GNL REST] utilisateur ' . $userId . ' introuvable : ' . gnl_kc_error_message($r));
-            return false;
-        }
-        $user = json_decode(isset($r['_raw']) ? (string) $r['_raw'] : '', false);
-        if (!is_object($user)) return false;
-        if (!isset($user->attributes) || !is_object($user->attributes)) $user->attributes = new stdClass();
-        $user->attributes->{$name} = array((string) $value);
-        unset($user->access, $user->userProfileMetadata); // champs en lecture seule
-
-        $u  = gnl_kc_admin_request('PUT', $path, $user);
-        $st = isset($u['_status']) ? (int) $u['_status'] : 0;
-        if ($st >= 200 && $st < 300) return true;
-        error_log('[GNL REST] écriture de l\'attribut "' . $name . '" sur ' . $userId . ' impossible : ' . gnl_kc_error_message($u));
-        return false;
-    }
-}
-
-/* Lit un attribut (1re valeur) d'un utilisateur. Retourne '' s'il est absent,
-   null si Keycloak ne répond pas correctement. */
-if (!function_exists('gnl_kc_get_user_attribute')) {
-    function gnl_kc_get_user_attribute($userId, $name) {
-        if ($userId === '' || $name === '') return '';
-        $r  = gnl_kc_admin_request('GET', '/users/' . rawurlencode($userId));
+/* Lit un attribut (1re valeur) d'une organisation. Retourne '' s'il est
+   absent, null si Keycloak ne répond pas correctement. */
+if (!function_exists('gnl_kc_get_org_attribute')) {
+    function gnl_kc_get_org_attribute($orgId, $name) {
+        if ($orgId === '' || $name === '') return '';
+        $r  = gnl_kc_admin_request('GET', '/organizations/' . rawurlencode($orgId));
         $st = isset($r['_status']) ? (int) $r['_status'] : 0;
         if ($st < 200 || $st >= 300) {
-            error_log('[GNL REST] lecture de "' . $name . '" impossible pour ' . $userId . ' : ' . gnl_kc_error_message($r));
+            error_log('[GNL REST] lecture de "' . $name . '" impossible pour l\'organisation ' . $orgId . ' : ' . gnl_kc_error_message($r));
             return null;
         }
         if (!isset($r['attributes'][$name])) return '';
@@ -649,22 +573,50 @@ if (!function_exists('gnl_kc_get_user_attribute')) {
     }
 }
 
-/* Identifiant client Mollie mémorisé dans Keycloak ('' si aucun). */
+/* Écrit (ou crée) un attribut sur une organisation, sans toucher aux autres
+   attributs ni aux domaines. Retourne true en cas de succès. */
+if (!function_exists('gnl_kc_set_org_attribute')) {
+    function gnl_kc_set_org_attribute($orgId, $name, $value) {
+        if ($orgId === '' || $name === '') return false;
+        $path = '/organizations/' . rawurlencode($orgId);
+        $r  = gnl_kc_admin_request('GET', $path);
+        $st = isset($r['_status']) ? (int) $r['_status'] : 0;
+        if ($st < 200 || $st >= 300 || empty($r['id'])) {
+            error_log('[GNL REST] organisation ' . $orgId . ' introuvable : ' . gnl_kc_error_message($r));
+            return false;
+        }
+        // Décodage en OBJETS depuis la réponse brute : la représentation est
+        // renvoyée à l'identique (domaines, {} vides…), seul l'attribut change.
+        $org = json_decode(isset($r['_raw']) ? (string) $r['_raw'] : '', false);
+        if (!is_object($org)) return false;
+        if (!isset($org->attributes) || !is_object($org->attributes)) $org->attributes = new stdClass();
+        $org->attributes->{$name} = array((string) $value);
+        unset($org->members, $org->identityProviders); // gérés par d'autres endpoints
+
+        $u  = gnl_kc_admin_request('PUT', $path, $org);
+        $st = isset($u['_status']) ? (int) $u['_status'] : 0;
+        if ($st >= 200 && $st < 300) return true;
+        error_log('[GNL REST] écriture de l\'attribut "' . $name . '" sur l\'organisation ' . $orgId . ' impossible : '
+            . ($st === 403 ? 'rôle manage-organizations manquant sur le compte de service' : gnl_kc_error_message($u)));
+        return false;
+    }
+}
+
+/* Identifiant client Mollie (ex. cst_KKaFdk527v) de l'organisation ('' si aucun). */
 if (!function_exists('gnl_kc_get_mollie_customer_id')) {
-    function gnl_kc_get_mollie_customer_id($userId) {
-        $v = gnl_kc_get_user_attribute((string) $userId, 'moliecliid');
+    function gnl_kc_get_mollie_customer_id($orgId) {
+        $v = gnl_kc_get_org_attribute((string) $orgId, 'moliecliid');
         return is_string($v) ? $v : '';
     }
 }
 
-/* Enregistre l'identifiant client Mollie (ex. cst_KKaFdk527v) dans l'attribut
-   Keycloak "moliecliid" de l'utilisateur, en créant l'attribut au besoin. */
+/* Enregistre l'identifiant client Mollie dans l'attribut "moliecliid" de
+   l'organisation (créé s'il n'existe pas). */
 if (!function_exists('gnl_kc_save_mollie_customer_id')) {
-    function gnl_kc_save_mollie_customer_id($userId, $customerId) {
-        $userId = (string) $userId; $customerId = (string) $customerId;
-        if ($userId === '' || $customerId === '') return false;
-        gnl_kc_ensure_profile_attribute('moliecliid', 'Identifiant client Mollie');
-        return gnl_kc_set_user_attribute($userId, 'moliecliid', $customerId);
+    function gnl_kc_save_mollie_customer_id($orgId, $customerId) {
+        $orgId = (string) $orgId; $customerId = (string) $customerId;
+        if ($orgId === '' || $customerId === '') return false;
+        return gnl_kc_set_org_attribute($orgId, 'moliecliid', $customerId);
     }
 }
 
