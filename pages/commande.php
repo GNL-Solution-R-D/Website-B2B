@@ -319,24 +319,60 @@ function gnl_mollie_cut($s, $max) {
     $s = trim(preg_replace('/\s+/u', ' ', (string) $s));
     return function_exists('mb_substr') ? mb_substr($s, 0, $max, 'UTF-8') : substr($s, 0, $max);
 }
-/* Une ligne Mollie : totalAmount = unitPrice × quantité, vatAmount selon la
-   formule imposée par Mollie : total × taux / (100 + taux). */
-function gnl_mollie_line($desc, $qty, $unit, $sku = '') {
-    $qty   = max(1, (int) $qty);
-    $unit  = round((float) $unit, 2);
-    $total = round($unit * $qty, 2);
-    $rate  = (float) GNL_VAT_RATE;
-    $line  = array(
+/* URL publique d'une page du site (même base que les URL de retour Mollie). */
+function gnl_site_url($path) {
+    $self = gnl_self_url('');                           // …/commande
+    $base = preg_replace('#/[^/]*$#', '', $self);       // racine du site
+    return rtrim($base, '/') . '/' . ltrim($path, '/');
+}
+/* URL de la page produit (product-configuration.php lit ?slug=…). */
+function gnl_product_url($slug) {
+    $slug = trim((string) $slug);
+    return $slug === '' ? '' : gnl_site_url('product-configuration?slug=' . rawurlencode($slug));
+}
+
+/* Une ligne Mollie. Champs envoyés : name (-> "description" dans l'API
+   Payments), productUrl, sku, quantity, unitPrice, discountAmount,
+   totalAmount, vatRate, vatAmount.
+   totalAmount = unitPrice × quantité − remise ; vatAmount selon la formule
+   imposée par Mollie : total × taux / (100 + taux).
+   $meta (identifiants de la ligne) n'est pas accepté ligne par ligne par
+   l'API Payments : il est regroupé dans metadata.lines du paiement. */
+function gnl_mollie_line($name, $qty, $unit, $sku = '', $productUrl = '', $discount = 0.0, $meta = array()) {
+    $qty      = max(1, (int) $qty);
+    $unit     = round((float) $unit, 2);
+    $discount = max(0.0, round((float) $discount, 2));
+    $total    = round($unit * $qty - $discount, 2);
+    $rate     = (float) GNL_VAT_RATE;
+    $line = array(
         'type'        => 'digital',
-        'description' => gnl_mollie_cut($desc, 200),
+        'description' => gnl_mollie_cut($name, 200),   // "name" de la ligne
         'quantity'    => $qty,
         'unitPrice'   => gnl_amount($unit),
         'totalAmount' => gnl_amount($total),
         'vatRate'     => number_format($rate, 2, '.', ''),
         'vatAmount'   => gnl_amount(round($total * $rate / (100 + $rate), 2)),
     );
-    if ($sku !== '') $line['sku'] = gnl_mollie_cut($sku, 64);
+    if ($discount > 0)      $line['discountAmount'] = gnl_amount($discount);
+    if ($sku !== '')        $line['sku']            = gnl_mollie_cut($sku, 64);
+    if ($productUrl !== '') $line['productUrl']     = $productUrl;
+    $line['_meta'] = $meta; // retiré avant l'envoi (voir gnl_mollie_split_meta)
     return $line;
+}
+/* Retire les métadonnées de ligne (non acceptées par Mollie sur une ligne)
+   et renvoie leur résumé compact pour metadata.lines du paiement. */
+function gnl_mollie_split_meta(&$lines) {
+    $meta = array();
+    foreach ($lines as $i => $l) {
+        $m = (isset($l['_meta']) && is_array($l['_meta'])) ? array_filter($l['_meta'], 'strlen') : array();
+        unset($lines[$i]['_meta']);
+        if (isset($l['sku'])) $m = array_merge(array('sku' => $l['sku']), $m);
+        if ($m) $meta[] = $m;
+    }
+    $lines = array_values($lines);
+    // Limite Mollie ~1 ko pour toutes les métadonnées : on tronque si besoin
+    while ($meta && strlen(json_encode($meta)) > 700) array_pop($meta);
+    return $meta;
 }
 /* Lignes du 1er paiement : abonnement de la période (produit + options
    récurrentes) puis une ligne par option à frais unique. */
@@ -348,7 +384,9 @@ function gnl_mollie_lines($order) {
     $items  = (isset($order['items']) && is_array($order['items'])) ? $order['items'] : array();
     foreach ($items as $it) {
         $qty  = isset($it['qty']) ? max(1, (int) $it['qty']) : 1;
-        $name = isset($it['name']) && $it['name'] !== '' ? (string) $it['name'] : (string) $it['slug'];
+        $slug = isset($it['slug']) ? (string) $it['slug'] : '';
+        $name = isset($it['name']) && $it['name'] !== '' ? (string) $it['name'] : $slug;
+        $url  = gnl_product_url($slug);
         $recOpts = array();
         if (!empty($it['options']) && is_array($it['options'])) {
             foreach ($it['options'] as $o) if (empty($o['unique'])) $recOpts[] = (string) $o['name'];
@@ -359,13 +397,16 @@ function gnl_mollie_lines($order) {
             $desc = $name . ($recOpts ? ' + ' . implode(', ', $recOpts) : '')
                   . (!empty($it['domaine']['name']) ? ' — ' . $it['domaine']['name'] : '')
                   . ' — abonnement ' . strtolower($label) . ' (' . $per . ')';
-            $lines[] = gnl_mollie_line($desc, $qty, $monthlyUnit * $months, isset($it['slug']) ? (string) $it['slug'] : '');
+            $lines[] = gnl_mollie_line($desc, $qty, $monthlyUnit * $months, $slug, $url, 0.0,
+                array('uid' => isset($it['uid']) ? (string) $it['uid'] : ''));
         }
         // Frais uniques : une ligne par option
         if (!empty($it['options']) && is_array($it['options'])) {
             foreach ($it['options'] as $o) {
                 if (empty($o['unique']) || (float) $o['prix'] <= 0) continue;
-                $lines[] = gnl_mollie_line($o['name'] . ' — frais unique (' . $name . ')', $qty, (float) $o['prix'], isset($o['slug']) ? (string) $o['slug'] : '');
+                $lines[] = gnl_mollie_line($o['name'] . ' — frais unique (' . $name . ')', $qty, (float) $o['prix'],
+                    isset($o['slug']) ? (string) $o['slug'] : '', $url, 0.0,
+                    array('uid' => isset($o['uid']) ? (string) $o['uid'] : '', 'product_uid' => isset($it['uid']) ? (string) $it['uid'] : ''));
             }
         }
     }
@@ -388,7 +429,14 @@ function gnl_mollie_billing_address($order) {
     $c = isset($order['client']) && is_array($order['client']) ? $order['client'] : array();
     $g = function ($k) use ($c) { return isset($c[$k]) ? trim((string) $c[$k]) : ''; };
     $a = array();
-    $org = $g('raison_social') !== '' ? $g('raison_social') : ($g('nom_commercial') !== '' ? $g('nom_commercial') : (!empty($order['organization']) ? trim((string) $order['organization']) : ''));
+    /* Nom de facturation = raison sociale (attribut "raison") + entité légale
+       (attribut "entite_legal"), ex. "SlapIA SAS". Si la raison se termine déjà
+       par la forme juridique, elle n'est pas répétée. Repli : nom commercial,
+       puis nom de l'organisation. */
+    $raison = $g('raison_social'); $forme = $g('entite_legal');
+    if ($raison !== '' && $forme !== '' && !preg_match('/(^|\s)' . preg_quote($forme, '/') . '$/iu', $raison)) $org = $raison . ' ' . $forme;
+    elseif ($raison !== '') $org = $raison;
+    else $org = $g('nom_commercial') !== '' ? trim($g('nom_commercial') . ' ' . $forme) : (!empty($order['organization']) ? trim((string) $order['organization']) : '');
     if ($org !== '') $a['organizationName'] = gnl_mollie_cut($org, 100);
     // Mollie : prénom / nom d'au moins 2 caractères, pas uniquement des chiffres
     foreach (array('givenName' => 'prenom', 'familyName' => 'nom') as $mk => $ck) {
@@ -452,6 +500,7 @@ function gnl_mollie_start(&$order) {
     /* Paiement "détaillé" = la commande côté Mollie : lignes produits/options,
        adresse de facturation de l'entreprise et n° de commande GNL-… */
     $lines = gnl_mollie_lines($order);
+    $linesMeta = gnl_mollie_split_meta($lines); // identifiants uid / product_uid par ligne
     $linesTotal = 0.0;
     foreach ($lines as $l) $linesTotal += (float) $l['totalAmount']['value'];
     $linesTotal = round($linesTotal, 2);
@@ -475,6 +524,7 @@ function gnl_mollie_start(&$order) {
             'frequence'        => isset($order['billing']['frequence']) ? (string) $order['billing']['frequence'] : 'mensuel',
         ),
     );
+    if ($linesMeta) $body['metadata']['lines'] = $linesMeta;
     if ($lines) $body['lines'] = $lines;
     $billing = gnl_mollie_billing_address($order);
     if ($billing) $body['billingAddress'] = $billing;
