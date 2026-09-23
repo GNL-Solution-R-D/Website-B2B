@@ -289,42 +289,51 @@ function gnl_mollie_customer_exists($customerId) {
     $c = gnl_mollie_request('GET', '/customers/' . rawurlencode($customerId));
     return is_array($c) && !isset($c['_error']) && !empty($c['id']) && $c['id'] === $customerId;
 }
-/* Retrouve le client Mollie déjà associé à cette commande ou à l'utilisateur
+/* Retrouve le client Mollie déjà associé à cette commande ou à l'organisation
    Keycloak (attribut "moliecliid"). Retourne array(id, source) ou null.
    $kcValue reçoit la valeur actuelle de moliecliid ('' si aucune). */
-function gnl_mollie_find_existing_customer($order, $kcUserId, &$kcValue) {
+function gnl_mollie_find_existing_customer($order, $orgId, &$kcValue) {
     $kcValue = '';
     // 1) Nouvelle tentative de paiement : la commande connaît déjà son client
     if (!empty($order['mollie_customer_id']) && gnl_mollie_customer_exists($order['mollie_customer_id'])) {
         return array((string) $order['mollie_customer_id'], 'order');
     }
-    // 2) Client mémorisé dans Keycloak lors d'une commande précédente
-    if ($kcUserId !== '' && gnl_kc_load() && function_exists('gnl_kc_get_mollie_customer_id')) {
-        try { $kcValue = (string) gnl_kc_get_mollie_customer_id($kcUserId); }
+    // 2) Client mémorisé sur l'organisation lors d'une commande précédente
+    if ($orgId !== '' && gnl_kc_load() && function_exists('gnl_kc_get_mollie_customer_id')) {
+        try { $kcValue = (string) gnl_kc_get_mollie_customer_id($orgId); }
         catch (Throwable $e) { error_log('[GNL] lecture moliecliid : ' . $e->getMessage()); }
         if ($kcValue !== '') {
             if (gnl_mollie_customer_exists($kcValue)) return array($kcValue, 'keycloak');
-            error_log('[GNL] moliecliid ' . $kcValue . ' introuvable chez Mollie (supprimé ou autre mode test/live) : un nouveau client sera créé');
+            error_log('[GNL] moliecliid ' . $kcValue . ' de l\'organisation ' . $orgId . ' introuvable chez Mollie (supprimé ou autre mode test/live) : un nouveau client sera créé');
         }
     }
     return null;
 }
 
-/* Réutilise le client Mollie existant (sinon en crée un), crée le premier
-   paiement et renvoie l'URL de checkout Mollie */
+/* Réutilise le client Mollie de l'organisation (sinon en crée un), crée le
+   premier paiement et renvoie l'URL de checkout Mollie */
 function gnl_mollie_start(&$order) {
-    $kcUserId = (isset($order['user']['sub']) && $order['user']['sub'] !== '') ? (string) $order['user']['sub'] : '';
-    $kcValue  = '';
-    $existing = gnl_mollie_find_existing_customer($order, $kcUserId, $kcValue);
+    // Organisation Keycloak propriétaire de la commande (UUID issu de la session)
+    $orgId   = (isset($order['organization_uid']) && $order['organization_uid'] !== '') ? (string) $order['organization_uid'] : '';
+    $kcValue = '';
+    $existing = gnl_mollie_find_existing_customer($order, $orgId, $kcValue);
     if ($existing) {
         $customerId = $existing[0];
         $order['mollie_customer_source'] = $existing[1]; // order | keycloak
     } else {
-        $payload = array(
-            'name'  => trim($order['client']['prenom'] . ' ' . $order['client']['nom']),
-            'email' => $order['client']['email'],
-        );
-        if ($kcUserId !== '') $payload['metadata'] = array('keycloak_sub' => $kcUserId);
+        // Le client Mollie représente l'organisation : raison sociale et e-mail
+        // de l'entreprise en priorité, sinon ceux de la personne qui commande.
+        $c = $order['client'];
+        $name = '';
+        foreach (array('raison_social', 'nom_commercial', 'organization') as $k) {
+            if ($name === '' && !empty($c[$k])) $name = trim((string) $c[$k]);
+        }
+        if ($name === '' && !empty($order['organization'])) $name = trim((string) $order['organization']);
+        if ($name === '') $name = trim($c['prenom'] . ' ' . $c['nom']);
+        $email = (!empty($c['ent_email']) && filter_var($c['ent_email'], FILTER_VALIDATE_EMAIL)) ? $c['ent_email'] : $c['email'];
+
+        $payload = array('name' => $name, 'email' => $email);
+        if ($orgId !== '') $payload['metadata'] = array('organization_uid' => $orgId);
         $cust = gnl_mollie_request('POST', '/customers', $payload);
         if (isset($cust['_error']) || empty($cust['id'])) return array('_error' => 'customer', 'detail' => $cust);
         $customerId = $cust['id'];
@@ -353,24 +362,23 @@ function gnl_mollie_start(&$order) {
     $order['payment_status']     = isset($pay['status']) ? $pay['status'] : 'open';
 
     /* Renvoie l'identifiant client Mollie (cst_xxx) à Keycloak : attribut
-       utilisateur "moliecliid", créé dans le profil du realm s'il n'existe pas.
-       Inutile si Keycloak a déjà cette valeur. Un échec ici ne bloque jamais
-       le paiement (simple log). */
-    if ($kcUserId !== '' && $kcValue === $customerId) {
+       "moliecliid" de l'ORGANISATION, créé s'il n'existe pas. Inutile si
+       l'organisation a déjà cette valeur. Un échec ici ne bloque jamais le
+       paiement (simple log). */
+    if ($orgId === '') {
+        $order['keycloak_moliecliid_synced'] = false;
+        error_log('[GNL] commande ' . $order['reference'] . ' sans organization_uid : moliecliid ' . $customerId . ' non enregistré dans Keycloak');
+    } elseif ($kcValue === $customerId) {
         $order['keycloak_moliecliid_synced'] = true; // déjà à jour
-    } elseif ($kcUserId !== '') {
+    } else {
         $ok = false;
         try {
-            if (gnl_kc_load() && function_exists('gnl_kc_save_mollie_customer_id')) $ok = gnl_kc_save_mollie_customer_id($kcUserId, $customerId);
+            if (gnl_kc_load() && function_exists('gnl_kc_save_mollie_customer_id')) $ok = gnl_kc_save_mollie_customer_id($orgId, $customerId);
         } catch (Throwable $e) {
             error_log('[GNL] moliecliid : ' . $e->getMessage());
         }
         $order['keycloak_moliecliid_synced'] = $ok;
-        if ($ok && isset($_SESSION['gnl_user']) && is_array($_SESSION['gnl_user'])
-            && isset($_SESSION['gnl_user']['sub']) && $_SESSION['gnl_user']['sub'] === $kcUserId) {
-            $_SESSION['gnl_user']['moliecliid'] = $customerId;
-        }
-        if (!$ok) error_log('[GNL] commande ' . $order['reference'] . ' : moliecliid ' . $customerId . ' non enregistré dans Keycloak pour ' . $kcUserId);
+        if (!$ok) error_log('[GNL] commande ' . $order['reference'] . ' : moliecliid ' . $customerId . ' non enregistré sur l\'organisation ' . $orgId);
     }
     gnl_store_order($order);
 
