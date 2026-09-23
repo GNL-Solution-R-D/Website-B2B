@@ -1243,7 +1243,7 @@ document.addEventListener('DOMContentLoaded',function(){
 .gnl-config-sub{opacity:.75;margin:0 0 var(--wp--preset--spacing--40,2rem);}
 .gnl-layout{display:grid;grid-template-columns:1fr 340px;gap:var(--wp--preset--spacing--40,2rem);align-items:start;}
 @media(max-width:820px){.gnl-layout{grid-template-columns:1fr;}}
-.gnl-card{background:#fff;border:1px solid var(--gnl-line);border-radius:12px;padding:1.15rem 1.25rem;margin-bottom:1.1rem;}
+.gnl-card{background:#fff;border:1px solid var(--gnl-line);border-radius:3px;padding:1.15rem 1.25rem;margin-bottom:1.1rem;}
 .gnl-recap{display:flex;gap:1rem;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;}
 .gnl-recap h2{margin:0 0 .25rem;font-size:1.25rem;font-weight:600;}
 .gnl-recap .gnl-recap-desc{margin:.35rem 0 0;font-size:.9rem;opacity:.8;max-width:60ch;}
@@ -1332,10 +1332,10 @@ document.addEventListener('DOMContentLoaded',function(){
 .gnl-confirm{max-width:640px;margin:0 auto;text-align:center;}
 .gnl-confirm .gnl-check{width:64px;height:64px;border-radius:50%;background:var(--gnl-green);color:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:34px;}
 .gnl-confirm h1{margin:0 0 .4rem;font-weight:600;}
-.gnl-ref{display:inline-block;font-weight:700;letter-spacing:.5px;background:#fff;border:1px dashed var(--gnl-green);border-radius:9px;padding:.5rem .9rem;margin:.4rem 0 1rem;}
+.gnl-ref{display:inline-block;font-weight:700;letter-spacing:.5px;background:#fff;border:1px dashed var(--gnl-green);border-radius:3px;padding:.5rem .9rem;margin:.4rem 0 1rem;}
 .gnl-confirm .gnl-card{text-align:left;}
 .gnl-btns{display:flex;gap:.7rem;flex-wrap:wrap;justify-content:center;margin-top:1.3rem;}
-.gnl-btn{border:1px solid var(--gnl-line);background:#fff;color:inherit;border-radius:10px;padding:.7rem 1.2rem;font:inherit;font-weight:600;text-decoration:none;cursor:pointer;}
+.gnl-btn{border:1px solid var(--gnl-line);background:#fff;color:inherit;border-radius:3px;padding:.7rem 1.2rem;font:inherit;font-weight:600;text-decoration:none;cursor:pointer;}
 .gnl-btn.primary{background:var(--gnl-green);border-color:var(--gnl-green);color:#fff;}
 
 .gnl-check.warn{background:#e6a700;}
@@ -1459,7 +1459,7 @@ function gnl_render_recap_from_order($order) {
                 $sBill  = (isset($order['billing']) && is_array($order['billing'])) ? $order['billing'] : array();
                 $sPlan  = gnl_billing_plan(isset($sBill['frequence']) ? $sBill['frequence'] : 'mensuel');
                 $sRenew = !empty($order['next_renewal']) ? strtotime((string) $order['next_renewal']) : 0; ?>
-            Votre abonnement <strong><?php echo gnl_e(strtolower($sPlan['label'])); ?></strong> est activé&nbsp;; le prélèvement se renouvellera automatiquement <?php echo gnl_e($sPlan['per']); ?><?php echo $sRenew ? ', à partir du ' . gnl_e(gnl_fr_date($sRenew)) : ''; ?>.
+            Votre abonnement <strong><?php echo gnl_e(strtolower($sPlan['label'])); ?></strong> est activé&nbsp;; le prélèvement se renouvellera automatiquement une fois <?php echo gnl_e($sPlan['per']); ?><?php echo $sRenew ? ', à partir du ' . gnl_e(gnl_fr_date($sRenew)) : ''; ?>.
           <?php endif; ?>
           Un e-mail de confirmation part vers <strong><?php echo gnl_e($order['client']['email']); ?></strong>.
         <?php elseif ($pending): ?>
