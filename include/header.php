@@ -7,10 +7,18 @@
    ni SureCart. */
 if (session_status() === PHP_SESSION_NONE && !headers_sent()) { session_start(); }
 $gnl_cart_count = 0;
-if (!empty($_SESSION['gnl_cart']) && is_array($_SESSION['gnl_cart'])) {
-    foreach ($_SESSION['gnl_cart'] as $gnl_ci) {
-        $gnl_cart_count += isset($gnl_ci['qty']) ? max(0, (int) $gnl_ci['qty']) : 1;
+if (session_status() === PHP_SESSION_ACTIVE) {
+    // Session disponible : c'est la source de verite.
+    if (!empty($_SESSION['gnl_cart']) && is_array($_SESSION['gnl_cart'])) {
+        foreach ($_SESSION['gnl_cart'] as $gnl_ci) {
+            $gnl_cart_count += isset($gnl_ci['qty']) ? max(0, (int) $gnl_ci['qty']) : 1;
+        }
     }
+} elseif (isset($_COOKIE['gnl_cart_count'])) {
+    // Pages ou le header est inclus apres le debut du HTML (index, stats,
+    // cgu, ...) : la session ne peut plus etre demarree, on s'appuie sur le
+    // cookie gnl_cart_count tenu a jour par cart.php.
+    $gnl_cart_count = max(0, (int) $_COOKIE['gnl_cart_count']);
 }
 ?>
 
