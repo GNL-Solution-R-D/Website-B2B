@@ -65,7 +65,7 @@ gnl_auth_head('Choisir une organisation', 'organisation');
     <style>
       .gnl-orgs{display:flex; flex-direction:column; gap:.7rem; margin:.2rem 0 1.2rem}
       .gnl-org{position:relative; display:flex; gap:.85rem; align-items:flex-start;
-        border:1px solid var(--gnl-line); border-radius:12px; padding:.9rem 1rem;
+        border:1px solid var(--gnl-line); border-radius:3px; padding:.9rem 1rem;
         cursor:pointer; transition:border-color .15s, box-shadow .15s, background .15s}
       .gnl-org:hover{border-color:color-mix(in srgb,var(--gnl-green) 45%, transparent)}
       .gnl-org input{position:absolute; opacity:0; pointer-events:none}

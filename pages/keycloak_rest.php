@@ -74,7 +74,7 @@ if (!defined('KEYCLOAK_REG_VERIFY_EMAIL'))   define('KEYCLOAK_REG_VERIFY_EMAIL',
    on génère <alias>.<suffixe> pour garantir unicité et validité. */
 if (!defined('KEYCLOAK_ORG_DOMAIN_SUFFIX')) define('KEYCLOAK_ORG_DOMAIN_SUFFIX', gnl_env('KEYCLOAK_ORG_DOMAIN_SUFFIX', 'clients.gnl-solution.fr'));
 
-if (!defined('KEYCLOAK_LOGO_URL')) define('KEYCLOAK_LOGO_URL', gnl_env('KEYCLOAK_LOGO_URL', 'https://gnl-solution.fr/wp-content/uploads/2025/04/Logo-GNL3.png'));
+if (!defined('KEYCLOAK_LOGO_URL')) define('KEYCLOAK_LOGO_URL', gnl_env('KEYCLOAK_LOGO_URL', '/assets/gnl/img/logo-gnl-marine.svg'));
 
 if (!defined('KC_OIDC')) define('KC_OIDC', rtrim(KEYCLOAK_ISSUER, '/') . '/protocol/openid-connect');
 
@@ -898,91 +898,66 @@ if (!function_exists('gnl_auth_head')) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title><?php echo gnl_e($title); ?> — GNL Solution</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="icon" href="https://gnl-solution.fr/wp-content/uploads/2025/12/cropped-Sans-titre37-32x32.png" sizes="32x32">
+<link rel="icon" href="/assets/gnl/img/logo-gnl-icone.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/gnl/img/favicon-32.png" sizes="32x32">
+<link rel="stylesheet" href="/assets/gnl/gnl.css">
 <style>
-:root{
-  --gnl-green:#6c9400; --gnl-green-d:#5c7f00; --gnl-teal:#009494; --gnl-ink:#353535;
-  --gnl-line:#e4e6e2; --gnl-soft:#f4f6f1; --gnl-danger:#c0392b; --gnl-ok:#2e7d32;
-}
-*{box-sizing:border-box}
-html,body{margin:0;padding:0}
-body{
-  font-family:'Manrope',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-  color:var(--gnl-ink); line-height:1.45;
-  background:
-    radial-gradient(1200px 500px at 15% -10%, color-mix(in srgb,var(--gnl-green) 10%, transparent), transparent 60%),
-    radial-gradient(1000px 480px at 110% 10%, color-mix(in srgb,var(--gnl-teal) 12%, transparent), transparent 55%),
-    #f3f4f1;
-  min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
-  padding:2.2rem 1rem;
-}
-.gnl-auth{width:100%; max-width:440px}
-.gnl-auth-logo{display:block; text-align:center; margin:0 auto 1.1rem}
-.gnl-auth-logo img{height:56px; width:auto}
-.gnl-card{
-  background:#fff; border:1px solid var(--gnl-line); border-radius:16px;
-  padding:1.9rem 1.9rem 1.7rem; box-shadow:0 18px 50px rgba(20,30,15,.08);
-}
-.gnl-card h1{font-size:1.4rem; font-weight:700; margin:.1rem 0 .25rem; letter-spacing:-.2px}
-.gnl-card .sub{margin:0 0 1.35rem; font-size:.92rem; color:#6a6f66}
-.gnl-field{margin-bottom:.95rem}
-.gnl-field.row{display:flex; gap:.75rem}
-.gnl-field.row>div{flex:1}
-label{display:block; font-size:.82rem; font-weight:600; margin:0 0 .35rem; color:#4a4f46}
-.gnl-in{
-  width:100%; border:1px solid var(--gnl-line); border-radius:10px;
-  padding:.72rem .85rem; font:inherit; font-size:.96rem; background:#fff; color:inherit;
-  transition:border-color .15s, box-shadow .15s;
-}
-.gnl-in:focus{outline:none; border-color:var(--gnl-green); box-shadow:0 0 0 3px color-mix(in srgb,var(--gnl-green) 22%, transparent)}
-.gnl-in::placeholder{color:#a7aca1}
-select.gnl-in{appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M1.5 4 6 8l4.5-4' stroke='%23777' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right .8rem center; padding-right:2rem}
+/* Gabarit des pages de compte (connexion, inscription, organisation) — charte GNL */
+body{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:100vh;padding:0 16px 48px;background:var(--paper-50)}
+body::before{content:"";position:fixed;inset:0 0 auto 0;height:260px;background:var(--navy-950);z-index:-1}
+.gnl-auth{width:100%;max-width:460px;margin-top:28px}
+.gnl-auth-logo{display:block;margin:0 auto 22px;width:max-content;line-height:0}
+.gnl-auth-logo img{height:62px;width:auto}
+.gnl-card{background:#fff;border:1px solid var(--silver-300);border-radius:var(--radius);padding:32px 32px 28px}
+.gnl-card h1{font-size:26px;line-height:32px;font-weight:800;margin:0 0 6px}
+.gnl-card .sub{margin:0 0 24px;font-size:15px;line-height:23px;color:var(--slate-500)}
+.gnl-field{margin-bottom:16px;display:block}
+.gnl-field.row{display:flex;gap:12px}
+.gnl-field.row>div{flex:1;min-width:0}
+label{display:block;font-size:14px;font-weight:700;margin:0 0 8px;color:var(--navy-950)}
+.gnl-in{width:100%;min-height:46px;border:1px solid var(--slate-500);border-radius:var(--radius);padding:0 14px;font:400 15px var(--font-display);background:#fff;color:var(--navy-950)}
+.gnl-in:focus{outline:2px solid var(--green-700);outline-offset:1px;border-color:var(--green-700)}
+.gnl-in::placeholder{color:#8a90a8}
+select.gnl-in{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M1.5 4 6 8l4.5-4' stroke='%23141a33' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
 .gnl-pass{position:relative}
-.gnl-pass .gnl-in{padding-right:3.2rem}
-.gnl-eye{position:absolute; right:.55rem; top:50%; transform:translateY(-50%); border:none; background:none; cursor:pointer; color:#8a8f85; padding:.3rem; line-height:0; border-radius:7px}
-.gnl-eye:hover{color:var(--gnl-ink)}
-.gnl-row-between{display:flex; align-items:center; justify-content:space-between; gap:.75rem; margin:-.15rem 0 1.1rem}
-.gnl-check{display:flex; align-items:flex-start; gap:.55rem; font-size:.85rem; color:#4a4f46; cursor:pointer; user-select:none}
-.gnl-check input{margin:.15rem 0 0; accent-color:var(--gnl-green); flex:none}
-.gnl-link{color:var(--gnl-teal); text-decoration:none; font-size:.85rem; font-weight:600}
-.gnl-link:hover{text-decoration:underline}
-.gnl-btn{
-  display:block; width:100%; border:none; cursor:pointer; margin-top:.35rem;
-  background:var(--gnl-green); color:#fff; border-radius:11px;
-  padding:.85rem 1rem; font:inherit; font-weight:700; font-size:1rem;
-  transition:filter .15s, transform .02s;
-}
-.gnl-btn:hover{filter:brightness(1.05)}
-.gnl-btn:active{transform:translateY(1px)}
-.gnl-btn[disabled]{opacity:.6; cursor:progress}
-.gnl-alt{margin-top:1.25rem; text-align:center; font-size:.9rem; color:#5c6157}
-.gnl-alt a{color:var(--gnl-teal); font-weight:700; text-decoration:none}
-.gnl-alt a:hover{text-decoration:underline}
-.gnl-msg{border-radius:11px; padding:.75rem .9rem; font-size:.88rem; margin:0 0 1.15rem; display:flex; gap:.55rem; align-items:flex-start}
-.gnl-msg svg{flex:none; margin-top:1px}
-.gnl-msg.err{background:color-mix(in srgb,var(--gnl-danger) 8%, #fff); border:1px solid color-mix(in srgb,var(--gnl-danger) 35%, transparent); color:#8e2a1e}
-.gnl-msg.ok{background:color-mix(in srgb,var(--gnl-ok) 8%, #fff); border:1px solid color-mix(in srgb,var(--gnl-ok) 35%, transparent); color:#1f6323}
-.gnl-hint{font-size:.78rem; color:#8a8f85; margin:.3rem 0 0}
-.gnl-sep{display:flex; align-items:center; gap:.8rem; color:#a7aca1; font-size:.78rem; margin:1.15rem 0 .3rem}
-.gnl-sep::before,.gnl-sep::after{content:""; height:1px; background:var(--gnl-line); flex:1}
-.gnl-foot{margin-top:1.4rem; text-align:center; font-size:.76rem; color:#9aa093}
+.gnl-pass .gnl-in{padding-right:52px}
+.gnl-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;cursor:pointer;color:var(--slate-500);width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius)}
+.gnl-eye:hover{color:var(--navy-950);background:var(--paper-50)}
+.gnl-row-between{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 18px;flex-wrap:wrap}
+.gnl-check{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:21px;font-weight:500;color:var(--navy-950);cursor:pointer;margin:0}
+.gnl-check input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--green-700);flex:none}
+.gnl-link{color:var(--green-700);font-size:14px;font-weight:700}
+.gnl-btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;border:0;cursor:pointer;margin-top:6px;background:var(--green-700);color:#fff;border-radius:var(--radius);font:700 16px var(--font-display);transition:background-color .2s}
+.gnl-btn:hover{background:#196540}
+.gnl-btn[disabled]{opacity:.6;cursor:progress}
+.gnl-alt{margin:20px 0 0;text-align:center;font-size:15px;color:var(--slate-500)}
+.gnl-alt a{color:var(--green-700);font-weight:700}
+.gnl-msg{border-radius:var(--radius);padding:12px 14px;font-size:14px;line-height:21px;margin:0 0 20px;display:flex;gap:10px;align-items:flex-start}
+.gnl-msg svg{flex:none;margin-top:1px}
+.gnl-msg.err{background:#fef3f2;border:1px solid var(--danger);color:#7a1610}
+.gnl-msg.ok{background:#eef8f2;border:1px solid var(--green-700);color:#14532d}
+.gnl-hint{font-size:13px;line-height:19px;font-weight:400;color:var(--slate-500);margin:6px 0 0}
+.gnl-sep{display:flex;align-items:center;gap:12px;color:var(--slate-500);font-size:12px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin:20px 0 12px}
+.gnl-sep::before,.gnl-sep::after{content:"";height:1px;background:var(--silver-300);flex:1}
+.gnl-foot{margin:22px 0 0;text-align:center;font-size:13px;color:var(--slate-500)}
 .gnl-foot a{color:inherit}
-/* --- Mise en page 2 colonnes (inscription entreprise) --- */
-.gnl-auth.gnl-auth-wide{max-width:440px; transition:max-width .28s ease}
-.gnl-auth.gnl-auth-wide.has-org{max-width:940px}
-.gnl-auth-cols{display:flex; gap:1.1rem; align-items:flex-start; justify-content:center; flex-wrap:wrap}
-.gnl-auth-cols>.gnl-card{flex:1 1 400px; max-width:460px; min-width:0; margin:0}
-.gnl-orgcard{display:none}
-.gnl-auth.has-org .gnl-orgcard{display:block}
-.gnl-orgcard h2{font-size:1.1rem; font-weight:700; margin:.1rem 0 .2rem}
-.gnl-orgcard .sub{margin:0 0 1.2rem}
-.req{color:var(--gnl-danger); font-weight:700; margin-left:.1em}
-.gnl-derived{background:var(--gnl-soft); color:#5c6157; letter-spacing:.06em}
-@media(max-width:900px){ .gnl-auth.gnl-auth-wide.has-org{max-width:460px} }
-@media(max-width:480px){ .gnl-card{padding:1.5rem 1.25rem} .gnl-field.row{flex-direction:column; gap:0} }
+.gnl-note-etu,.gnl-note-org{display:flex;gap:12px;padding:14px 16px;border:1px solid var(--warning);border-radius:var(--radius);background:#fff8f1;margin:0 0 18px;font-size:13px;line-height:20px}
+.gnl-note-etu svg,.gnl-note-org svg{flex:none;margin-top:1px}
+/* Inscription : panneau organisation qui glisse à gauche */
+.gnl-auth.gnl-auth-wide{max-width:460px;transition:max-width .35s ease}
+.gnl-auth.gnl-auth-wide.has-org{max-width:960px}
+.gnl-auth-cols{display:flex;gap:20px;align-items:flex-start;justify-content:center;flex-wrap:wrap}
+.gnl-auth-cols>.gnl-card{flex:1 1 400px;max-width:460px;min-width:0;margin:0}
+.gnl-orgcard{display:none;order:-1}
+.gnl-auth.has-org .gnl-orgcard{display:block;animation:gnlslide .4s cubic-bezier(.2,.7,.2,1)}
+@keyframes gnlslide{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+.gnl-orgcard h2{font-size:20px;font-weight:800;margin:0 0 4px}
+.gnl-orgcard .sub{margin:0 0 20px}
+.req{color:var(--danger);font-weight:700;margin-left:.1em}
+.gnl-derived{background:var(--paper-50) !important;color:var(--slate-500);letter-spacing:.06em}
+@media(max-width:940px){.gnl-auth.gnl-auth-wide.has-org{max-width:460px}.gnl-orgcard{order:0}}
+@media(max-width:480px){.gnl-card{padding:24px 20px}.gnl-field.row{flex-direction:column;gap:0}}
+@media (prefers-reduced-motion:reduce){.gnl-auth.has-org .gnl-orgcard{animation:none}}
 </style>
 </head>
 <body>

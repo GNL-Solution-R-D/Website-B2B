@@ -1,0 +1,37 @@
+# =====================================================================
+#  GNL Solution — routage Apache (mod_rewrite)
+#  /contact -> pages/contact.php, /cart -> pages/cart.php, etc.
+# =====================================================================
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Dossiers internes : jamais servis directement
+  RewriteRule ^include/ - [F,L]
+  RewriteRule ^pages/(config-legal|keycloak_rest)\.php$ - [F,L]
+
+  # Alias historique
+  RewriteRule ^entreprise-lookup/?$ pages/entreprise_lookup.php [L,QSA]
+
+  # /slug ou /slug.php -> pages/slug.php s'il existe
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{DOCUMENT_ROOT}/pages/$1.php -f
+  RewriteRule ^([a-z0-9_-]+)(?:\.php)?/?$ pages/$1.php [L,QSA]
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set X-Frame-Options "SAMEORIGIN"
+</IfModule>
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 7 days"
+  ExpiresByType application/javascript "access plus 7 days"
+  ExpiresByType image/svg+xml "access plus 30 days"
+  ExpiresByType image/webp "access plus 30 days"
+  ExpiresByType font/ttf "access plus 1 year"
+</IfModule>

@@ -212,6 +212,15 @@ gnl_auth_head('Créer un compte', 'inscription', true, $wantOrg ? 'has-org' : ''
             </select>
           </div>
 
+          <div class="gnl-note-etu" id="note-etu" role="note"<?php echo $vals['profil_type'] === 'etudiant' ? '' : ' hidden'; ?>>
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b54708" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M9 14h6M9 17h4"/></svg>
+            <p style="margin:0"><strong>Certificat de scolarité obligatoire.</strong> Après votre commande, vous devrez nous transmettre un certificat de scolarité de l'année en cours depuis votre Espace Client. Il est indispensable pour activer le service : sans certificat valide, la commande sera annulée et remboursée.</p>
+          </div>
+          <div class="gnl-note-org" id="note-org" role="note"<?php echo $vals['profil_type'] === 'entreprise' ? '' : ' hidden'; ?>>
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b54708" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>
+            <p style="margin:0"><strong>Vérification du compte entreprise.</strong> Les informations de votre organisation (complétez le panneau dédié) feront l'objet d'une vérification ultérieure par nos équipes : SIRET, raison sociale, adresse. En cas d'informations inexactes, nous pourrons demander des justificatifs, suspendre le compte ou annuler les commandes en cours.</p>
+          </div>
+
           <div class="gnl-field row">
             <div style="flex:0 0 42%">
               <label for="civilite">Civilité</label>
@@ -276,7 +285,7 @@ gnl_auth_head('Créer un compte', 'inscription', true, $wantOrg ? 'has-org' : ''
 
           <label class="gnl-check" style="margin:.2rem 0 1.1rem">
             <input type="checkbox" name="cgv" value="1" required>
-            <span>J'accepte les <a class="gnl-link" href="/cgv" target="_blank" rel="noopener">conditions générales</a> et la politique de confidentialité. <span class="req">*</span></span>
+            <span>J'accepte les <a class="gnl-link" href="/cgu" target="_blank" rel="noopener">conditions générales d'utilisation</a>. Mes données servent à gérer mon compte, mes commandes et mes factures, comme décrit dans la <a class="gnl-link" href="/politique-de-confidentialite" target="_blank" rel="noopener">politique de confidentialité</a>. <span class="req">*</span></span>
           </label>
 
           <button class="gnl-btn" type="submit">Créer mon compte</button>
@@ -407,6 +416,9 @@ gnl_auth_head('Créer un compte', 'inscription', true, $wantOrg ? 'has-org' : ''
         }
         function syncCard(){
           var on = isOrg();
+          var ne = document.getElementById('note-etu'), no = document.getElementById('note-org');
+          if (ne) ne.hidden = !(pt && pt.value === 'etudiant');
+          if (no) no.hidden = !on;
           if (auth) auth.classList.toggle('has-org', on);
           for (var i = 0; i < reqs.length; i++) setReq(reqs[i], on);
           syncTva();

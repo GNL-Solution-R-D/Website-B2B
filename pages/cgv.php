@@ -1,159 +1,104 @@
 <?php
-/**
- * Conditions Générales de Vente (CGV)
- * -------------------------------------------------------------------
- * Modèle pour la VENTE À DISTANCE À DES CONSOMMATEURS (B2C) via le Site.
- * Adapte les articles « Livraison » et « Rétractation » selon que tu vends
- * des BIENS physiques, des SERVICES ou des CONTENUS NUMÉRIQUES.
- * Pour l’intégrer : remplace le HTML d’en-tête/pied par tes propres includes.
- */
-require_once __DIR__ . '/config-legal.php';
-$page_titre = 'Conditions Générales de Vente';
+/* Conditions générales de vente — contenu issu de la maquette validée. */
+require_once __DIR__ . '/../include/layout.php';
+$gnl_head = <<<'GNLHEAD'
+<style>
+a{color:#1f7a4a}a:hover{color:#141a33}
+.lg h2{font-size:24px;line-height:30px;font-weight:800;margin:48px 0 14px;scroll-margin-top:24px}
+.lg h3{font-size:17px;line-height:24px;font-weight:700;margin:24px 0 8px}
+.lg p,.lg li{font-size:16px;line-height:26px}
+.lg p{margin:0 0 14px}
+.lg ul{margin:0 0 14px;padding-left:22px}
+.lg li{margin-bottom:6px}
+.lg .n{color:#1f7a4a;margin-right:10px}
+.toc a{display:block;padding:7px 0 7px 14px;border-left:2px solid #c5cbd8;color:#5e6684;text-decoration:none;font-size:14px;line-height:20px}
+.toc a:hover{color:#141a33;border-left-color:#1f7a4a}
+</style>
+GNLHEAD;
+gnl_ui_open('Conditions générales de vente', '', array('desc' => 'Conditions générales de vente des services GNL Solution.', 'head' => $gnl_head));
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= e($page_titre) ?> — <?= e($LEGAL['site_nom']) ?></title>
-    <meta name="description" content="Conditions générales de vente du site <?= e($LEGAL['site_nom']) ?>.">
-    <meta name="robots" content="index,follow">
-    <link rel="canonical" href="<?= e(rtrim($LEGAL['site_url'], '/')) ?>/cgv.php">
-    <link rel="stylesheet" href="../assets/css/legal.css">
-    <link rel="stylesheet" href="../assets/css/main.css">
-</head>
-<body>
-
-<?php
-// Pied de page commun (identique à index.php)
-if (is_readable('../include/header.php')) {
-    include '../include/header.php';
-}
-?>
-
-<div class="legal-wrap">
-
-    <h1>Conditions Générales de Vente</h1>
-    <p class="lead">Conditions applicables à toute commande passée sur <?= e($LEGAL['site_nom']) ?>.</p>
-    <span class="maj">Dernière mise à jour : <?= e($LEGAL['date_maj']) ?></span>
-
-    <div class="callout warn">
-        <p><strong>À adapter à ton activité.</strong> Ce modèle couvre la vente à distance à des consommateurs. Supprime ou ajuste les passages sur la livraison, la rétractation ou les garanties selon que tu vends des <em>biens physiques</em>, des <em>services</em> ou des <em>contenus numériques</em>. Fais idéalement relire le résultat par un professionnel du droit.</p>
-    </div>
-
-    <nav class="toc" aria-label="Sommaire">
-        <h2>Sommaire</h2>
-        <ol>
-            <li><a href="#art1">Objet et champ d’application</a></li>
-            <li><a href="#art2">Identité du vendeur</a></li>
-            <li><a href="#art3">Produits et services</a></li>
-            <li><a href="#art4">Prix</a></li>
-            <li><a href="#art5">Commande</a></li>
-            <li><a href="#art6">Paiement</a></li>
-            <li><a href="#art7">Livraison</a></li>
-            <li><a href="#art8">Droit de rétractation</a></li>
-            <li><a href="#art9">Garanties légales</a></li>
-            <li><a href="#art10">Responsabilité</a></li>
-            <li><a href="#art11">Données personnelles</a></li>
-            <li><a href="#art12">Propriété intellectuelle</a></li>
-            <li><a href="#art13">Force majeure</a></li>
-            <li><a href="#art14">Litiges et médiation</a></li>
-            <li><a href="#art15">Droit applicable</a></li>
-        </ol>
-    </nav>
-
-    <h2 id="art1"><span class="num">1.</span>Objet et champ d’application</h2>
-    <p>Les présentes Conditions Générales de Vente (ci-après les « CGV ») régissent les relations contractuelles entre <?= e($LEGAL['raison_sociale']) ?> (ci-après le « Vendeur ») et toute personne physique non commerçante effectuant un achat via le site <?= e($LEGAL['site_nom']) ?> (ci-après le « Client »).</p>
-    <p>Toute commande passée sur le Site implique l’acceptation sans réserve des présentes CGV. Le Client déclare en avoir pris connaissance avant de valider sa commande. Les CGV applicables sont celles en vigueur à la date de la commande.</p>
-
-    <h2 id="art2"><span class="num">2.</span>Identité du vendeur</h2>
-    <p><?= legal_identite($LEGAL) ?></p>
-
-    <h2 id="art3"><span class="num">3.</span>Produits et services</h2>
-    <p>Les caractéristiques essentielles des produits et services proposés sont décrites sur les fiches correspondantes du Site. Les photographies et illustrations sont fournies à titre indicatif et n’engagent pas le Vendeur.</p>
-    <p>Les offres sont valables dans la limite des stocks disponibles. En cas d’indisponibilité après passation de la commande, le Client en est informé et peut obtenir le remboursement des sommes versées pour le produit indisponible.</p>
-
-    <h2 id="art4"><span class="num">4.</span>Prix</h2>
-    <p>Les prix sont indiqués en euros, toutes taxes comprises (TTC)<?php if (!empty($LEGAL['tva_non_applicable'])): ?> (le Vendeur relevant du régime de la franchise en base de TVA — « TVA non applicable, article 293 B du CGI »)<?php endif; ?>. Ils s’entendent hors frais de livraison, lesquels sont indiqués avant la validation de la commande.</p>
-    <p>Le Vendeur se réserve le droit de modifier ses prix à tout moment ; les produits et services sont facturés sur la base des tarifs en vigueur au moment de l’enregistrement de la commande.</p>
-
-    <h2 id="art5"><span class="num">5.</span>Commande</h2>
-    <p>Le Client sélectionne les produits ou services de son choix, vérifie le détail et le prix total de sa commande, corrige le cas échéant les éventuelles erreurs, puis confirme sa commande. Cette confirmation vaut acceptation des présentes CGV, des prix et des caractéristiques des produits et services.</p>
-    <p>La vente est considérée comme définitive après l’envoi au Client de la confirmation de commande par le Vendeur et l’encaissement du prix. Le Vendeur se réserve le droit d’annuler ou de refuser toute commande présentant un différend antérieur ou un caractère anormal.</p>
-
-    <h2 id="art6"><span class="num">6.</span>Paiement</h2>
-    <p>Le règlement s’effectue selon les moyens de paiement proposés sur le Site. Le paiement est exigible immédiatement à la commande. Les données de paiement sont transmises de manière sécurisée par le prestataire de paiement ; le Vendeur n’a pas accès aux données bancaires du Client.</p>
-    <p>La commande n’est traitée qu’après confirmation de l’accord du centre de paiement. En cas de refus, la commande est automatiquement annulée.</p>
-
-    <h2 id="art7"><span class="num">7.</span>Livraison</h2>
-    <p>Les produits sont livrés à l’adresse indiquée par le Client lors de la commande, dans les délais précisés sur le Site. Sauf circonstances particulières, ce délai n’excède pas trente (30) jours à compter de la confirmation de la commande.</p>
-    <p>En cas de retard de livraison, le Client peut, après avoir enjoint le Vendeur de livrer dans un délai supplémentaire raisonnable resté infructueux, résoudre le contrat par lettre recommandée ou par écrit sur un autre support durable. Les sommes versées lui sont alors remboursées, conformément aux articles L.216-1 et suivants du Code de la consommation.</p>
-    <p>Les risques liés au transport sont transférés au Client au moment où celui-ci, ou un tiers désigné par lui, prend physiquement possession du produit. Le Client est invité à vérifier l’état du colis à la livraison et à signaler toute anomalie.</p>
-
-    <h2 id="art8"><span class="num">8.</span>Droit de rétractation</h2>
-    <p>Conformément aux articles L.221-18 et suivants du Code de la consommation, le Client consommateur dispose d’un délai de <strong>quatorze (14) jours</strong> pour exercer son droit de rétractation, sans avoir à motiver sa décision ni à supporter d’autres coûts que ceux prévus par la loi. Ce délai court à compter de la réception du bien (ou de la conclusion du contrat pour les prestations de services).</p>
-    <p>Pour exercer ce droit, le Client notifie sa décision par une déclaration dénuée d’ambiguïté (par exemple par courrier postal ou par e-mail à <a href="mailto:<?= e($LEGAL['email']) ?>"><?= e($LEGAL['email']) ?></a>), en utilisant éventuellement le formulaire type ci-dessous. Les biens doivent être retournés sans retard excessif et au plus tard dans les quatorze (14) jours suivant la communication de la décision de rétractation.</p>
-    <p>Le Vendeur rembourse la totalité des sommes versées, y compris les frais de livraison standard, au plus tard dans les quatorze (14) jours suivant la date à laquelle il est informé de la décision de rétractation, en utilisant le même moyen de paiement que celui employé lors de la transaction, sauf accord contraire.</p>
-    <p><em>Exceptions&nbsp;:</em> le droit de rétractation ne s’applique pas dans les cas prévus à l’article L.221-28 du Code de la consommation, notamment pour les biens confectionnés sur mesure, les biens descellés ne pouvant être renvoyés pour des raisons d’hygiène, ou les contenus numériques fournis sur support immatériel dont l’exécution a commencé avec l’accord préalable et exprès du Client et son renoncement à ce droit.</p>
-
-    <div class="form-retract">
-        <p><strong>Formulaire type de rétractation</strong><br>
-        <em>(À compléter et à renvoyer uniquement si vous souhaitez vous rétracter.)</em></p>
-        <p class="fld">À l’attention de <?= e($LEGAL['raison_sociale']) ?>, <?= e($LEGAL['adresse_siege']) ?> — <?= e($LEGAL['email']) ?> :</p>
-        <p class="fld">Je / nous (*) vous notifie / notifions (*) par la présente ma / notre (*) rétractation du contrat portant sur la vente du bien (*) / la prestation de service (*) ci-dessous :</p>
-        <p class="fld">— Commandé le (*) / reçu le (*) : …………………</p>
-        <p class="fld">— Numéro de commande : …………………</p>
-        <p class="fld">— Nom du / des consommateur(s) : …………………</p>
-        <p class="fld">— Adresse du / des consommateur(s) : …………………</p>
-        <p class="fld">— Date : …………………</p>
-        <p class="fld">— Signature (uniquement en cas de notification papier) : …………………</p>
-        <p class="fld">(*) Rayez la mention inutile.</p>
-    </div>
-
-    <h2 id="art9"><span class="num">9.</span>Garanties légales</h2>
-    <p>Indépendamment de toute garantie commerciale éventuelle, le Vendeur reste tenu des garanties légales suivantes&nbsp;:</p>
-    <ul>
-        <li><strong>Garantie légale de conformité</strong> (articles L.217-3 et suivants du Code de la consommation)&nbsp;: le Client dispose d’un délai de deux (2) ans à compter de la délivrance du bien pour agir. Il peut obtenir la réparation ou le remplacement du bien non conforme, et, à défaut, la réduction du prix ou la résolution de la vente. Il est dispensé de rapporter la preuve de l’existence du défaut de conformité durant les vingt-quatre (24) mois suivant la délivrance du bien.</li>
-        <li><strong>Garantie des vices cachés</strong> (articles 1641 et suivants du Code civil)&nbsp;: le Client peut obtenir la résolution de la vente ou une réduction du prix, conformément à l’article 1644 du Code civil, dans un délai de deux (2) ans à compter de la découverte du vice.</li>
-    </ul>
-    <p>Pour mettre en œuvre ces garanties, le Client contacte le Vendeur à l’adresse <a href="mailto:<?= e($LEGAL['email']) ?>"><?= e($LEGAL['email']) ?></a>.</p>
-
-    <h2 id="art10"><span class="num">10.</span>Responsabilité</h2>
-    <p>Le Vendeur est responsable de plein droit à l’égard du Client de la bonne exécution des obligations résultant du contrat conclu à distance, sous réserve des exceptions prévues par la loi (fait du Client, fait imprévisible et insurmontable d’un tiers étranger au contrat, ou cas de force majeure).</p>
-    <p>La responsabilité du Vendeur ne saurait être engagée pour les dommages résultant d’une mauvaise utilisation des produits par le Client ou du non-respect des conseils d’utilisation.</p>
-
-    <h2 id="art11"><span class="num">11.</span>Données personnelles</h2>
-    <p>Les données collectées dans le cadre d’une commande sont nécessaires à son traitement et sont traitées conformément à la <a href="politique-de-confidentialite.php">Politique de confidentialité</a>, qui détaille les finalités, les durées de conservation et les droits du Client.</p>
-
-    <h2 id="art12"><span class="num">12.</span>Propriété intellectuelle</h2>
-    <p>Tous les éléments du Site demeurent la propriété exclusive du Vendeur. La vente d’un produit n’emporte aucune cession de droits de propriété intellectuelle sur les contenus du Site ou sur les produits.</p>
-
-    <h2 id="art13"><span class="num">13.</span>Force majeure</h2>
-    <p>La responsabilité du Vendeur ne pourra être engagée en cas d’inexécution ou de retard dans l’exécution de ses obligations résultant d’un cas de force majeure au sens de l’article 1218 du Code civil.</p>
-
-    <h2 id="art14"><span class="num">14.</span>Litiges et médiation de la consommation</h2>
-    <p>En cas de réclamation, le Client est invité à contacter préalablement le Vendeur à l’adresse <a href="mailto:<?= e($LEGAL['email']) ?>"><?= e($LEGAL['email']) ?></a> afin de rechercher une solution amiable.</p>
-    <p>Conformément aux articles L.612-1 et suivants du Code de la consommation, le Client consommateur peut recourir gratuitement à un médiateur de la consommation en vue de la résolution amiable du litige&nbsp;:</p>
-    <p>
-        <strong><?= e($LEGAL['mediateur_nom']) ?></strong><br>
-        <?= e($LEGAL['mediateur_adresse']) ?><br>
-        <a href="<?= e($LEGAL['mediateur_url']) ?>"><?= e($LEGAL['mediateur_url']) ?></a>
-    </p>
-    <p>Le Client peut également recourir à la plateforme européenne de règlement en ligne des litiges&nbsp;: <a href="https://ec.europa.eu/consumers/odr" rel="nofollow noopener" target="_blank">https://ec.europa.eu/consumers/odr</a>.</p>
-
-    <h2 id="art15"><span class="num">15.</span>Droit applicable</h2>
-    <p>Les présentes CGV sont soumises au droit français. À défaut de résolution amiable, tout litige relève de la compétence des tribunaux français compétents.</p>
-
-    <p class="back-top"><a href="#">↑ Revenir en haut</a></p>
-
+<div class="gnl-page" style="color: #141a33; background: #f4f6fa;">
+<!-- Titre -->
+<div style="background: #ffffff; border-bottom: 1px solid #c5cbd8;">
+<div style="max-width: 1240px; margin: 0 auto; padding: 56px 24px 0;">
+<p style="margin: 0 0 12px; font-size: 12px; font-weight: 700; letter-spacing: 0.2em; color: #1f7a4a;">INFORMATIONS LÉGALES</p>
+<h1 style="margin: 0 0 12px; font-size: 44px; line-height: 50px; font-weight: 800;">Conditions générales de vente</h1>
+<p style="margin: 0 0 32px; font-size: 15px; color: #5e6684;">Dernière mise à jour : [DATE DE MISE EN LIGNE]</p>
+<nav aria-label="Documents légaux" style="display: flex; flex-wrap: wrap; gap: 4px 28px; font-size: 15px; font-weight: 700;">
+<a href="/cgu" style="padding: 0 0 14px; color: #5e6684; text-decoration: none;">CGU</a>
+<a href="/cgv" aria-current="page" style="padding: 0 0 14px; color: #141a33; text-decoration: none; border-bottom: 3px solid #1f7a4a;">CGV</a>
+<a href="/politique-de-confidentialite" style="padding: 0 0 14px; color: #5e6684; text-decoration: none;">Politique de confidentialité</a>
+</nav>
+</div>
 </div>
 
-<?php
-// Pied de page commun (identique à index.php)
-if (is_readable('../include/footer.php')) {
-    include '../include/footer.php';
-}
-?>
+<div style="max-width: 1240px; margin: 0 auto; padding: 48px 24px 96px; display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start;">
 
-</body>
-</html>
+<!-- Sommaire -->
+<nav class="toc" aria-label="Sommaire" style="flex: 1 1 240px; max-width: 300px;">
+<p style="margin: 0 0 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.2em; color: #5e6684;">SOMMAIRE</p>
+<a href="#objet">1. Objet et champ d'application</a>
+<a href="#prestataire">2. Identité du prestataire</a>
+<a href="#services">3. Services proposés</a>
+<a href="#commande">4. Commande depuis l'Espace Client</a>
+<a href="#prix">5. Prix et paiement</a>
+<a href="#duree">6. Durée, renouvellement et résiliation</a>
+<a href="#mise">7. Mise en service et disponibilité</a>
+<a href="#retractation">8. Droit de rétractation</a>
+<a href="#usage">9. Usage acceptable et suspension</a>
+<a href="#donnees-client">10. Données hébergées</a>
+<a href="#fin">11. Fin de contrat et récupération des données</a>
+<a href="#responsabilite">12. Responsabilité</a>
+<a href="#force">13. Force majeure</a>
+<a href="#litiges">14. Réclamations et médiation</a>
+<a href="#droit">15. Droit applicable</a>
+</nav>
+
+<!-- Contenu -->
+<article class="lg" style="flex: 999 1 560px; min-width: 0; max-width: 760px; background: #ffffff; border: 1px solid #c5cbd8; border-radius: 3px; padding: 8px 48px 40px;">
+<h2 id="objet"><span class="n">1.</span>Objet et champ d'application</h2>
+<p>Les présentes conditions générales de vente (les « CGV ») régissent la fourniture des services de GNL Solution (le « Prestataire ») à toute personne physique ou morale qui les souscrit (le « Client ») : associations, entreprises, entrepreneurs, étudiants et chercheurs.</p>
+<p>Toute commande implique l'acceptation sans réserve des CGV en vigueur à la date de la commande. Certaines dispositions ne s'appliquent qu'aux Clients consommateurs ou non-professionnels ; elles sont signalées comme telles.</p>
+<h2 id="prestataire"><span class="n">2.</span>Identité du prestataire</h2>
+<p>Gabin Grobost, entrepreneur individuel (EI), exerçant sous le nom commercial GNL Solution<br>20 rue Gustave Courbet, 25000 Besançon, France<br>SIREN 942 358 805 · SIRET 942 358 805 00011<br>TVA non applicable, article 293 B du CGI<br>E-mail : contact@gnl-solution.com · Téléphone : 03 65 67 01 69</p>
+<h2 id="services"><span class="n">3.</span>Services proposés</h2>
+<p>Le Prestataire propose notamment :</p>
+<ul><li><strong>Hébergement web</strong> : hébergement mutualisé de sites et d'applications (PHP, WordPress, offres développeur) sur l'infrastructure du Prestataire à Besançon ;</li><li><strong>Le Laboratoire</strong> : environnements virtualisés isolés destinés à l'apprentissage et à l'expérimentation en informatique et cybersécurité, proposés en collaboration avec [ASSOCIATION PARTENAIRE] ;</li><li><strong>L'Espace Client</strong> : portail de gestion des services, inclus dans tout abonnement.</li></ul>
+<p>Les caractéristiques de chaque offre (ressources, options, limites) sont décrites dans l'Espace Client au moment de la commande.</p>
+<h2 id="commande"><span class="n">4.</span>Commande depuis l'Espace Client</h2>
+<p>Toute commande se fait depuis l'Espace Client. Le Client choisit son service, vérifie le récapitulatif et le prix, corrige d'éventuelles erreurs, puis valide et paie. Un e-mail de confirmation récapitule la commande.</p>
+<p>Le Prestataire peut refuser une commande en cas de litige antérieur, d'informations manifestement erronées ou d'usage envisagé contraire à l'article « Usage acceptable ».</p>
+<h2 id="prix"><span class="n">5.</span>Prix et paiement</h2>
+<p>Les prix sont indiqués en euros. TVA non applicable, article 293 B du CGI : le montant affiché est le montant payé.</p>
+<p>Les abonnements sont payables d'avance, par période [MENSUELLE / ANNUELLE], par carte bancaire ou par les moyens proposés dans l'Espace Client, via notre prestataire de paiement sécurisé [Mollie]. Le Prestataire n'a jamais accès aux données bancaires du Client. Les factures sont disponibles dans l'Espace Client.</p>
+<p>Toute modification de prix est notifiée au Client au moins [30] jours avant son application ; le Client peut alors résilier sans frais.</p>
+<h2 id="duree"><span class="n">6.</span>Durée, renouvellement et résiliation</h2>
+<p>Les abonnements sont conclus pour la période choisie et se renouvellent tacitement pour une durée identique, sauf résiliation.</p>
+<p>Le Client peut résilier à tout moment depuis son Espace Client ; la résiliation prend effet à la fin de la période en cours, déjà payée. Pour les Clients consommateurs, le Prestataire rappelle par écrit la possibilité de ne pas reconduire un contrat annuel, conformément à l'article L.215-1 du Code de la consommation.</p>
+<h2 id="mise"><span class="n">7.</span>Mise en service et disponibilité</h2>
+<p>Le service est mis en service dans un délai de [DÉLAI DE MISE EN SERVICE] après confirmation du paiement.</p>
+<p>Le Prestataire met en œuvre les moyens nécessaires pour assurer une disponibilité de [TAUX DE DISPONIBILITÉ] % par mois, hors maintenances planifiées annoncées sur la page <a href="/stats">État des services</a>. Il s'agit d'une obligation de moyens. Des sauvegardes sont réalisées [FRÉQUENCE] et conservées [DURÉE] ; elles ne dispensent pas le Client de conserver ses propres copies.</p>
+<h2 id="retractation"><span class="n">8.</span>Droit de rétractation</h2>
+<p><em>Clients consommateurs uniquement.</em> Le Client dispose de quatorze (14) jours à compter de la souscription pour se rétracter, sans motif, par une déclaration dénuée d'ambiguïté envoyée à contact@gnl-solution.com ou depuis l'Espace Client (articles L.221-18 et suivants du Code de la consommation).</p>
+<p>Si le Client demande expressément que le service commence avant la fin de ce délai, il reste redevable du montant correspondant au service fourni jusqu'à sa rétractation (article L.221-25). Le remboursement intervient sous quatorze (14) jours, par le même moyen de paiement.</p>
+<p><strong>Modèle de formulaire de rétractation</strong> — À l'attention de GNL Solution, 20 rue Gustave Courbet, 25000 Besançon, contact@gnl-solution.com : je vous notifie par la présente ma rétractation du contrat portant sur le service ci-dessous. Service : … · Souscrit le : … · Nom : … · Adresse : … · Date : … · Signature (en cas d'envoi papier).</p>
+<h2 id="usage"><span class="n">9.</span>Usage acceptable et suspension</h2>
+<p>Le Client est seul responsable des contenus et données qu'il héberge. Il s'interdit d'utiliser les services pour héberger ou diffuser des contenus illicites, des logiciels malveillants, du spam, du hameçonnage, ou pour porter atteinte à la sécurité de l'infrastructure ou de tiers. Sur le Laboratoire, les tests offensifs sont limités aux machines fournies.</p>
+<p>En cas de manquement, de notification fondée de contenu illicite ou de risque pour la sécurité, le Prestataire peut suspendre tout ou partie du service, après information du Client sauf urgence, et résilier le contrat en cas de manquement grave ou répété. La décision est motivée.</p>
+<h2 id="donnees-client"><span class="n">10.</span>Données hébergées</h2>
+<p>Pour les données personnelles que le Client héberge sur ses services, le Client est responsable de traitement et le Prestataire agit en qualité de sous-traitant au sens de l'article 28 du RGPD : il ne traite ces données que sur instruction du Client, les héberge exclusivement à Besançon (France), en assure la sécurité et la confidentialité, et notifie toute violation de données dans les meilleurs délais. [Accord de traitement des données (DPA) disponible dans l'Espace Client.]</p>
+<h2 id="fin"><span class="n">11.</span>Fin de contrat et récupération des données</h2>
+<p>À la fin du contrat, le Client peut récupérer ses données depuis son Espace Client pendant [DURÉE] jours. Passé ce délai, les données et leurs sauvegardes sont supprimées définitivement, sauf obligation légale de conservation.</p>
+<h2 id="responsabilite"><span class="n">12.</span>Responsabilité</h2>
+<p>Le Prestataire est responsable de la bonne exécution de ses obligations, sauf fait du Client, fait d'un tiers ou force majeure. Envers les Clients professionnels, sa responsabilité est limitée aux dommages directs et plafonnée au montant payé au cours des douze (12) derniers mois. Rien dans les présentes ne limite les droits des Clients consommateurs prévus par la loi.</p>
+<h2 id="force"><span class="n">13.</span>Force majeure</h2>
+<p>Aucune partie n'est responsable d'un manquement causé par un cas de force majeure au sens de l'article 1218 du Code civil.</p>
+<h2 id="litiges"><span class="n">14.</span>Réclamations et médiation</h2>
+<p>Toute réclamation est adressée à contact@gnl-solution.com ou via la page <a href="/contact">Contact</a> ; une réponse est apportée sous [DÉLAI].</p>
+<p><em>Clients consommateurs.</em> À défaut d'accord, le Client peut recourir gratuitement au médiateur de la consommation : [NOM DU MÉDIATEUR], [ADRESSE], [SITE INTERNET] (articles L.612-1 et suivants du Code de la consommation).</p>
+<h2 id="droit"><span class="n">15.</span>Droit applicable</h2>
+<p>Les présentes CGV sont soumises au droit français. À défaut de résolution amiable, les litiges avec des Clients professionnels relèvent des tribunaux compétents de Besançon ; les Clients consommateurs conservent le bénéfice des règles de compétence légales.</p>
+</article>
+</div>
+</div>
+<?php gnl_ui_close(); ?>
