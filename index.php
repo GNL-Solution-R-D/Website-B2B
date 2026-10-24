@@ -39,7 +39,7 @@ gnl_ui_open('', '', array('head' => $gnl_head));
 <div style="max-width: 1240px; margin: 0 auto; padding: 0 24px 88px;">
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1px; background: #32385e; border: 1px solid #32385e;">
 <div style="background: #141a33; padding: 28px 28px 30px;">
-<p style="margin: 0; font-size: 44px; line-height: 1; font-weight: 800;">0,17 W</p>
+<p style="margin: 0; font-size: 44px; line-height: 1; font-weight: 800;">- W</p>
 <p style="margin: 10px 0 0; font-size: 14px; line-height: 20px; color: #c5cbd8;">consommés par site hébergé</p>
 </div>
 <div style="background: #141a33; padding: 28px 28px 30px;">
@@ -83,7 +83,7 @@ gnl_ui_open('', '', array('head' => $gnl_head));
 <button type="button" class="order-card" data-gnl-open="gnl-order" aria-haspopup="dialog" style="min-height: 100%; padding: 32px; border: 2px dashed #5e6684; border-radius: 3px; background: transparent; color: #141a33; display: flex; flex-direction: column; gap: 16px; align-items: center; justify-content: center; font: 800 20px/26px var(--font-display); cursor: pointer;">
 <span aria-hidden="true" class="order-plus" style="width: 64px; height: 64px; display: flex; align-items: center; justify-content: center;"><span class="order-fill"></span><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1f7a4a" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg></span>
 <span class="order-text">Commander un service</span>
-<span class="order-text" style="font: 400 14px/20px var(--font-display); color: #5e6684;">Depuis votre Espace Client</span>
+<span class="order-text" style="font: 400 14px/20px var(--font-display); color: #5e6684;">Choisissez ce qui vous convient</span>
 </button>
 
 </div>
@@ -101,7 +101,7 @@ gnl_ui_open('', '', array('head' => $gnl_head));
 <h2 style="margin: 0 0 20px; font-size: 40px; line-height: 46px; font-weight: 800;">Une infrastructure dans le vieux centre de Besançon.</h2>
 <p style="margin: 0 0 28px; font-size: 17px; line-height: 27px; color: #5e6684;">Plutôt que de construire, nous réutilisons : nos serveurs sont installés dans un bâtiment existant du centre historique. Des machines petites et sobres, mutualisées, pour une empreinte environnementale minimale.</p>
 <ul style="margin: 0 0 32px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px; font-size: 16px; line-height: 24px;">
-<li style="display: flex; gap: 12px; align-items: baseline;"><svg aria-hidden="true" width="9" height="16" viewBox="0 0 22 40"><path d="M13 0h9L9 40H0z" fill="#1f7a4a"></path></svg><span><strong>0,17 W</strong> consommés par site hébergé</span></li>
+<li style="display: flex; gap: 12px; align-items: baseline;"><svg aria-hidden="true" width="9" height="16" viewBox="0 0 22 40"><path d="M13 0h9L9 40H0z" fill="#1f7a4a"></path></svg><span><strong>- W</strong> consommés par site hébergé</span></li>
 <li style="display: flex; gap: 12px; align-items: baseline;"><svg aria-hidden="true" width="9" height="16" viewBox="0 0 22 40"><path d="M13 0h9L9 40H0z" fill="#1f7a4a"></path></svg><span>Micro-serveurs Raspberry Pi, mutualisés</span></li>
 <li style="display: flex; gap: 12px; align-items: baseline;"><svg aria-hidden="true" width="9" height="16" viewBox="0 0 22 40"><path d="M13 0h9L9 40H0z" fill="#1f7a4a"></path></svg><span>Méthode de mesure publiée : [LIEN VERS LA MÉTHODE]</span></li>
 </ul>

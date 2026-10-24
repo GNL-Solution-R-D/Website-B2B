@@ -48,7 +48,7 @@ gnl_ui_open('Votre solution', 'solutions', array('desc' => "Nos offres d'héberg
 <p style="margin: 0 0 32px; max-width: 620px; font-size: 18px; line-height: 28px; color: #c5cbd8;">Site PHP, WordPress, projet de développeur ou laboratoire d'apprentissage : chaque offre tourne sur nos serveurs sobres à Besançon et se gère depuis votre Espace Client.</p>
 <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 10px 28px; font-size: 15px; color: #ffffff;">
 <li style="display: flex; gap: 10px; align-items: center;"><svg aria-hidden="true" width="9" height="16" viewBox="0 0 22 40"><path d="M13 0h9L9 40H0z" fill="#5cd98b"/></svg>Hébergé à Besançon, 100 % UE</li>
-<li style="display: flex; gap: 10px; align-items: center;"><svg aria-hidden="true" width="9" height="16" viewBox="0 0 22 40"><path d="M13 0h9L9 40H0z" fill="#5cd98b"/></svg>0,17 W consommés par site</li>
+<li style="display: flex; gap: 10px; align-items: center;"><svg aria-hidden="true" width="9" height="16" viewBox="0 0 22 40"><path d="M13 0h9L9 40H0z" fill="#5cd98b"/></svg>- W consommés par site</li>
 <li style="display: flex; gap: 10px; align-items: center;"><svg aria-hidden="true" width="9" height="16" viewBox="0 0 22 40"><path d="M13 0h9L9 40H0z" fill="#5cd98b"/></svg>Résiliable à tout moment</li>
 </ul>
 </div>
@@ -144,7 +144,7 @@ gnl_ui_open('Votre solution', 'solutions', array('desc' => "Nos offres d'héberg
 <details style="border-bottom: 1px solid #c5cbd8;"><summary>Comment se passe la commande ?</summary><p>Tout se fait depuis votre Espace Client : vous choisissez l'offre, payez en ligne et suivez la mise en service. Le service est actif sous [DÉLAI DE MISE EN SERVICE].</p></details>
 <details style="border-bottom: 1px solid #c5cbd8;"><summary>Puis-je changer d'offre ou résilier ?</summary><p>Oui, à tout moment depuis l'Espace Client. Une résiliation prend effet à la fin de la période déjà payée, voir nos <a href="/cgv">CGV</a>.</p></details>
 <details style="border-bottom: 1px solid #c5cbd8;"><summary>Pouvez-vous migrer mon site existant ?</summary><p>[À COMPLÉTER : conditions de migration depuis un autre hébergeur.]</p></details>
-<details style="border-bottom: 1px solid #c5cbd8;"><summary>Comment est mesurée la consommation de 0,17 W par site ?</summary><p>[À COMPLÉTER : méthode de mesure, matériel, période.] <a href="/impact">En savoir plus sur notre impact</a>.</p></details>
+<details style="border-bottom: 1px solid #c5cbd8;"><summary>Comment est mesurée la consommation par site ?</summary><p>[À COMPLÉTER : méthode de mesure, matériel, période.] <a href="/impact">En savoir plus sur notre impact</a>.</p></details>
 </div>
 </section>
 

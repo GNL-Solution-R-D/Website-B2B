@@ -17,9 +17,9 @@ gnl_ui_open('Qui sommes-nous ?', 'apropos', array('desc' => 'GNL Solution, hébe
 </div>
 <dl style="flex: 1 1 280px; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: #32385e; border: 1px solid #32385e;">
 <div style="background: #141a33; padding: 20px;"><dt style="font-size: 12px; color: #c5cbd8;">Basé à</dt><dd style="margin: 6px 0 0; font-size: 22px; font-weight: 800;">Besançon</dd></div>
-<div style="background: #141a33; padding: 20px;"><dt style="font-size: 12px; color: #c5cbd8;">Depuis</dt><dd style="margin: 6px 0 0; font-size: 22px; font-weight: 800;">[ANNÉE]</dd></div>
-<div style="background: #141a33; padding: 20px;"><dt style="font-size: 12px; color: #c5cbd8;">Sites hébergés</dt><dd style="margin: 6px 0 0; font-size: 22px; font-weight: 800;">[X]</dd></div>
-<div style="background: #141a33; padding: 20px;"><dt style="font-size: 12px; color: #c5cbd8;">Par site</dt><dd style="margin: 6px 0 0; font-size: 22px; font-weight: 800;">0,17 W</dd></div>
+<div style="background: #141a33; padding: 20px;"><dt style="font-size: 12px; color: #c5cbd8;">Depuis</dt><dd style="margin: 6px 0 0; font-size: 22px; font-weight: 800;">2025</dd></div>
+<div style="background: #141a33; padding: 20px;"><dt style="font-size: 12px; color: #c5cbd8;">Sites hébergés</dt><dd style="margin: 6px 0 0; font-size: 22px; font-weight: 800;">-</dd></div>
+<div style="background: #141a33; padding: 20px;"><dt style="font-size: 12px; color: #c5cbd8;">Par site</dt><dd style="margin: 6px 0 0; font-size: 22px; font-weight: 800;">- W</dd></div>
 </dl>
 </div>
 </section>
