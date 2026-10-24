@@ -15,7 +15,7 @@
    « Passer la commande » mène à /commande qui lit ce même panier de session.
    ===================================================================== */
 
-if (!defined('GNL_WEBHOOK_URL'))  define('GNL_WEBHOOK_URL', 'https://api.gnl-solution.fr/webhook/boutique');
+if (!defined('GNL_WEBHOOK_URL'))  define('GNL_WEBHOOK_URL', 'https://n8n.gnl-cloud.us/webhook/boutique');
 if (!defined('GNL_CSV_FALLBACK')) define('GNL_CSV_FALLBACK', __DIR__ . '/product.csv');
 if (!defined('GNL_OPT_CSV'))      define('GNL_OPT_CSV', __DIR__ . '/product_option.csv');
 if (!defined('GNL_CACHE_TTL'))    define('GNL_CACHE_TTL', 300);

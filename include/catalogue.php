@@ -9,7 +9,7 @@
    ---------------------------------------------------------------------
    La liste des produits provient de la datatable n8n "product",
    interrogée via le webhook POST :
-        https://api.gnl-solution.fr/webhook/boutique
+        https://n8n.gnl-cloud.us/webhook/boutique
    En cas d'indisponibilité du webhook, on retombe automatiquement sur
    le fichier local product.csv (même structure de colonnes).
 
@@ -23,7 +23,7 @@
    ===================================================================== */
 
 if (!defined('GNL_WEBHOOK_URL')) {
-    define('GNL_WEBHOOK_URL', 'https://api.gnl-solution.fr/webhook/boutique');
+    define('GNL_WEBHOOK_URL', 'https://n8n.gnl-cloud.us/webhook/boutique');
 }
 if (!defined('GNL_CSV_FALLBACK')) {
     define('GNL_CSV_FALLBACK', is_readable(dirname(__DIR__) . '/product.csv') ? dirname(__DIR__) . '/product.csv' : dirname(__DIR__) . '/pages/product.csv');
@@ -34,7 +34,7 @@ if (!defined('GNL_CACHE_TTL')) {
 
 /* --- Partenaires ("Nous avons contribué à leurs projets") -----------
    Source : datatable n8n "partner" via le MÊME webhook que la boutique
-        https://api.gnl-solution.fr/webhook/boutique   (action = partner.list)
+        https://n8n.gnl-cloud.us/webhook/boutique   (action = partner.list)
    Repli automatique sur partner.csv (mêmes colonnes) si indisponible.
    Colonnes attendues : id, comercial_name, url, banner_logo_file,
                         createdAt, updatedAt

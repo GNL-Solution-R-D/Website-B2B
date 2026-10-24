@@ -18,7 +18,7 @@ if (!defined('GNL_ESPACE_CLIENT_URL')) define('GNL_ESPACE_CLIENT_URL', gnl_cfg('
 
 /* Webhook n8n qui reçoit les formulaires (contact, incident, contenu illicite).
    Même webhook que la boutique ; on distingue les cas par le champ "action". */
-if (!defined('GNL_FORMS_WEBHOOK_URL')) define('GNL_FORMS_WEBHOOK_URL', gnl_cfg('GNL_FORMS_WEBHOOK_URL', 'https://api.gnl-solution.fr/webhook/boutique'));
+if (!defined('GNL_FORMS_WEBHOOK_URL')) define('GNL_FORMS_WEBHOOK_URL', gnl_cfg('GNL_FORMS_WEBHOOK_URL', 'https://n8n.gnl-cloud.us/webhook/boutique'));
 
 /* Adresse de repli : si le webhook ne répond pas, le formulaire part par mail(). */
 if (!defined('GNL_FORMS_MAIL_TO')) define('GNL_FORMS_MAIL_TO', gnl_cfg('GNL_FORMS_MAIL_TO', 'contact@gnl-solution.com'));
