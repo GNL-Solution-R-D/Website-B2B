@@ -856,4 +856,8 @@ return array(
   'Paiement sécurisé par Mollie.' => 'Turvaline makse Mollie kaudu.',
   'Panier : {0} produits' => 'Ostukorv: {0} toodet',
   '<x1>{0} € / an</x1>' => '<x1>{0} € / aastas</x1>',
+  'Nous avons contribué à leurs projets' => 'Oleme panustanud nende projektidesse',
+  'Les noms, logos et produits cités restent la propriété exclusive de leurs détenteurs respectifs.' => 'Nimetatud nimed, logod ja tooted jäävad nende vastavate omanike ainuomandiks.',
+  'Ils ont travaillé avec nous' => 'Nad on meiega koostööd teinud',
+  'Associations, entreprises et partenaires du territoire.' => 'Ühingud, ettevõtted ja kohalikud partnerid.',
 );

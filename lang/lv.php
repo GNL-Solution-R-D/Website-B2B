@@ -856,4 +856,8 @@ return array(
   'Paiement sécurisé par Mollie.' => 'Droša maksāšana ar Mollie.',
   'Panier : {0} produits' => 'Grozs: produkti: {0}',
   '<x1>{0} € / an</x1>' => '<x1>{0} € / gadā</x1>',
+  'Nous avons contribué à leurs projets' => 'Esam piedalījušies viņu projektos',
+  'Les noms, logos et produits cités restent la propriété exclusive de leurs détenteurs respectifs.' => 'Minētie nosaukumi, logotipi un produkti ir to attiecīgo īpašnieku ekskluzīvs īpašums.',
+  'Ils ont travaillé avec nous' => 'Viņi ir strādājuši ar mums',
+  'Associations, entreprises et partenaires du territoire.' => 'Biedrības, uzņēmumi un vietējie partneri.',
 );

@@ -856,4 +856,8 @@ return array(
   'Paiement sécurisé par Mollie.' => 'Ħlas sigur permezz ta\' Mollie.',
   'Panier : {0} produits' => 'Basket: {0} prodotti',
   '<x1>{0} € / an</x1>' => '<x1>{0} € / sena</x1>',
+  'Nous avons contribué à leurs projets' => 'Ikkontribwejna għall-proġetti tagħhom',
+  'Les noms, logos et produits cités restent la propriété exclusive de leurs détenteurs respectifs.' => 'L-ismijiet, il-logos u l-prodotti msemmija jibqgħu proprjetà esklussiva tas-sidien rispettivi tagħhom.',
+  'Ils ont travaillé avec nous' => 'Ħadmu magħna',
+  'Associations, entreprises et partenaires du territoire.' => 'Assoċjazzjonijiet, negozji u sħab lokali.',
 );

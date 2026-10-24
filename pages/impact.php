@@ -1,13 +1,7 @@
 <?php
 /* Notre impact — contenu issu de la maquette validée. */
 require_once __DIR__ . '/../include/layout.php';
-$gnl_head = <<<'GNLHEAD'
-<style>
-a{color:#1f7a4a}a:hover{color:#141a33}
-.step{counter-increment:st}
-.step::before{content:counter(st);display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex:none;background:#141a33;color:#5cd98b;font-weight:800;font-size:15px;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)}
-</style>
-GNLHEAD;
+$gnl_head = gnl_css('impact');   // assets/gnl/page/impact.css
 gnl_ui_open('Notre impact', 'impact', array('desc' => 'Notre impact : un hébergement sobre à Besançon, des chiffres publiés avec leur méthode.', 'head' => $gnl_head, 'main' => false));
 ?>
 <div class="gnl-page" style="color: #141a33; background: #f4f6fa;">

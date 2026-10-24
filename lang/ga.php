@@ -856,4 +856,8 @@ return array(
   'Paiement sécurisé par Mollie.' => 'Íocaíocht shlán trí Mollie.',
   'Panier : {0} produits' => 'Cairt: táirgí: {0}',
   '<x1>{0} € / an</x1>' => '<x1>{0} € / bliain</x1>',
+  'Nous avons contribué à leurs projets' => 'Chuireamar lena dtionscadail',
+  'Les noms, logos et produits cités restent la propriété exclusive de leurs détenteurs respectifs.' => 'Is le húinéirí faoi seach amháin na hainmneacha, na lógónna agus na táirgí a luaitear.',
+  'Ils ont travaillé avec nous' => 'D\'oibrigh siad linn',
+  'Associations, entreprises et partenaires du territoire.' => 'Cumainn, gnólachtaí agus comhpháirtithe áitiúla.',
 );

@@ -197,7 +197,10 @@ function gnl_i18n_url($region, $lang, $rest = null) {
     if ($rest === null) $rest = $GLOBALS['GNL_I18N']['rest'];
     $R = gnl_i18n_regions();
     $path = '/' . $lang . ($rest === '/' ? '/' : $rest);
-    if (!empty($GLOBALS['GNL_I18N']['dev']) || !isset($R[$region])) return $path;   // hôte de test : même hôte
+    if (!isset($R[$region])) return $path;
+    if (!empty($GLOBALS['GNL_I18N']['dev']) || !empty($GLOBALS['GNL_I18N']['single'])) {   // un seul domaine / hôte de test
+        return $region === $GLOBALS['GNL_I18N']['region'] ? $path : $path . '?gnl_region=' . $region;
+    }
     return 'https://' . $R[$region]['host'] . $path;
 }
 
@@ -476,21 +479,72 @@ function gnl_i18n_fix_location() {
 }
 
 /* Dictionnaire des chaînes JS externes (gnl.js, solutions.js) : window.gnlT(). */
+/* Dictionnaire des scripts : fichier externe /<langue>/js/i18n.js (mis en cache), plus de bloc en ligne. */
 function gnl_i18n_js_dict() {
+    return gnl_js('i18n');
+}
+function gnl_i18n_js_dict_code() {
     $f = dirname(__DIR__) . '/lang/_js_keys.php';
     $keys = is_readable($f) ? (array) include $f : array();
     $cat = gnl_i18n_catalog();
     $d = array();
     foreach ($keys as $k) if (isset($cat[$k])) $d[$k] = $cat[$k];
     $json = json_encode((object) $d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG);
-    return '<script>window.GNL_LANG=' . json_encode(gnl_lang()) . ';window.GNL_LOCALE=' . json_encode(gnl_i18n_locale(gnl_region(), gnl_lang()))
-         . ';window.GNL_I18N=' . $json . ';window.gnlT=function(s){var t=window.GNL_I18N[s];return t===undefined?s:t;};</script>';
+    return 'window.GNL_LANG=' . json_encode(gnl_lang()) . ';window.GNL_LOCALE=' . json_encode(gnl_i18n_locale(gnl_region(), gnl_lang()))
+         . ';window.GNL_I18N=' . $json . ';window.gnlT=function(s){var t=window.GNL_I18N[s];return t===undefined?s:t;};' . "\n";
+}
+
+/* ===================== Ressources externes (GreenIT) ==================
+   Feuilles et scripts propres à une page : assets/gnl/page/<nom>.css|js.
+   Le paramètre ?v= change à chaque modification : cache navigateur d'un an. */
+function gnl_asset($p) {
+    $f = dirname(__DIR__) . $p;
+    return $p . (is_file($f) ? '?v=' . base_convert((string) filemtime($f), 10, 36) : '');
+}
+function gnl_css($name) {
+    return '<link rel="stylesheet" href="' . htmlspecialchars(gnl_asset('/assets/gnl/page/' . $name . '.css'), ENT_QUOTES) . '">';
+}
+/* Script de page servi par le routeur (/<langue>/js/<nom>.js) : ses chaînes
+   sont traduites comme l'étaient celles des scripts en ligne. */
+function gnl_js($name) {
+    $root = dirname(__DIR__);
+    $f = $root . '/assets/gnl/page/' . $name . '.js';
+    $l = $root . '/lang/' . gnl_lang() . '.php';
+    $v = (is_file($f) ? filemtime($f) : 0) + (is_file($l) ? filemtime($l) : 0) + (is_file(__FILE__) ? filemtime(__FILE__) : 0);
+    return '<script src="/' . gnl_lang() . '/js/' . $name . '.js?v=' . base_convert((string) $v, 10, 36) . '" defer></script>';
+}
+function gnl_i18n_serve_js($name) {
+    header('Content-Type: application/javascript; charset=UTF-8');
+    header('X-Content-Type-Options: nosniff');
+    if ($name === 'i18n') {
+        $js = gnl_i18n_js_dict_code();
+    } else {
+        $f = dirname(__DIR__) . '/assets/gnl/page/' . $name . '.js';
+        if (!preg_match('/^[a-z0-9-]+$/', $name) || !is_file($f)) {
+            http_response_code(404); header('Cache-Control: no-store'); echo '/* introuvable */'; return;
+        }
+        $js = (string) file_get_contents($f);
+        if (gnl_lang() !== 'fr' || gnl_cfg('GNL_I18N_COLLECT', '') !== '') {
+            $w = gnl_i18n_script('<script>' . $js . '</script>');
+            $js = substr($w, 8, -9);
+        }
+    }
+    header('Cache-Control: public, max-age=31536000, immutable');
+    header('ETag: "' . substr(md5($js), 0, 16) . '"');
+    echo $js;
 }
 
 /* Balises <link rel="alternate" hreflang> de la page courante. */
 function gnl_i18n_hreflang() {
     if (!empty($GLOBALS['GNL_I18N']['dev'])) return '';
     $out = '';
+    if (!empty($GLOBALS['GNL_I18N']['single'])) {          // un seul domaine : une version par langue, sans région
+        $R = gnl_i18n_regions();
+        foreach ($R['eu']['langs'] as $l) {
+            $out .= '<link rel="alternate" hreflang="' . $l . '" href="' . htmlspecialchars('/' . $l . ($GLOBALS['GNL_I18N']['rest'] === '/' ? '/' : $GLOBALS['GNL_I18N']['rest'])) . '">' . "\n";
+        }
+        return $out;
+    }
     foreach (gnl_i18n_regions() as $rk => $r) {
         if ($rk === 'in') continue;
         foreach ($r['langs'] as $l) {

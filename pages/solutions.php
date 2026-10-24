@@ -36,22 +36,7 @@ foreach ($GNL_OPTIONS as &$gnl_o) { $gnl_o['name'] = gnl_t($gnl_o['name']); $gnl
 unset($gnl_o);
 $jsData = array('products' => $jsProducts, 'options' => $GNL_OPTIONS);
 
-$gnl_head = <<<'GNLHEAD'
-<style>
-a{color:#1f7a4a}a:hover{color:#141a33}
-button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid #1f7a4a;outline-offset:2px}
-.faq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:16px;align-items:center;padding:20px 0;font-size:17px;font-weight:700}
-.faq summary::-webkit-details-marker{display:none}
-.faq summary::after{content:"+";font-size:24px;font-weight:400;color:#1f7a4a}
-.faq details[open] summary::after{content:"–"}
-.faq p{margin:0 0 20px;font-size:15px;line-height:24px;color:#5e6684;max-width:760px}
-.gnl-offer[hidden]{display:none}
-.gnl-optrow{border:1px solid #c5cbd8;border-radius:3px;background:#fff}
-.gnl-optrow.is-on{border:2px solid #1f7a4a;background:#f3fbf6}
-.gnl-optrow label{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;cursor:pointer}
-.gnl-optrow input[type=checkbox]{width:20px;height:20px;margin:1px 0 0;flex:none;accent-color:#1f7a4a}
-</style>
-GNLHEAD;
+$gnl_head = gnl_css('solutions');   // assets/gnl/page/solutions.css
 gnl_ui_open('Votre solution', 'solutions', array('desc' => "Nos offres d'hébergement PHP, WordPress, développeur et Laboratoire, sur des serveurs sobres à Besançon.", 'head' => $gnl_head, 'main' => false));
 ?>
 <div class="gnl-page" style="color: #141a33; background: #f4f6fa;">
@@ -190,5 +175,5 @@ gnl_ui_open('Votre solution', 'solutions', array('desc' => "Nos offres d'héberg
 </div>
 </div>
 
-<script type="application/json" id="gnl-sol-data"><?php echo json_encode($jsData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP); ?></script>
-<?php gnl_ui_close('<script src="/assets/gnl/solutions.js" defer></script>'); ?>
+<div id="gnl-sol-data" hidden data-json="<?php echo htmlspecialchars(json_encode($jsData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8'); ?>"></div>
+<?php gnl_ui_close('<script src="' . gnl_asset('/assets/gnl/solutions.js') . '" defer></script>'); ?>

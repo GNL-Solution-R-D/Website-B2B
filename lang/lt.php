@@ -856,4 +856,8 @@ return array(
   'Paiement sécurisé par Mollie.' => 'Saugus mokėjimas per Mollie.',
   'Panier : {0} produits' => 'Krepšelis: produktų: {0}',
   '<x1>{0} € / an</x1>' => '<x1>{0} € / metus</x1>',
+  'Nous avons contribué à leurs projets' => 'Prisidėjome prie jų projektų',
+  'Les noms, logos et produits cités restent la propriété exclusive de leurs détenteurs respectifs.' => 'Minimi pavadinimai, logotipai ir produktai išlieka išimtine atitinkamų savininkų nuosavybe.',
+  'Ils ont travaillé avec nous' => 'Jie dirbo su mumis',
+  'Associations, entreprises et partenaires du territoire.' => 'Asociacijos, įmonės ir vietos partneriai.',
 );

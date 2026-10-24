@@ -1,0 +1,12 @@
+a{color:#1f7a4a}a:hover{color:#141a33}
+button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid #1f7a4a;outline-offset:2px}
+.faq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:16px;align-items:center;padding:20px 0;font-size:17px;font-weight:700}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";font-size:24px;font-weight:400;color:#1f7a4a}
+.faq details[open] summary::after{content:"–"}
+.faq p{margin:0 0 20px;font-size:15px;line-height:24px;color:#5e6684;max-width:760px}
+.gnl-offer[hidden]{display:none}
+.gnl-optrow{border:1px solid #c5cbd8;border-radius:3px;background:#fff}
+.gnl-optrow.is-on{border:2px solid #1f7a4a;background:#f3fbf6}
+.gnl-optrow label{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;cursor:pointer}
+.gnl-optrow input[type=checkbox]{width:20px;height:20px;margin:1px 0 0;flex:none;accent-color:#1f7a4a}

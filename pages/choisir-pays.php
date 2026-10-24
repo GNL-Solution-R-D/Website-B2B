@@ -15,7 +15,8 @@ if (!headers_sent()) header('Content-Type: text/html; charset=UTF-8');
 <title>GNL Solution — Choisissez votre pays</title>
 <meta name="description" content="Hébergement web bas carbone à Besançon. Choisissez votre pays et votre langue.">
 <link rel="icon" href="/assets/gnl/img/logo-gnl-icone.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/assets/gnl/gnl.css">
+<link rel="stylesheet" href="<?php echo gnl_asset('/assets/gnl/gnl.css'); ?>">
+<link rel="stylesheet" href="<?php echo gnl_asset('/assets/gnl/print.css'); ?>" media="print">
 <?php
 $GLOBALS['GNL_I18N']['dev'] = false;
 foreach (gnl_i18n_regions() as $rk => $r) {

@@ -1,20 +1,7 @@
 <?php
 /* Conditions générales de vente — contenu issu de la maquette validée. */
 require_once __DIR__ . '/../include/layout.php';
-$gnl_head = <<<'GNLHEAD'
-<style>
-a{color:#1f7a4a}a:hover{color:#141a33}
-.lg h2{font-size:24px;line-height:30px;font-weight:800;margin:48px 0 14px;scroll-margin-top:24px}
-.lg h3{font-size:17px;line-height:24px;font-weight:700;margin:24px 0 8px}
-.lg p,.lg li{font-size:16px;line-height:26px}
-.lg p{margin:0 0 14px}
-.lg ul{margin:0 0 14px;padding-left:22px}
-.lg li{margin-bottom:6px}
-.lg .n{color:#1f7a4a;margin-right:10px}
-.toc a{display:block;padding:7px 0 7px 14px;border-left:2px solid #c5cbd8;color:#5e6684;text-decoration:none;font-size:14px;line-height:20px}
-.toc a:hover{color:#141a33;border-left-color:#1f7a4a}
-</style>
-GNLHEAD;
+$gnl_head = gnl_css('legal');   // assets/gnl/page/legal.css
 gnl_ui_open('Conditions générales de vente', '', array('desc' => 'Conditions générales de vente des services GNL Solution.', 'head' => $gnl_head));
 ?>
 <div class="gnl-page" style="color: #141a33; background: #f4f6fa;">

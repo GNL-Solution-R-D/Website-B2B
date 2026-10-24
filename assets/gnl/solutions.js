@@ -15,7 +15,7 @@
   var dataEl = document.getElementById('gnl-sol-data');
   if (!dataEl) return;
   var DATA = {};
-  try { DATA = JSON.parse(dataEl.textContent); } catch (e) { return; }
+  try { DATA = JSON.parse(dataEl.getAttribute('data-json') || dataEl.textContent); } catch (e) { return; }
   var fmt = new Intl.NumberFormat(window.GNL_LOCALE || 'fr-FR', { style: 'currency', currency: 'EUR' });
   var $ = function (id) { return document.getElementById(id); };
   var LANG = window.GNL_LANG ? '/' + window.GNL_LANG : '';

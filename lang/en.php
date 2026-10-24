@@ -856,4 +856,8 @@ return array(
   'Paiement sécurisé par Mollie.' => 'Secure payment by Mollie.',
   'Panier : {0} produits' => 'Cart: {0} products',
   '<x1>{0} € / an</x1>' => '<x1>{0} € / year</x1>',
+  'Nous avons contribué à leurs projets' => 'We contributed to their projects',
+  'Les noms, logos et produits cités restent la propriété exclusive de leurs détenteurs respectifs.' => 'Names, logos and products mentioned remain the exclusive property of their respective owners.',
+  'Ils ont travaillé avec nous' => 'They have worked with us',
+  'Associations, entreprises et partenaires du territoire.' => 'Associations, businesses and local partners.',
 );

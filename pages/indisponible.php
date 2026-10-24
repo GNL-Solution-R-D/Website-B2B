@@ -15,7 +15,8 @@ if (!headers_sent()) header('Content-Type: text/html; charset=UTF-8');
 <meta name="robots" content="noindex">
 <title>Service non disponible dans votre pays — GNL Solution</title>
 <link rel="icon" href="/assets/gnl/img/logo-gnl-icone.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/assets/gnl/gnl.css">
+<link rel="stylesheet" href="<?php echo gnl_asset('/assets/gnl/gnl.css'); ?>">
+<link rel="stylesheet" href="<?php echo gnl_asset('/assets/gnl/print.css'); ?>" media="print">
 </head>
 <body style="background: #141a33; color: #ffffff;">
 <main id="contenu" style="flex: 1 0 auto; display: flex; align-items: center; justify-content: center; padding: 48px 16px;">

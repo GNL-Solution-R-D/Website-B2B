@@ -856,4 +856,8 @@ return array(
   'Paiement sécurisé par Mollie.' => 'Ασφαλής πληρωμή μέσω Mollie.',
   'Panier : {0} produits' => 'Καλάθι: {0} προϊόντα',
   '<x1>{0} € / an</x1>' => '<x1>{0} € / έτος</x1>',
+  'Nous avons contribué à leurs projets' => 'Συμβάλαμε στα έργα τους',
+  'Les noms, logos et produits cités restent la propriété exclusive de leurs détenteurs respectifs.' => 'Οι αναφερόμενες ονομασίες, λογότυπα και προϊόντα παραμένουν αποκλειστική ιδιοκτησία των αντίστοιχων κατόχων τους.',
+  'Ils ont travaillé avec nous' => 'Συνεργάστηκαν μαζί μας',
+  'Associations, entreprises et partenaires du territoire.' => 'Σύλλογοι, επιχειρήσεις και τοπικοί συνεργάτες.',
 );

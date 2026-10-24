@@ -28,6 +28,24 @@ Toutes les URL sont préfixées par la langue : `https://eu.gnl-solution.com/de/
    Le même dossier sert tous les domaines (`gnl-solution.com`, `eu.`, `ch.`, `ca.`, `uk.gnl-solution.com`, `in.gnl-solution.fr`).
 2. **Apache** : le fichier `.htaccess` envoie tout ce qui n'est pas un fichier réel vers `router.php` (`mod_rewrite` requis)
    et bloque `include/`, `lang/`, `geoip/` et `pages/`.
+   **Debian l'ignore par défaut** (`AllowOverride None` sur `/var/www`) : les adresses `/fr/`, `/it/…` répondent alors
+   « Not Found ». À faire une fois sur le serveur :
+   ```bash
+   sudo a2enmod rewrite headers expires env
+   # dans le vhost du site (/etc/apache2/sites-available/…conf), à l'intérieur de <VirtualHost> :
+   #   <Directory /var/www/gnl-solution>        # ← dossier du site
+   #       AllowOverride All
+   #       Require all granted
+   #   </Directory>
+   sudo apachectl configtest && sudo systemctl reload apache2
+   ```
+   Un vhost prêt à l'emploi est fourni : `deploy/apache-gnl-solution.conf` (tous les sous-domaines sur le même dossier,
+   `AllowOverride All`, `FallbackResource /router.php`, dossiers internes bloqués même sans `.htaccess`).
+   **Vérification** : `curl -I https://ch.gnl-solution.com/it/` doit répondre `200` (ou `302` vers `/it/`) ; une page
+   « Not Found » blanche d'Apache signifie que `router.php` n'est pas atteint (vhost / `AllowOverride`), alors qu'une
+   page 404 aux couleurs GNL signifie que le routage fonctionne. `sudo apache2ctl -S` liste les vhosts et leur dossier.
+   **Mode « un seul domaine »** (dépannage uniquement) : `SetEnv GNL_SINGLE_HOST 1` garde tout sur `gnl-solution.com/<langue>/…`,
+   la région étant choisie par géolocalisation, cookie ou `?gnl_region=ch`. Par défaut chaque région a son sous-domaine.
    **Nginx** : équivalent à ajouter dans le bloc `server` (un seul bloc avec tous les `server_name`) :
    ```nginx
    server_name gnl-solution.com eu.gnl-solution.com ch.gnl-solution.com ca.gnl-solution.com uk.gnl-solution.com in.gnl-solution.fr;
@@ -50,6 +68,18 @@ Toutes les URL sont préfixées par la langue : `https://eu.gnl-solution.com/de/
 | `GNL_MATOMO_SITE_ID` | `1` | Identifiant du site dans Matomo |
 | `GNL_STATS_TOOL` | `Matomo` | Nom affiché dans la fenêtre RGPD |
 | `GNL_DELAI_REPONSE` | `48 h ouvrées` | Délai affiché sur la page Contact |
+
+
+## Sobriété (GreenIT)
+
+- **Pas de CSS ni de JavaScript en ligne** : styles propres à une page dans `assets/gnl/page/<page>.css`, scripts dans
+  `assets/gnl/page/<page>.js`. Les scripts sont servis par le routeur à l'adresse `/<langue>/js/<page>.js` : leurs
+  textes sont traduits comme le reste du site. Le dictionnaire JS est `/<langue>/js/i18n.js`.
+- **Cache navigateur** : CSS et JS sont appelés avec `?v=<date de modification>` (fonctions `gnl_asset()`, `gnl_css()`,
+  `gnl_js()` dans `include/i18n.php`) et mis en cache un an ; images 30 jours. En-têtes posés par le `.htaccess` et par
+  `deploy/apache-gnl-solution.conf` (modules `headers` et `expires`).
+- **Impression** : `assets/gnl/print.css` (chargée avec `media="print"`) masque en-tête, pied de page, menus, boutons
+  et photos, et imprime en noir sur blanc.
 
 ## Régions, domaines et langues
 
@@ -84,6 +114,7 @@ Toutes les URL sont préfixées par la langue : `https://eu.gnl-solution.com/de/
 
 | Variable | Défaut | Rôle |
 |---|---|---|
+| `GNL_SINGLE_HOST` | `0` | `0` = un sous-domaine par région (eu./ch./ca./uk.) ; `1` = tout sur un seul domaine (dépannage) |
 | `GNL_ROOT_HOST` | `gnl-solution.com` | Domaine racine qui aiguille les visiteurs |
 | `GNL_HOST_EU` / `_CH` / `_CA` / `_UK` | `eu.` / `ch.` / `ca.` / `uk.gnl-solution.com` | Hôte de chaque région |
 | `GNL_HOST_IN` | `in.gnl-solution.fr` | Hôte de la page « non disponible » (attention : en `.fr`, comme demandé ; le cookie de choix n'y est pas partagé) |

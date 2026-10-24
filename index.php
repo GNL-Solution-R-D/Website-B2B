@@ -4,31 +4,16 @@
    Contenu issu de la maquette validée ; partenaires et prix « dès »
    chargés depuis le catalogue n8n (include/catalogue.php).
    ===================================================================== */
+/* Servie directement par Apache (.htaccess ignoré, DirectoryIndex index.php) :
+   on repasse par le contrôleur frontal pour avoir région, langue et liens corrects. */
+if (empty($GLOBALS['GNL_ROUTED'])) { require __DIR__ . '/router.php'; return; }
 require_once __DIR__ . '/include/catalogue.php';
 require_once __DIR__ . '/include/layout.php';
 $GNL_PRODUCTS = gnl_load_products();
 $GNL_PARTNERS = gnl_load_partners();
 $GNL_MIN_WEB  = gnl_cat_min_price($GNL_PRODUCTS, 'web_pro');
 $GNL_MIN_EDU  = gnl_cat_min_price($GNL_PRODUCTS, 'web_edu');
-$gnl_head = <<<'GNLHEAD'
-<style>
-a{color:#5cd98b}a:hover{color:#ffffff}
-.order-card{position:relative;isolation:isolate;overflow:hidden;transition:border-color .3s ease,color .3s ease}
-.order-plus{position:relative;transition:border-color .3s ease}
-.order-plus svg{position:relative;z-index:1;transition:transform .5s cubic-bezier(.2,.7,.2,1)}
-.order-plus svg path{transition:stroke .3s ease}
-.order-fill{position:absolute;left:-2px;top:-2px;width:64px;height:64px;border-radius:50%;background:#1f7a4a;transform:scale(0);transition:transform .6s cubic-bezier(.2,.7,.2,1);z-index:0;pointer-events:none}
-.order-text{position:relative;z-index:1;transition:color .3s ease}
-.order-card:hover,.order-card:focus-visible{border-color:#1f7a4a !important;border-style:solid !important}
-.order-card:hover .order-fill,.order-card:focus-visible .order-fill{transform:scale(14)}
-.order-card:hover .order-plus,.order-card:focus-visible .order-plus{border-color:#ffffff !important}
-.order-card:hover .order-plus svg,.order-card:focus-visible .order-plus svg{transform:rotate(90deg)}
-.order-card:hover .order-plus svg path,.order-card:focus-visible .order-plus svg path{stroke:#ffffff}
-.order-card:hover .order-text,.order-card:focus-visible .order-text{color:#ffffff !important}
-.order-card:focus-visible{outline:3px solid #141a33;outline-offset:3px}
-@media (prefers-reduced-motion: reduce){.order-fill,.order-plus svg,.order-text,.order-card{transition:none}}
-</style>
-GNLHEAD;
+$gnl_head = gnl_css('accueil');   // assets/gnl/page/accueil.css
 gnl_ui_open('', '', array('head' => $gnl_head));
 ?>
 <div class="gnl-page" style="color: #ffffff; background: #141a33;">

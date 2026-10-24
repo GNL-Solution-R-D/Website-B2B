@@ -62,7 +62,8 @@ if (!function_exists('gnl_ui_open')) {
 <link rel="icon" href="/assets/gnl/img/favicon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="/assets/gnl/img/favicon-180.png">
 <link rel="preload" href="/assets/gnl/fonts/Manrope.ttf" as="font" type="font/ttf" crossorigin>
-<link rel="stylesheet" href="/assets/gnl/gnl.css">
+<link rel="stylesheet" href="<?php echo gnl_asset('/assets/gnl/gnl.css'); ?>">
+<link rel="stylesheet" href="<?php echo gnl_asset('/assets/gnl/print.css'); ?>" media="print">
 <?php echo gnl_i18n_hreflang(); ?>
 <?php echo gnl_i18n_js_dict(); ?>
 <?php if (!empty($opts['head'])) echo $opts['head'] . "\n"; ?>
@@ -82,7 +83,7 @@ if (!function_exists('gnl_ui_close')) {
         if (!isset($opts['main']) || $opts['main'] !== false) echo "\n</main>\n";
         include __DIR__ . '/footer.php';
         ?>
-<script src="/assets/gnl/gnl.js" defer></script>
+<script src="<?php echo gnl_asset('/assets/gnl/gnl.js'); ?>" defer></script>
 <?php echo $scripts; ?>
 </body>
 </html>
@@ -97,23 +98,7 @@ if (!function_exists('gnl_ui_stats_snippet')) {
         if (GNL_MATOMO_URL === '') return;
         if (isset($_COOKIE['gnl_stats_optout']) && $_COOKIE['gnl_stats_optout'] === '1') return;
         $u = rtrim(GNL_MATOMO_URL, '/') . '/';
-        ?>
-<script>
-  if (document.cookie.indexOf('gnl_stats_optout=1') === -1) {
-    var _paq = window._paq = window._paq || [];
-    _paq.push(['setCookieDomain', location.hostname]);
-    _paq.push(['setVisitorCookieTimeout', 34186669]); // 13 mois max (CNIL)
-    _paq.push(['trackPageView']);
-    _paq.push(['enableLinkTracking']);
-    (function() {
-      var u = <?php echo json_encode($u); ?>;
-      _paq.push(['setTrackerUrl', u + 'matomo.php']);
-      _paq.push(['setSiteId', <?php echo json_encode((string) GNL_MATOMO_SITE_ID); ?>]);
-      var d = document, g = d.createElement('script'), s = d.getElementsByTagName('script')[0];
-      g.async = true; g.src = u + 'matomo.js'; s.parentNode.insertBefore(g, s);
-    })();
-  }
-</script>
-<?php
+        /* Script externe (assets/gnl/stats-matomo.js), paramètres en attributs data- */
+        echo '<script src="' . gnl_ui_h(gnl_asset('/assets/gnl/stats-matomo.js')) . '" data-u="' . gnl_ui_h($u) . '" data-site="' . gnl_ui_h((string) GNL_MATOMO_SITE_ID) . '" defer></script>' . "\n";
     }
 }

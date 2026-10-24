@@ -3,13 +3,7 @@
 require_once __DIR__ . '/../include/catalogue.php';
 require_once __DIR__ . '/../include/layout.php';
 $GNL_PARTNERS = gnl_load_partners();
-$gnl_head = <<<'GNLHEAD'
-<style>
-a{color:#1f7a4a}a:hover{color:#141a33}
-.step{counter-increment:st}
-.step::before{content:counter(st);display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex:none;background:#141a33;color:#5cd98b;font-weight:800;font-size:15px;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)}
-</style>
-GNLHEAD;
+$gnl_head = gnl_css('qui-sommes-nous');   // assets/gnl/page/qui-sommes-nous.css
 gnl_ui_open('Qui sommes-nous ?', 'apropos', array('desc' => 'GNL Solution, hébergeur de proximité né à Besançon : notre histoire, nos valeurs, notre équipe.', 'head' => $gnl_head, 'main' => false));
 ?>
 <div class="gnl-page" style="color: #141a33; background: #f4f6fa;">

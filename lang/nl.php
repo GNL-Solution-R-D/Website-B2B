@@ -856,4 +856,8 @@ return array(
   'Paiement sécurisé par Mollie.' => 'Veilig betalen via Mollie.',
   'Panier : {0} produits' => 'Winkelwagen: {0} producten',
   '<x1>{0} € / an</x1>' => '<x1>{0} € / jaar</x1>',
+  'Nous avons contribué à leurs projets' => 'Wij hebben bijgedragen aan hun projecten',
+  'Les noms, logos et produits cités restent la propriété exclusive de leurs détenteurs respectifs.' => 'De genoemde namen, logo\'s en producten blijven exclusief eigendom van hun respectieve eigenaars.',
+  'Ils ont travaillé avec nous' => 'Zij werkten met ons samen',
+  'Associations, entreprises et partenaires du territoire.' => 'Verenigingen, bedrijven en lokale partners.',
 );

@@ -1,0 +1,16 @@
+a{color:#1f7a4a}a:hover{color:#141a33}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid #1f7a4a;outline-offset:2px}
+.gnl-typecard{display:block;text-align:left;padding:20px 22px;border-radius:3px;border:1px solid #c5cbd8;background:#fff;color:#141a33;text-decoration:none;font:400 14px/21px var(--font-display)}
+.gnl-typecard strong{display:block;font-size:17px;font-weight:800;margin-bottom:4px}
+.gnl-typecard span{color:#5e6684}
+.gnl-typecard:hover{border-color:#141a33;color:#141a33}
+.gnl-typecard[aria-current="page"]{border:2px solid #1f7a4a;background:#eef8f2}
+.gnl-radio{position:relative}
+.gnl-radio input,.gnl-card-radio input{position:absolute;opacity:0;width:1px;height:1px}
+.gnl-radio span{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:3px;border:1px solid #c5cbd8;background:#fff;color:#141a33;font:600 14px var(--font-display);cursor:pointer}
+.gnl-radio input:checked+span{background:#141a33;border-color:#141a33;color:#fff}
+.gnl-card-radio{position:relative;display:block}
+.gnl-card-radio span{display:block;min-height:72px;padding:14px 16px;border-radius:3px;border:1px solid #c5cbd8;background:#fff;color:#5e6684;font:400 14px/20px var(--font-display);cursor:pointer}
+.gnl-card-radio span strong{display:block;font-size:15px;font-weight:700;margin-bottom:2px;color:#141a33}
+.gnl-card-radio input:checked+span{border:2px solid #1f7a4a;background:#eef8f2;padding:13px 15px}
+.gnl-radio input:focus-visible+span,.gnl-card-radio input:focus-visible+span{outline:2px solid #1f7a4a;outline-offset:2px}

@@ -1,0 +1,17 @@
+.gnl-orgs{display:flex; flex-direction:column; gap:.7rem; margin:.2rem 0 1.2rem}
+.gnl-org{position:relative; display:flex; gap:.85rem; align-items:flex-start;
+  border:1px solid var(--gnl-line); border-radius:3px; padding:.9rem 1rem;
+  cursor:pointer; transition:border-color .15s, box-shadow .15s, background .15s}
+.gnl-org:hover{border-color:color-mix(in srgb,var(--gnl-green) 45%, transparent)}
+.gnl-org input{position:absolute; opacity:0; pointer-events:none}
+.gnl-org .dot{flex:none; width:20px; height:20px; margin-top:1px; border-radius:50%;
+  border:2px solid var(--gnl-line); transition:border-color .15s; position:relative}
+.gnl-org .txt{min-width:0}
+.gnl-org .t{font-weight:700; font-size:.98rem; line-height:1.25; overflow-wrap:anywhere}
+.gnl-org .s{font-size:.82rem; color:#6a6f66; margin-top:.15rem; overflow-wrap:anywhere}
+.gnl-org:has(input:checked){border-color:var(--gnl-green);
+  box-shadow:0 0 0 1px var(--gnl-green) inset; background:color-mix(in srgb,var(--gnl-green) 5%, #fff)}
+.gnl-org:has(input:checked) .dot{border-color:var(--gnl-green)}
+.gnl-org:has(input:checked) .dot::after{content:""; position:absolute; inset:3px;
+  border-radius:50%; background:var(--gnl-green)}
+.gnl-org input:focus-visible ~ .dot{outline:2px solid var(--gnl-teal); outline-offset:2px}

@@ -856,4 +856,8 @@ return array(
   'Paiement sécurisé par Mollie.' => 'Bezpečná platba cez Mollie.',
   'Panier : {0} produits' => 'Košík: produktov: {0}',
   '<x1>{0} € / an</x1>' => '<x1>{0} € / rok</x1>',
+  'Nous avons contribué à leurs projets' => 'Podieľali sme sa na ich projektoch',
+  'Les noms, logos et produits cités restent la propriété exclusive de leurs détenteurs respectifs.' => 'Uvedené názvy, logá a produkty zostávajú výhradným vlastníctvom ich príslušných vlastníkov.',
+  'Ils ont travaillé avec nous' => 'Spolupracovali s nami',
+  'Associations, entreprises et partenaires du territoire.' => 'Združenia, firmy a miestni partneri.',
 );

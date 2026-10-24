@@ -31,17 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$gnl_head = <<<'GNLHEAD'
-<style>
-a{color:#1f7a4a}a:hover{color:#141a33}
-input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid #1f7a4a;outline-offset:2px}
-.gnl-radio{position:relative}
-.gnl-radio input{position:absolute;opacity:0;width:1px;height:1px}
-.gnl-radio span{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:3px;border:1px solid #c5cbd8;background:#fff;color:#141a33;font:600 14px var(--font-display);cursor:pointer}
-.gnl-radio input:checked+span{background:#141a33;border-color:#141a33;color:#fff}
-.gnl-radio input:focus-visible+span{outline:2px solid #1f7a4a;outline-offset:2px}
-</style>
-GNLHEAD;
+$gnl_head = gnl_css('contact');   // assets/gnl/page/contact.css
 gnl_ui_open('Contact', 'contact', array('desc' => 'Contactez GNL Solution, hébergeur bas carbone à Besançon : formulaire, téléphone, adresse.', 'head' => $gnl_head, 'main' => false));
 ?>
 <div class="gnl-page" style="color: #141a33; background: #f4f6fa;">

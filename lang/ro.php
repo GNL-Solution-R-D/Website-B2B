@@ -856,4 +856,8 @@ return array(
   'Paiement sécurisé par Mollie.' => 'Plată securizată prin Mollie.',
   'Panier : {0} produits' => 'Coș: {0} produse',
   '<x1>{0} € / an</x1>' => '<x1>{0} € / an</x1>',
+  'Nous avons contribué à leurs projets' => 'Am contribuit la proiectele lor',
+  'Les noms, logos et produits cités restent la propriété exclusive de leurs détenteurs respectifs.' => 'Numele, siglele și produsele menționate rămân proprietatea exclusivă a deținătorilor lor.',
+  'Ils ont travaillé avec nous' => 'Au lucrat cu noi',
+  'Associations, entreprises et partenaires du territoire.' => 'Asociații, întreprinderi și parteneri locali.',
 );

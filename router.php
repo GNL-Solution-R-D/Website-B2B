@@ -18,17 +18,58 @@ $R      = gnl_i18n_regions();
 $host   = strtolower(preg_replace('/:\d+$/', '', isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : ''));
 $uri    = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '/';
 $path   = (string) parse_url($uri, PHP_URL_PATH);
+if ($path === '/router.php' || $path === '/index.php') $path = '/';   // appel direct du fichier = page d'accueil
 $query  = (string) parse_url($uri, PHP_URL_QUERY);
 $method = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET';
 $isBot  = gnl_i18n_is_bot();
 $qs     = $query !== '' ? '?' . $query : '';
 
+$GLOBALS['GNL_ROUTED'] = true;   // index.php appelé directement (Apache sans .htaccess) repasse par ici
+
 /* ---------- Région d'après l'hôte ---------- */
 $region = null; $dev = false;
-foreach ($R as $rk => $r) if ($host === $r['host']) { $region = $rk; break; }
-if ($region === null) {
-    if ($host === GNL_ROOT_HOST || $host === 'www.' . GNL_ROOT_HOST) $region = 'root';
-    else { $region = GNL_DEV_REGION; $dev = true; }        // localhost, préproduction : une seule région
+/* Par défaut : un sous-domaine par région (eu./ch./ca./uk.). GNL_SINGLE_HOST=1 = tout sur un seul
+   domaine, région choisie par géolocalisation, cookie ou ?gnl_region (dépannage, préproduction). */
+$single = (gnl_cfg('GNL_SINGLE_HOST', '0') === '1');
+if (!$single) {
+    foreach ($R as $rk => $r) if ($host === $r['host']) { $region = $rk; break; }
+    if ($region === null) {
+        if ($host === GNL_ROOT_HOST || $host === 'www.' . GNL_ROOT_HOST) $region = 'root';
+        else { $region = GNL_DEV_REGION; $dev = true; }    // localhost, préproduction : une seule adresse
+    }
+}
+
+/* ---------- Domaine unique (GNL_SINGLE_HOST=1) ou hôte de test ----------
+   La région ne vient pas du sous-domaine : ?gnl_region=ch (lien de la fenêtre
+   « Pays et langue »), sinon choix mémorisé, sinon géolocalisation. */
+if ($single || $dev) {
+    $want = isset($_GET['gnl_region']) ? (string) $_GET['gnl_region'] : '';
+    if ($want !== '' && isset($R[$want])) {
+        if ($single) {
+            $sv = gnl_i18n_saved();
+            $l0 = ($sv && in_array($sv[1], $R[$want]['langs'], true)) ? $sv[1] : $R[$want]['default'];
+            gnl_i18n_save($want, $l0);
+        } else {
+            setcookie('gnl_dev_region', $want, array('expires' => 0, 'path' => '/', 'samesite' => 'Lax'));
+        }
+        $cleanQ = $_GET; unset($cleanQ['gnl_region']);
+        $cleanQ = $cleanQ ? '?' . http_build_query($cleanQ) : '';
+        header('Location: ' . $path . $cleanQ, true, 302);
+        header('Cache-Control: private, no-store');
+        exit;
+    }
+    if ($single) {
+        $sv = gnl_i18n_saved();
+        if ($sv) {
+            $region = $sv[0];
+        } else {
+            list($region, $geoLang) = gnl_router_target();
+            if ($region !== 'in') $GLOBALS['gnl_router_geo_lang'] = $geoLang;
+        }
+    } else {
+        $dr = isset($_COOKIE['gnl_dev_region']) ? (string) $_COOKIE['gnl_dev_region'] : '';
+        if (isset($R[$dr])) $region = $dr;
+    }
 }
 
 /* ---------- Fichiers techniques hors langue ---------- */
@@ -41,6 +82,15 @@ $lang = null; $rest = $path;
 if (preg_match('#^/([a-z]{2})(/.*)?$#', $path, $m) && in_array($m[1], $langs, true)) {
     $lang = $m[1];
     $rest = isset($m[2]) && $m[2] !== '' ? $m[2] : '/';
+}
+if ($rest === '/router.php' || $rest === '/index.php') $rest = '/';   // /fr/router.php = accueil
+
+/* ---------- Scripts de page traduits : /<langue>/js/<nom>.js (avant toute redirection) ---------- */
+if ($lang !== null && $region !== 'root' && preg_match('#^/js/([a-z0-9-]+)\.js$#', $rest, $jm)) {
+    $jr = ($region === 'in' || !isset($R[$region])) ? 'eu' : $region;
+    $GLOBALS['GNL_I18N'] = array('region' => $jr, 'lang' => $lang, 'rest' => $rest, 'dev' => $dev, 'single' => $single);
+    gnl_i18n_serve_js($jm[1]);
+    return;
 }
 
 function gnl_router_redirect($url, $code = 302) {
@@ -76,7 +126,7 @@ if ($region === 'root') {
 /* ---------- Région « in » : service non disponible ---------- */
 if ($region === 'in') {
     if ($lang === null) gnl_router_redirect('/' . gnl_i18n_pick($R['in']['langs'], 'en') . '/');
-    $GLOBALS['GNL_I18N'] = array('region' => 'in', 'lang' => $lang, 'rest' => '/', 'dev' => $dev);
+    $GLOBALS['GNL_I18N'] = array('region' => 'in', 'lang' => $lang, 'rest' => '/', 'dev' => $dev, 'single' => $single);
     http_response_code(451);
     chdir(__DIR__ . '/pages');
     ob_start('gnl_i18n_filter');
@@ -87,7 +137,7 @@ if ($region === 'in') {
 $allowed = $R[$region]['langs'];
 
 /* ---------- Première visite : bonne région ? ---------- */
-if (!$dev && !$isBot && ($method === 'GET' || $method === 'HEAD') && !gnl_i18n_saved()) {
+if (!$dev && !$single && !$isBot && ($method === 'GET' || $method === 'HEAD') && !gnl_i18n_saved()) {
     $geo = gnl_geo_locate();
     if ($geo) {
         list($tr, $tl) = gnl_i18n_target($geo['country'], $geo['sub']);
@@ -119,7 +169,7 @@ if ($lang === null || !in_array($lang, $allowed, true)) {
 }
 
 /* ---------- Page demandée ---------- */
-$GLOBALS['GNL_I18N'] = array('region' => $region, 'lang' => $lang, 'rest' => $rest, 'dev' => $dev);
+$GLOBALS['GNL_I18N'] = array('region' => $region, 'lang' => $lang, 'rest' => $rest, 'dev' => $dev, 'single' => $single);
 if (!$dev && !$isBot) gnl_i18n_save($region, $lang);
 header('Content-Language: ' . $lang);
 

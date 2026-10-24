@@ -1,0 +1,64 @@
+/* =====================================================================
+   GNL Solution — impression (règle GreenIT RWEB_0031)
+   Chargée avec media="print" : n'est téléchargée et appliquée que pour
+   l'impression. Masque l'habillage, économise l'encre (fond blanc,
+   texte noir) et n'imprime que le contenu utile.
+   ===================================================================== */
+@page { margin: 15mm 12mm; }
+
+/* Habillage et éléments interactifs : non imprimés */
+.gnl-hd, .gnl-ft, .gnl-skip, #gnl-nav, .gnl-hd-burger,
+.gnl-modal, .gnl-tabs, .gnl-close, .gnl-honey, .gnl-breadcrumb,
+.gnl-b, .gnl-btn, .gnl-btns, .gnl-cta, .gnl-pay, .gnl-pay-brands,
+.gnl-domain-search, .gnl-cart-qty, .gnl-cart-rm, .gnl-back,
+.order-card, .order-plus, .order-fill, .gnl-spin, .gnl-hd-cart, .gnl-hd-loc,
+button, video, audio, iframe, nav, form button,
+.gnlst-strip, .gnlst-legend,
+[aria-hidden="true"] { display: none !important; }
+
+/* Encre : fond blanc, texte noir, pas d'ombres ni de dégradés */
+*, *::before, *::after {
+  background: transparent !important;
+  background-image: none !important;
+  color: #000 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+html, body { background: #fff !important; font-size: 11pt; line-height: 1.45; }
+body { display: block !important; min-height: 0 !important; }
+
+/* Mise en page : une seule colonne, pleine largeur */
+main, section, article, aside, .gnl-page, .gnl-layout, .gnl-auth, .gnl-dlg,
+[style*="max-width"] {
+  max-width: none !important;
+  width: auto !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+[style*="grid-template-columns"], [style*="display: grid"], [style*="display:grid"],
+[style*="display: flex"], [style*="display:flex"], .gnl-layout { display: block !important; }
+section > div, main > div, [style*="padding: 80px"], [style*="padding: 96px"], [style*="padding: 64px"] {
+  padding-top: 0 !important; padding-bottom: 0 !important;
+}
+[style*="min-height"] { min-height: 0 !important; }
+[style*="position: sticky"], [style*="position:sticky"] { position: static !important; }
+section { padding-top: 4mm !important; padding-bottom: 4mm !important; }
+h1, h2 { margin-top: 4mm !important; }
+
+/* Photos et illustrations non imprimées ; seuls les logos des partenaires restent, en petit */
+img, svg, picture, video { display: none !important; }
+a[target="_blank"] > img { display: inline-block !important; max-width: 35mm !important; max-height: 15mm !important; width: auto !important; height: auto !important; }
+
+/* Cadres légers, sans aplats */
+[style*="border"] { border-color: #999 !important; }
+h1, h2, h3 { page-break-after: avoid; break-after: avoid; }
+p, li, tr, article, details { page-break-inside: avoid; break-inside: avoid; }
+details > * { display: block !important; }  /* FAQ : réponses imprimées */
+
+/* Liens : adresse imprimée après le texte (sauf liens internes ou téléphone) */
+a { text-decoration: underline; }
+a[href^="http"]:not([href*="gnl-solution"])::after { content: " (" attr(href) ")"; font-size: 9pt; word-break: break-all; }

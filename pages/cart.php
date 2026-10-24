@@ -315,20 +315,7 @@ $cartKicker = function ($p) use ($KICKERS) {
     if ($p['type'] === 'web_edu') return 'ÉTUDIANTS · CHERCHEURS';
     return isset($KICKERS[$p['categorie']]) ? $KICKERS[$p['categorie']] : 'HÉBERGEMENT WEB';
 };
-gnl_ui_open('Panier', 'cart', array('main' => false, 'head' => '<style>
-.gnl-cart-rm{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:10px 0;color:#5e6684;font:600 14px var(--font-display);text-decoration:none}
-.gnl-cart-rm:hover{color:#b42318}
-.gnl-cart-qty{display:inline-flex;align-items:center;gap:2px;font-size:14px;color:#5e6684}
-.gnl-cart-qty a{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #c5cbd8;border-radius:3px;color:#141a33;text-decoration:none;font-weight:700}
-.gnl-cart-qty a:hover{background:#f4f6fa}
-.gnl-cart-qty a[aria-disabled="true"]{opacity:.4;pointer-events:none}
-.gnl-cart-qty output{min-width:28px;text-align:center;font-weight:700;color:#141a33}
-.gnl-pay{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;border-radius:3px;color:#fff;font:700 16px var(--font-display);text-decoration:none;background-image:linear-gradient(135deg,#1f7a4a 0,#1f7a4a 50%,#5e6684 50%,#5e6684 100%);background-size:300% 300%;background-position:100% 100%;transition:background-position .7s cubic-bezier(.65,0,.35,1)}
-.gnl-pay.is-ready{background-position:0 0}
-.gnl-pay.is-ready:hover{background-image:linear-gradient(135deg,#17603a 0,#17603a 50%,#5e6684 50%,#5e6684 100%);color:#fff}
-.gnl-pay:hover{color:#fff}
-@media (prefers-reduced-motion: reduce){.gnl-pay{transition:none}}
-</style>'));
+gnl_ui_open('Panier', 'cart', array('main' => false, 'head' => gnl_css('cart')));
 $n = $cartCount;
 ?>
 <main id="contenu" style="flex: 1 0 auto; width: 100%; box-sizing: border-box; max-width: 1240px; margin: 0 auto; padding: 56px 24px 96px;">
@@ -419,16 +406,7 @@ else               echo $n > 1 ? $n . ' produits · vous pourrez vous connecter 
 </aside>
 
 </div>
-<script>
-(function(){
-  var cb = document.getElementById('gnl-cart-cgv'), pay = document.getElementById('gnl-cart-pay'), hint = document.getElementById('gnl-cart-cgv-hint');
-  if (!cb || !pay) return;
-  function sync(){ pay.classList.toggle('is-ready', cb.checked); pay.setAttribute('aria-disabled', cb.checked ? 'false' : 'true'); if (cb.checked && hint) hint.hidden = true; }
-  cb.addEventListener('change', sync);
-  pay.addEventListener('click', function(e){ if (!cb.checked){ e.preventDefault(); if (hint) hint.hidden = false; cb.focus(); } });
-  sync();
-})();
-</script>
+<?php echo gnl_js('cart'); ?>
 
 <?php endif; ?>
 
