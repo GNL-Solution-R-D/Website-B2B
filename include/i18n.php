@@ -481,6 +481,7 @@ function gnl_i18n_fix_location() {
 /* Dictionnaire des chaînes JS externes (gnl.js, solutions.js) : window.gnlT(). */
 /* Dictionnaire des scripts : fichier externe /<langue>/js/i18n.js (mis en cache), plus de bloc en ligne. */
 function gnl_i18n_js_dict() {
+    if (gnl_lang() === 'fr') return '';   // français = langue source : gnl.js fournit les valeurs par défaut (une requête de moins)
     return gnl_js('i18n');
 }
 function gnl_i18n_js_dict_code() {

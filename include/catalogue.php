@@ -343,12 +343,43 @@ function gnl_cat_min_price($products, $type) {
 }
 
 /* Logos partenaires (assets/img/partener_brand/<fichier>), en grille. */
+/* Logo réduit (128 px de haut, WebP) dans assets/img/partener_brand/mini/ : les originaux
+   pèsent jusqu'à 1,3 Mo pour un affichage de 64 px. Créé automatiquement si GD le permet. */
+function gnl_cat_partner_logo($logo) {
+    $dir  = dirname(__DIR__) . '/assets/img/partener_brand/';
+    $base = basename($logo);
+    $mini = 'mini/' . pathinfo($base, PATHINFO_FILENAME) . '.webp';
+    if (!is_file($dir . $mini) && is_file($dir . $base) && function_exists('imagewebp') && is_writable($dir . 'mini')) {
+        $data = @file_get_contents($dir . $base);
+        $im = $data !== false ? @imagecreatefromstring($data) : false;
+        if ($im) {
+            $w = imagesx($im); $h = imagesy($im);
+            $nh = min(128, $h); $nw = max(1, (int) round($w * $nh / $h));
+            if ($nw > 360) { $nw = 360; $nh = max(1, (int) round($h * $nw / $w)); }
+            $out = imagecreatetruecolor($nw, $nh);
+            imagealphablending($out, false); imagesavealpha($out, true);
+            imagefill($out, 0, 0, imagecolorallocatealpha($out, 0, 0, 0, 127));
+            imagecopyresampled($out, $im, 0, 0, 0, 0, $nw, $nh, $w, $h);
+            @imagewebp($out, $dir . $mini, 82);
+        }
+    }
+    if (is_file($dir . $mini)) return array('/assets/img/partener_brand/' . $mini, $dir . $mini);
+    return array('/assets/img/partener_brand/' . $base, $dir . $base);
+}
+
 function gnl_cat_render_partners($partners) {
     foreach ((array) $partners as $p) {
         $logo = ltrim((string) $p['logo'], '/');
         if ($logo === '') continue;
         $name = gnl_e($p['name']);
-        $img  = '<img loading="lazy" decoding="async" src="/assets/img/partener_brand/' . gnl_e($logo) . '" alt="' . $name . '" style="max-width:100%;max-height:64px;width:auto;object-fit:contain">';
+        /* Petits logos (≤ 6 Ko) intégrés dans la page : une requête HTTP de moins par partenaire (EcoIndex). */
+        list($src, $file) = gnl_cat_partner_logo($logo);
+        $mime = array('webp' => 'image/webp', 'png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'svg' => 'image/svg+xml', 'gif' => 'image/gif');
+        $ext  = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+        if (isset($mime[$ext]) && is_file($file) && filesize($file) <= 6144) {
+            $src = 'data:' . $mime[$ext] . ';base64,' . base64_encode((string) file_get_contents($file));
+        }
+        $img  = '<img decoding="async" src="' . gnl_e($src) . '" alt="' . $name . '" style="max-width:100%;max-height:64px;width:auto;object-fit:contain">';
         $box  = 'height:88px;border:1px solid #e3e6ee;border-radius:3px;display:flex;align-items:center;justify-content:center;padding:12px;background:#fff';
         if (trim((string) $p['url']) !== '') {
             echo '<a href="' . gnl_e($p['url']) . '" title="' . $name . '" target="_blank" rel="noopener noreferrer" style="' . $box . '">' . $img . '</a>' . "\n";

@@ -48,7 +48,7 @@ if (!function_exists('gnl_ui_open')) {
         $fullTitle = ($title === '' ? 'GNL Solution — Hébergement bas carbone à Besançon' : $title . ' — GNL Solution');
         if (!headers_sent()) header('Content-Type: text/html; charset=UTF-8');
         ?><!DOCTYPE html>
-<html lang="<?php echo gnl_lang(); ?>">
+<html lang="<?php echo gnl_lang(); ?>" data-locale="<?php echo gnl_ui_h(gnl_i18n_locale(gnl_region(), gnl_lang())); ?>">
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="content-language" content="<?php echo gnl_lang(); ?>">
@@ -61,7 +61,7 @@ if (!function_exists('gnl_ui_open')) {
 <link rel="icon" href="/assets/gnl/img/favicon-32.png" sizes="32x32">
 <link rel="icon" href="/assets/gnl/img/favicon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="/assets/gnl/img/favicon-180.png">
-<link rel="preload" href="/assets/gnl/fonts/Manrope.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="/assets/gnl/fonts/Manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="<?php echo gnl_asset('/assets/gnl/gnl.css'); ?>">
 <link rel="stylesheet" href="<?php echo gnl_asset('/assets/gnl/print.css'); ?>" media="print">
 <?php echo gnl_i18n_hreflang(); ?>

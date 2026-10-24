@@ -3,7 +3,9 @@
    Marine #141a33 · vert #5cd98b / #1f7a4a · Manrope · rayons 3 px
    ===================================================================== */
 
-@font-face{font-family:"Manrope";font-style:normal;font-weight:200 800;font-display:swap;src:url("/assets/gnl/fonts/Manrope.ttf") format("truetype")}
+/* Manrope en WOFF2, découpée par alphabet : le grec et le cyrillique ne sont téléchargés que s'ils sont affichés */
+@font-face{font-family:"Manrope";font-style:normal;font-weight:200 800;font-display:swap;src:url("/assets/gnl/fonts/Manrope-latin.woff2") format("woff2");unicode-range:U+0000-00FF,U+0100-017F,U+0131,U+0152-0153,U+0218-021B,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2190-2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Manrope";font-style:normal;font-weight:200 800;font-display:swap;src:url("/assets/gnl/fonts/Manrope-grec-cyr.woff2") format("woff2");unicode-range:U+0370-03FF,U+1F00-1FFF,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
 
 :root{
   --navy-950:#141a33; --navy-800:#232b52; --navy-700:#32385e;

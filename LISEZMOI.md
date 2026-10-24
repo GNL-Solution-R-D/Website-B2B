@@ -78,6 +78,11 @@ Toutes les URL sont préfixées par la langue : `https://eu.gnl-solution.com/de/
 - **Cache navigateur** : CSS et JS sont appelés avec `?v=<date de modification>` (fonctions `gnl_asset()`, `gnl_css()`,
   `gnl_js()` dans `include/i18n.php`) et mis en cache un an ; images 30 jours. En-têtes posés par le `.htaccess` et par
   `deploy/apache-gnl-solution.conf` (modules `headers` et `expires`).
+- **EcoIndex** : fenêtres « Pays et langue », « Vos données » et « Commander » rangées dans des `<template>` (hors du DOM
+  jusqu'au premier clic) ; police Manrope en WOFF2 découpée (latin 29 Ko, grec/cyrillique 18 Ko chargé seulement si
+  besoin) ; logos SVG optimisés ; logos partenaires réduits en WebP 128 px dans `assets/img/partener_brand/mini/` et
+  intégrés à la page s'ils font moins de 6 Ko. Nouveau logo partenaire : sa version réduite est créée automatiquement
+  si PHP a GD avec WebP et que le dossier `mini/` est accessible en écriture (sinon l'original est utilisé).
 - **Impression** : `assets/gnl/print.css` (chargée avec `media="print"`) masque en-tête, pied de page, menus, boutons
   et photos, et imprime en noir sur blanc.
 

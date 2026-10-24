@@ -32,6 +32,8 @@ if (!function_exists('gnl_ui_h')) {
 </footer>
 
 <!-- Fenêtre RGPD et statistiques -->
+<!-- Gabarits : hors du DOM tant que la fenêtre n'est pas ouverte (sobriété, EcoIndex) -->
+<template id="tpl-gnl-rgpd">
 <div class="gnl-modal" id="gnl-rgpd" hidden>
   <div class="gnl-modal-box" role="dialog" aria-modal="true" aria-labelledby="titre-rgpd">
     <div class="gnl-modal-head">
@@ -57,8 +59,10 @@ if (!function_exists('gnl_ui_h')) {
     </div>
   </div>
 </div>
+</template>
 
 <!-- Fenêtre pays et langue -->
+<template id="tpl-gnl-loc">
 <div class="gnl-modal" id="gnl-loc" hidden>
   <div class="gnl-modal-box" role="dialog" aria-modal="true" aria-labelledby="titre-loc" style="max-width: 760px;">
     <div class="gnl-modal-head">
@@ -78,3 +82,4 @@ if (!function_exists('gnl_ui_h')) {
     <?php endforeach; ?>
   </div>
 </div>
+</template>

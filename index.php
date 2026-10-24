@@ -156,7 +156,8 @@ gnl_ui_open('', '', array('head' => $gnl_head));
 </div>
 </section>
 </div>
-<!-- Modale de commande -->
+<!-- Modale de commande (gabarit inséré à l'ouverture) -->
+<template id="tpl-gnl-order">
 <div class="gnl-modal" id="gnl-order" hidden>
 <div role="dialog" aria-modal="true" aria-labelledby="titre-commande" style="width: 100%; max-width: 560px; max-height: calc(100vh - 48px); overflow: auto; background: #ffffff; color: #141a33; border-radius: 3px; padding: 36px;">
 <div style="display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; margin-bottom: 8px;">
@@ -175,5 +176,6 @@ gnl_ui_open('', '', array('head' => $gnl_head));
 <p style="margin: 20px 0 0; font-size: 14px; color: #5e6684;">Une question avant de commander ? <a href="/contact" style="color: #1f7a4a; font-weight: 700;">Contactez-nous</a></p>
 </div>
 </div>
+</template>
 
 <?php gnl_ui_close(); ?>
