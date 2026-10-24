@@ -174,300 +174,261 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $csrf    = gnl_csrf_token();
 $retAttr = gnl_e($return);
-$logUrl  = '/connexion?return=' . rawurlencode($return);
 $v = function ($k) use ($vals) { return gnl_e(isset($vals[$k]) ? $vals[$k] : ''); };
 $paysDefault = $vals['org_pays'] !== '' ? $vals['org_pays'] : 'France';
+$pt = $vals['profil_type'];
 
 gnl_auth_head('Créer un compte', 'inscription', true, $wantOrg ? 'has-org' : '');
 ?>
-    <form method="post" action="/inscription" data-gnl-auth autocomplete="on">
-      <input type="hidden" name="csrf" value="<?php echo gnl_e($csrf); ?>">
-      <input type="hidden" name="return" value="<?php echo $retAttr; ?>">
+<form method="post" action="/inscription" data-gnl-auth autocomplete="on" style="display:contents">
+  <input type="hidden" name="csrf" value="<?php echo gnl_e($csrf); ?>">
+  <input type="hidden" name="return" value="<?php echo $retAttr; ?>">
+  <input type="hidden" name="cgv" value="1"><?php /* acceptation des CGU par la création du compte (mention sous le bouton) */ ?>
 
-      <div class="gnl-auth-cols">
+  <!-- ============ Panneau organisation (à gauche, profil Entreprise) ============ -->
+  <section class="gnl-orgpanel" id="org-panel" aria-labelledby="titre-org">
+    <div>
+      <p class="kicker">ENTREPRISE</p>
+      <h2 id="titre-org">Informations de l'organisation</h2>
+      <p class="sub">Nécessaire pour vos factures et devis.</p>
+    </div>
 
-        <!-- ===================== Carte compte (gauche) ===================== -->
-        <section class="gnl-card">
-          <h1>Créer un compte</h1>
-          <p class="sub">Quelques informations et vous pourrez commander en quelques clics.</p>
+    <label class="gnl-lbl" for="org_siret">SIRET <span aria-hidden="true">*</span>
+      <input class="gnl-in" type="text" id="org_siret" name="org_siret" value="<?php echo $v('org_siret'); ?>"
+             inputmode="numeric" maxlength="17" autocomplete="off" placeholder="942 358 805 00011" aria-describedby="aide-siret siret-status" data-req="1">
+    </label>
+    <p class="gnl-hint gnl-under" id="aide-siret">Nous complétons automatiquement les informations publiques de l'entreprise.</p>
+    <p class="gnl-hint gnl-under" id="siret-status" aria-live="polite"></p>
 
-          <?php if ($error !== ''): ?>
-            <div class="gnl-msg err"><?php echo gnl_icon('err'); ?><span><?php echo gnl_e($error); ?></span></div>
-          <?php endif; ?>
+    <div class="gnl-g2">
+      <label class="gnl-lbl" for="siren_display">SIREN <span class="opt">(déduit du SIRET)</span>
+        <input class="gnl-in gnl-derived" type="text" id="siren_display" value="" placeholder="—" readonly tabindex="-1">
+      </label>
+      <label class="gnl-lbl" for="org_entite_legal">Forme juridique <span aria-hidden="true">*</span>
+        <input class="gnl-in" type="text" id="org_entite_legal" name="org_entite_legal" value="<?php echo $v('org_entite_legal'); ?>" list="formes" placeholder="SAS, EI, association…" data-req="1">
+        <datalist id="formes">
+          <option value="Association loi 1901"></option><option value="Entrepreneur individuel"></option><option value="EI"></option>
+          <option value="Micro-entreprise"></option><option value="EIRL"></option><option value="EURL"></option><option value="SARL"></option>
+          <option value="SAS"></option><option value="SASU"></option><option value="SA"></option><option value="SCI"></option><option value="SNC"></option>
+        </datalist>
+      </label>
+    </div>
 
-          <div class="gnl-field">
-            <label for="profil_type">Vous êtes</label>
-            <select class="gnl-in" id="profil_type" name="profil_type">
-              <?php
-              $pt = $vals['profil_type'];
-              $ptOptions = array(
-                  'particulier' => 'Je suis un particulier',
-                  'etudiant'    => 'Je suis étudiant',
-                  'entreprise'  => 'Je représente une entreprise ou une association',
-              );
-              foreach ($ptOptions as $val => $lbl) {
-                  echo '<option value="' . gnl_e($val) . '"' . ($pt === $val ? ' selected' : '') . '>' . gnl_e($lbl) . '</option>';
-              }
-              ?>
-            </select>
-          </div>
+    <label class="gnl-lbl" for="org_nom_commercial">Nom commercial <span aria-hidden="true">*</span>
+      <input class="gnl-in" type="text" id="org_nom_commercial" name="org_nom_commercial" value="<?php echo $v('org_nom_commercial'); ?>" data-req="1">
+    </label>
+    <label class="gnl-lbl" for="org_raison">Raison sociale <span aria-hidden="true">*</span>
+      <input class="gnl-in" type="text" id="org_raison" name="org_raison" value="<?php echo $v('org_raison'); ?>" autocomplete="organization" data-req="1">
+    </label>
 
-          <div class="gnl-note-etu" id="note-etu" role="note"<?php echo $vals['profil_type'] === 'etudiant' ? '' : ' hidden'; ?>>
-            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b54708" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M9 14h6M9 17h4"/></svg>
-            <p style="margin:0"><strong>Certificat de scolarité obligatoire.</strong> Après votre commande, vous devrez nous transmettre un certificat de scolarité de l'année en cours depuis votre Espace Client. Il est indispensable pour activer le service : sans certificat valide, la commande sera annulée et remboursée.</p>
-          </div>
-          <div class="gnl-note-org" id="note-org" role="note"<?php echo $vals['profil_type'] === 'entreprise' ? '' : ' hidden'; ?>>
-            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b54708" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>
-            <p style="margin:0"><strong>Vérification du compte entreprise.</strong> Les informations de votre organisation (complétez le panneau dédié) feront l'objet d'une vérification ultérieure par nos équipes : SIRET, raison sociale, adresse. En cas d'informations inexactes, nous pourrons demander des justificatifs, suspendre le compte ou annuler les commandes en cours.</p>
-          </div>
+    <label class="gnl-check" for="tva_assujetti">
+      <input type="checkbox" name="tva_assujetti" id="tva_assujetti" value="1" <?php echo $tvaAssujetti ? 'checked' : ''; ?>><span>Assujetti à la TVA</span>
+    </label>
+    <label class="gnl-lbl" for="org_tva" id="tva-field" hidden>N° TVA intracommunautaire <span aria-hidden="true">*</span>
+      <input class="gnl-in" type="text" id="org_tva" name="org_tva" value="<?php echo $v('org_tva'); ?>" placeholder="FR57947628517">
+    </label>
 
-          <div class="gnl-field row">
-            <div style="flex:0 0 42%">
-              <label for="civilite">Civilité</label>
-              <select class="gnl-in" id="civilite" name="civilite">
-                <?php
-                $civ = $vals['civilite'];
-                $civOptions = array('Monsieur', 'Madame', 'Maitre', 'Docteur', 'Professeur', 'Non communiqué');
-                echo '<option value=""' . ($civ === '' ? ' selected' : '') . '>—</option>';
-                foreach ($civOptions as $opt) {
-                    echo '<option value="' . gnl_e($opt) . '"' . ($civ === $opt ? ' selected' : '') . '>' . gnl_e($opt) . '</option>';
-                }
-                ?>
-              </select>
-            </div>
-            <div>
-              <label for="prenom">Prénom <span class="req">*</span></label>
-              <input class="gnl-in" type="text" id="prenom" name="prenom" value="<?php echo $v('prenom'); ?>"
-                     autocomplete="given-name" placeholder="Prénom" required>
-            </div>
-          </div>
+    <div class="gnl-g2">
+      <label class="gnl-lbl" for="org_ent_email">E-mail de l'entreprise
+        <input class="gnl-in" type="email" id="org_ent_email" name="org_ent_email" value="<?php echo $v('org_ent_email'); ?>" autocapitalize="none" placeholder="contact@entreprise.fr">
+      </label>
+      <label class="gnl-lbl" for="org_telephone">Téléphone
+        <input class="gnl-in" type="tel" id="org_telephone" name="org_telephone" value="<?php echo $v('org_telephone'); ?>">
+      </label>
+    </div>
 
-          <div class="gnl-field">
-            <label for="nom">Nom <span class="req">*</span></label>
-            <input class="gnl-in" type="text" id="nom" name="nom" value="<?php echo $v('nom'); ?>"
-                   autocomplete="family-name" placeholder="Nom" required>
-          </div>
+    <div class="gnl-g-num">
+      <label class="gnl-lbl" for="org_voie_nbr">N°
+        <input class="gnl-in" type="text" id="org_voie_nbr" name="org_voie_nbr" value="<?php echo $v('org_voie_nbr'); ?>" autocomplete="address-line2">
+      </label>
+      <label class="gnl-lbl" for="org_voie_name">Voie / rue <span aria-hidden="true">*</span>
+        <input class="gnl-in" type="text" id="org_voie_name" name="org_voie_name" value="<?php echo $v('org_voie_name'); ?>" autocomplete="address-line1" data-req="1">
+      </label>
+    </div>
 
-          <div class="gnl-field">
-            <label for="email">E-mail <span class="req">*</span></label>
-            <input class="gnl-in" type="email" id="email" name="email" value="<?php echo $v('email'); ?>"
-                   autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="vous@exemple.fr" required>
-          </div>
+    <div class="gnl-g-cp">
+      <label class="gnl-lbl" for="org_cp">Code postal <span aria-hidden="true">*</span>
+        <input class="gnl-in" type="text" id="org_cp" name="org_cp" value="<?php echo $v('org_cp'); ?>" inputmode="numeric" autocomplete="postal-code" data-req="1">
+      </label>
+      <label class="gnl-lbl" for="org_commune">Ville <span aria-hidden="true">*</span>
+        <input class="gnl-in" type="text" id="org_commune" name="org_commune" value="<?php echo $v('org_commune'); ?>" autocomplete="address-level2" data-req="1">
+      </label>
+    </div>
 
-          <div class="gnl-field">
-            <label for="phone">Téléphone <span style="font-weight:400;color:#9aa093">(facultatif)</span></label>
-            <input class="gnl-in" type="tel" id="phone" name="phone" value="<?php echo $v('phone'); ?>"
-                   autocomplete="tel" placeholder="06 12 34 56 78">
-          </div>
+    <div class="gnl-g2">
+      <label class="gnl-lbl" for="org_pays">Pays <span aria-hidden="true">*</span>
+        <input class="gnl-in" type="text" id="org_pays" name="org_pays" value="<?php echo gnl_e($paysDefault); ?>" autocomplete="country-name" list="pays" data-req="1">
+        <datalist id="pays"><option value="France"></option><option value="Belgique"></option><option value="Suisse"></option><option value="Luxembourg"></option></datalist>
+      </label>
+      <label class="gnl-lbl" for="org_namespace">Identifiant <span class="opt">(auto)</span>
+        <input class="gnl-in" type="text" id="org_namespace" name="org_namespace" value="<?php echo $v('org_namespace'); ?>" autocapitalize="none" spellcheck="false" placeholder="—">
+      </label>
+    </div>
+  </section>
 
-          <div class="gnl-field">
-            <label for="password">Mot de passe <span class="req">*</span></label>
-            <div class="gnl-pass">
-              <input class="gnl-in" type="password" id="password" name="password"
-                     autocomplete="new-password" placeholder="8 caractères minimum" minlength="8" required>
-              <button type="button" class="gnl-eye" aria-label="Afficher le mot de passe" tabindex="-1">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              </button>
-            </div>
-            <p class="gnl-hint">Au moins 8 caractères. Utilisez idéalement lettres, chiffres et symboles.</p>
-          </div>
+  <!-- ===================== Fenêtre principale ===================== -->
+<?php gnl_auth_dlg_open(gnl_auth_close_url($return)); ?>
+  <div class="gnl-dlg-body">
+    <p class="gnl-dlg-intro">Un seul compte pour commander, payer et gérer tous vos services depuis l'Espace Client.</p>
 
-          <div class="gnl-field">
-            <label for="password2">Confirmer le mot de passe <span class="req">*</span></label>
-            <div class="gnl-pass">
-              <input class="gnl-in" type="password" id="password2" name="password2"
-                     autocomplete="new-password" placeholder="Retapez le mot de passe" minlength="8" required>
-              <button type="button" class="gnl-eye" aria-label="Afficher le mot de passe" tabindex="-1">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              </button>
-            </div>
-          </div>
+    <?php gnl_auth_tabs('inscription', $return); ?>
 
-          <label class="gnl-check" style="margin:.2rem 0 1.1rem">
-            <input type="checkbox" name="cgv" value="1" required>
-            <span>J'accepte les <a class="gnl-link" href="/cgu" target="_blank" rel="noopener">conditions générales d'utilisation</a>. Mes données servent à gérer mon compte, mes commandes et mes factures, comme décrit dans la <a class="gnl-link" href="/politique-de-confidentialite" target="_blank" rel="noopener">politique de confidentialité</a>. <span class="req">*</span></span>
-          </label>
-
-          <button class="gnl-btn" type="submit">Créer mon compte</button>
-          <p class="gnl-alt">Vous avez déjà un compte&nbsp;? <a href="<?php echo gnl_e($logUrl); ?>">Se connecter</a></p>
-        </section>
-
-        <!-- ================= Carte organisation (droite) ================= -->
-        <aside class="gnl-card gnl-orgcard" id="org-card">
-          <h2>Informations de l'organisation</h2>
-          <p class="sub">Nécessaire pour vos factures et devis.</p>
-
-          <div class="gnl-field">
-            <label for="org_siret">SIRET <span class="req">*</span></label>
-            <input class="gnl-in" type="text" id="org_siret" name="org_siret" value="<?php echo $v('org_siret'); ?>"
-                   inputmode="numeric" autocomplete="off" placeholder="942 358 805 00011" data-req="1">
-            <p class="gnl-hint" id="siret-status" aria-live="polite" style="min-height:1.05em"></p>
-          </div>
-
-          <div class="gnl-field">
-            <label for="siren_display">SIREN <span style="font-weight:400;color:#9aa093">(déduit du SIRET)</span></label>
-            <input class="gnl-in gnl-derived" type="text" id="siren_display" value="" placeholder="942 358 805" readonly tabindex="-1">
-          </div>
-
-          <div class="gnl-field row">
-            <div>
-              <label for="org_nom_commercial">Nom commercial <span class="req">*</span></label>
-              <input class="gnl-in" type="text" id="org_nom_commercial" name="org_nom_commercial" value="<?php echo $v('org_nom_commercial'); ?>" placeholder="COUTUREMANIA" data-req="1">
-            </div>
-            <div>
-              <label for="org_raison">Raison sociale <span class="req">*</span></label>
-              <input class="gnl-in" type="text" id="org_raison" name="org_raison" value="<?php echo $v('org_raison'); ?>" placeholder="Nom légal / gérant" data-req="1">
-            </div>
-          </div>
-
-          <div class="gnl-field">
-            <label for="org_entite_legal">Forme juridique <span class="req">*</span></label>
-            <input class="gnl-in" type="text" id="org_entite_legal" name="org_entite_legal" value="<?php echo $v('org_entite_legal'); ?>" list="formes" placeholder="Entrepreneur individuel, SARL, SAS…" data-req="1">
-            <datalist id="formes">
-              <option value="Entrepreneur individuel"></option><option value="EI"></option><option value="EIRL"></option>
-              <option value="EURL"></option><option value="SARL"></option><option value="SAS"></option>
-              <option value="SASU"></option><option value="SA"></option><option value="SCI"></option>
-              <option value="SNC"></option><option value="Association"></option><option value="Micro-entreprise"></option>
-            </datalist>
-          </div>
-
-          <label class="gnl-check" style="margin:.2rem 0 .5rem">
-            <input type="checkbox" name="tva_assujetti" id="tva_assujetti" value="1" <?php echo $tvaAssujetti ? 'checked' : ''; ?>>
-            <span>Assujetti à la TVA</span>
-          </label>
-          <div class="gnl-field" id="tva-field" style="display:none">
-            <label for="org_tva">N° TVA intracommunautaire <span class="req">*</span></label>
-            <input class="gnl-in" type="text" id="org_tva" name="org_tva" value="<?php echo $v('org_tva'); ?>" placeholder="FR57947628517">
-          </div>
-
-          <div class="gnl-field row">
-            <div>
-              <label for="org_ent_email">E-mail de l'entreprise</label>
-              <input class="gnl-in" type="email" id="org_ent_email" name="org_ent_email" value="<?php echo $v('org_ent_email'); ?>" autocapitalize="none" placeholder="contact@entreprise.fr">
-            </div>
-            <div>
-              <label for="org_telephone">Téléphone</label>
-              <input class="gnl-in" type="tel" id="org_telephone" name="org_telephone" value="<?php echo $v('org_telephone'); ?>" placeholder="03 00 00 00 00">
-            </div>
-          </div>
-
-          <div class="gnl-field row">
-            <div style="flex:0 0 28%">
-              <label for="org_voie_nbr">N°</label>
-              <input class="gnl-in" type="text" id="org_voie_nbr" name="org_voie_nbr" value="<?php echo $v('org_voie_nbr'); ?>" placeholder="30">
-            </div>
-            <div>
-              <label for="org_voie_name">Voie / rue <span class="req">*</span></label>
-              <input class="gnl-in" type="text" id="org_voie_name" name="org_voie_name" value="<?php echo $v('org_voie_name'); ?>" placeholder="RUE Ronchaux" data-req="1">
-            </div>
-          </div>
-
-          <div class="gnl-field row">
-            <div style="flex:0 0 34%">
-              <label for="org_cp">Code postal <span class="req">*</span></label>
-              <input class="gnl-in" type="text" id="org_cp" name="org_cp" value="<?php echo $v('org_cp'); ?>" inputmode="numeric" placeholder="25000" data-req="1">
-            </div>
-            <div>
-              <label for="org_commune">Ville <span class="req">*</span></label>
-              <input class="gnl-in" type="text" id="org_commune" name="org_commune" value="<?php echo $v('org_commune'); ?>" placeholder="Besançon" data-req="1">
-            </div>
-          </div>
-
-          <div class="gnl-field row">
-            <div>
-              <label for="org_pays">Pays <span class="req">*</span></label>
-              <input class="gnl-in" type="text" id="org_pays" name="org_pays" value="<?php echo gnl_e($paysDefault); ?>" placeholder="France" data-req="1">
-            </div>
-            <div>
-              <label for="org_namespace">Identifiant <span style="font-weight:400;color:#9aa093">(auto)</span></label>
-              <input class="gnl-in" type="text" id="org_namespace" name="org_namespace" value="<?php echo $v('org_namespace'); ?>" autocapitalize="none" spellcheck="false" placeholder="couturemania">
-            </div>
-          </div>
-        </aside>
-
+    <div class="gnl-form">
+      <div>
+        <h1 style="margin:0 0 4px;font-size:18px;line-height:24px;font-weight:800">Créer un compte</h1>
+        <p class="sub">Quelques informations et vous pourrez commander en quelques clics.</p>
       </div>
-    </form>
 
-    <script>
-      (function(){
-        var pt   = document.getElementById('profil_type');
-        var auth = document.querySelector('.gnl-auth');
-        var card = document.getElementById('org-card');
-        var reqs = card ? card.querySelectorAll('[data-req]') : [];
-        var tvaChk = document.getElementById('tva_assujetti');
-        var tvaBox = document.getElementById('tva-field');
-        var tvaIn  = document.getElementById('org_tva');
-        var siret  = document.getElementById('org_siret');
-        var siren  = document.getElementById('siren_display');
-        var statusEl = document.getElementById('siret-status');
-        var lastLookup = ''; var lookupTimer = null;
+      <?php if ($error !== ''): ?>
+        <div class="gnl-msg err" role="alert" style="margin:0"><?php echo gnl_icon('err'); ?><span><?php echo gnl_e($error); ?></span></div>
+      <?php endif; ?>
 
-        function group(d, sizes){
-          var out = [], i = 0;
-          for (var s = 0; s < sizes.length && i < d.length; s++){ out.push(d.substr(i, sizes[s])); i += sizes[s]; }
-          return out.join(' ');
-        }
-        function isOrg(){ return pt && pt.value === 'entreprise'; }
-        function setReq(el, on){ if(!el) return; if(on) el.setAttribute('required',''); else el.removeAttribute('required'); }
-        function syncTva(){
-          var on = isOrg() && tvaChk && tvaChk.checked;
-          if (tvaBox) tvaBox.style.display = on ? '' : 'none';
-          setReq(tvaIn, on);
-        }
-        function syncCard(){
-          var on = isOrg();
-          var ne = document.getElementById('note-etu'), no = document.getElementById('note-org');
-          if (ne) ne.hidden = !(pt && pt.value === 'etudiant');
-          if (no) no.hidden = !on;
-          if (auth) auth.classList.toggle('has-org', on);
-          for (var i = 0; i < reqs.length; i++) setReq(reqs[i], on);
-          syncTva();
-        }
-        function setStatus(txt, cls){
-          if (!statusEl) return;
-          statusEl.textContent = txt || '';
-          statusEl.style.color = cls === 'ok' ? '#1f6323' : (cls === 'err' ? '#8e2a1e' : '#8a8f85');
-        }
-        function fillField(id, val){ var el = document.getElementById(id); if (el && val != null && val !== '') el.value = val; }
-        function lookup(siretDigits){
-          if (siretDigits === lastLookup) return;
-          lastLookup = siretDigits;
-          setStatus('Recherche de l\'entreprise…', '');
-          fetch('/entreprise-lookup?siret=' + encodeURIComponent(siretDigits), { headers: { 'Accept': 'application/json' } })
-            .then(function(r){ return r.json(); })
-            .then(function(j){
-              if (!j || !j.ok || !j.data){ setStatus('Aucune entreprise trouvée pour ce SIRET.', 'err'); return; }
-              var d = j.data;
-              fillField('org_nom_commercial', d.nom_commercial);
-              fillField('org_raison', d.raison);
-              fillField('org_entite_legal', d.entite_legal);
-              fillField('org_voie_nbr', d.voie_nbr);
-              fillField('org_voie_name', d.voie_name);
-              fillField('org_cp', d.cp);
-              fillField('org_commune', d.commune);
-              fillField('org_pays', d.pays || 'France');
-              if (tvaIn && d.tva) tvaIn.value = d.tva;
-              var name = d.nom_commercial || d.raison || 'Entreprise trouvée';
-              if (d.etat === 'F') setStatus('⚠ ' + name + ' — établissement fermé, vérifiez le SIRET', 'err');
-              else setStatus('✓ ' + name, 'ok');
-            })
-            .catch(function(){ setStatus('Recherche indisponible pour le moment.', 'err'); });
-        }
-        function fmtSiret(){
-          if (!siret) return;
-          var d = siret.value.replace(/\D/g, '').slice(0, 14);
-          siret.value = group(d, [3,3,3,5]);
-          if (siren) siren.value = group(d.slice(0, 9), [3,3,3]);
-          if (d.length === 14){
-            clearTimeout(lookupTimer);
-            lookupTimer = setTimeout(function(){ lookup(d); }, 400);
-          } else { lastLookup = ''; setStatus('', ''); }
-        }
-        if (pt)     pt.addEventListener('change', syncCard);
-        if (tvaChk) tvaChk.addEventListener('change', syncTva);
-        if (siret)  siret.addEventListener('input', fmtSiret);
-        syncCard(); fmtSiret();
-      })();
-    </script>
+      <fieldset class="gnl-fs">
+        <legend>Vous êtes</legend>
+        <div class="gnl-kinds">
+          <?php foreach (array('particulier' => 'Particulier', 'etudiant' => 'Étudiant', 'entreprise' => 'Entreprise') as $val => $lbl): ?>
+          <label class="gnl-kind"><input type="radio" name="profil_type" value="<?php echo $val; ?>"<?php echo $pt === $val ? ' checked' : ''; ?>><span><?php echo gnl_e($lbl); ?></span></label>
+          <?php endforeach; ?>
+        </div>
+      </fieldset>
+
+      <div class="gnl-g-civ">
+        <label class="gnl-lbl" for="civilite">Civilité
+          <select class="gnl-in" id="civilite" name="civilite" autocomplete="honorific-prefix">
+            <?php
+            $civ = $vals['civilite'];
+            echo '<option value=""' . ($civ === '' ? ' selected' : '') . '>—</option>';
+            foreach (array('Monsieur', 'Madame', 'Maitre', 'Docteur', 'Professeur', 'Non communiqué') as $opt) {
+                echo '<option value="' . gnl_e($opt) . '"' . ($civ === $opt ? ' selected' : '') . '>' . gnl_e($opt) . '</option>';
+            }
+            ?>
+          </select>
+        </label>
+        <label class="gnl-lbl" for="prenom">Prénom <span aria-hidden="true">*</span>
+          <input class="gnl-in" type="text" id="prenom" name="prenom" value="<?php echo $v('prenom'); ?>" autocomplete="given-name" required>
+        </label>
+        <label class="gnl-lbl" for="nom">Nom <span aria-hidden="true">*</span>
+          <input class="gnl-in" type="text" id="nom" name="nom" value="<?php echo $v('nom'); ?>" autocomplete="family-name" required>
+        </label>
+      </div>
+
+      <label class="gnl-lbl" for="email">E-mail *
+        <input class="gnl-in" type="email" id="email" name="email" value="<?php echo $v('email'); ?>" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="vous@exemple.fr" required>
+      </label>
+
+      <label class="gnl-lbl" for="phone">Téléphone <span class="opt">(facultatif)</span>
+        <input class="gnl-in" type="tel" id="phone" name="phone" value="<?php echo $v('phone'); ?>" autocomplete="tel" placeholder="06 12 34 56 78">
+      </label>
+
+      <label class="gnl-lbl" for="password">Mot de passe <span aria-hidden="true">*</span>
+        <input class="gnl-in" type="password" id="password" name="password" autocomplete="new-password" minlength="8" aria-describedby="aide-mdp" required>
+      </label>
+      <p class="gnl-hint gnl-under" id="aide-mdp">Au moins 8 caractères. Utilisez idéalement lettres, chiffres et symboles.</p>
+
+      <label class="gnl-lbl" for="password2">Confirmer le mot de passe <span aria-hidden="true">*</span>
+        <input class="gnl-in" type="password" id="password2" name="password2" autocomplete="new-password" minlength="8" required>
+      </label>
+
+      <div class="gnl-note" id="note-etu" role="note"<?php echo $pt === 'etudiant' ? '' : ' hidden'; ?>>
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b54708" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M9 14h6M9 17h4"/></svg>
+        <p><strong>Certificat de scolarité obligatoire.</strong> Après votre commande, vous devrez nous transmettre un certificat de scolarité de l'année en cours depuis votre Espace Client. Il est indispensable pour activer le service : sans certificat valide, la commande sera annulée et remboursée.</p>
+      </div>
+
+      <div id="note-org" style="display:flex;flex-direction:column;gap:16px"<?php echo $pt === 'entreprise' ? '' : ' hidden'; ?>>
+        <p class="gnl-tip">Complétez aussi les <a href="#org-panel"><strong>informations de l'organisation</strong></a> dans le panneau dédié.</p>
+        <div class="gnl-note" role="note">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b54708" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>
+          <p><strong>Vérification du compte entreprise.</strong> Les informations de votre organisation (complétez le panneau dédié) feront l'objet d'une vérification ultérieure par nos équipes : SIRET, raison sociale, adresse. En cas d'informations inexactes, nous pourrons demander des justificatifs, suspendre le compte ou annuler les commandes en cours.</p>
+        </div>
+      </div>
+
+      <button class="gnl-btn" type="submit">Créer mon compte</button>
+      <p class="gnl-legal">En créant un compte, vous acceptez nos <a href="/cgu" target="_blank" rel="noopener">CGU</a>. GNL Solution (Gabin Grobost, EI) utilise ces informations pour gérer votre compte, vos commandes et vos factures (exécution du contrat et obligations comptables). Elles restent à Besançon, ne sont jamais revendues et sont conservées pendant notre relation puis 3 ans (10 ans pour les factures). Vous pouvez y accéder, les rectifier, les exporter ou demander leur effacement depuis votre Espace Client ou à <a href="mailto:contact@gnl-solution.com">contact@gnl-solution.com</a>. <a href="/politique-de-confidentialite" target="_blank" rel="noopener">Politique de confidentialité</a></p>
+    </div>
+  </div>
+<?php gnl_auth_dlg_close(); ?>
+</form>
+
+<script>
+  (function(){
+    var auth = document.getElementById('gnl-auth');
+    var radios = document.querySelectorAll('input[name="profil_type"]');
+    var card = document.getElementById('org-panel');
+    var reqs = card ? card.querySelectorAll('[data-req]') : [];
+    var tvaChk = document.getElementById('tva_assujetti');
+    var tvaBox = document.getElementById('tva-field');
+    var tvaIn  = document.getElementById('org_tva');
+    var siret  = document.getElementById('org_siret');
+    var siren  = document.getElementById('siren_display');
+    var statusEl = document.getElementById('siret-status');
+    var lastLookup = ''; var lookupTimer = null;
+
+    function profil(){ for (var i = 0; i < radios.length; i++) if (radios[i].checked) return radios[i].value; return 'particulier'; }
+    function group(d, sizes){
+      var out = [], i = 0;
+      for (var s = 0; s < sizes.length && i < d.length; s++){ out.push(d.substr(i, sizes[s])); i += sizes[s]; }
+      return out.join(' ');
+    }
+    function setReq(el, on){ if(!el) return; if(on) el.setAttribute('required',''); else el.removeAttribute('required'); }
+    function syncTva(){
+      var on = profil() === 'entreprise' && tvaChk && tvaChk.checked;
+      if (tvaBox) tvaBox.hidden = !on;
+      setReq(tvaIn, on);
+    }
+    function syncCard(){
+      var p = profil(), on = p === 'entreprise';
+      var ne = document.getElementById('note-etu'), no = document.getElementById('note-org');
+      if (ne) ne.hidden = p !== 'etudiant';
+      if (no) no.hidden = !on;
+      if (auth) auth.classList.toggle('has-org', on);
+      for (var i = 0; i < reqs.length; i++) setReq(reqs[i], on);
+      syncTva();
+    }
+    function setStatus(txt, cls){
+      if (!statusEl) return;
+      statusEl.textContent = txt || '';
+      statusEl.style.color = cls === 'ok' ? '#1f7a4a' : (cls === 'err' ? '#b42318' : '');
+    }
+    function fillField(id, val){ var el = document.getElementById(id); if (el && val != null && val !== '') el.value = val; }
+    function lookup(siretDigits){
+      if (siretDigits === lastLookup) return;
+      lastLookup = siretDigits;
+      setStatus('Recherche de l\'entreprise…', '');
+      fetch('/entreprise-lookup?siret=' + encodeURIComponent(siretDigits), { headers: { 'Accept': 'application/json' } })
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          if (!j || !j.ok || !j.data){ setStatus('Aucune entreprise trouvée pour ce SIRET.', 'err'); return; }
+          var d = j.data;
+          fillField('org_nom_commercial', d.nom_commercial);
+          fillField('org_raison', d.raison);
+          fillField('org_entite_legal', d.entite_legal);
+          fillField('org_voie_nbr', d.voie_nbr);
+          fillField('org_voie_name', d.voie_name);
+          fillField('org_cp', d.cp);
+          fillField('org_commune', d.commune);
+          fillField('org_pays', d.pays || 'France');
+          if (tvaIn && d.tva) tvaIn.value = d.tva;
+          var name = d.nom_commercial || d.raison || 'Entreprise trouvée';
+          if (d.etat === 'F') setStatus('⚠ ' + name + ' — établissement fermé, vérifiez le SIRET', 'err');
+          else setStatus('✓ ' + name, 'ok');
+        })
+        .catch(function(){ setStatus('Recherche indisponible pour le moment.', 'err'); });
+    }
+    function fmtSiret(){
+      if (!siret) return;
+      var d = siret.value.replace(/\D/g, '').slice(0, 14);
+      siret.value = group(d, [3,3,3,5]);
+      if (siren) siren.value = group(d.slice(0, 9), [3,3,3]);
+      if (d.length === 14){
+        clearTimeout(lookupTimer);
+        lookupTimer = setTimeout(function(){ lookup(d); }, 400);
+      } else { lastLookup = ''; setStatus('', ''); }
+    }
+    for (var i = 0; i < radios.length; i++) radios[i].addEventListener('change', syncCard);
+    if (tvaChk) tvaChk.addEventListener('change', syncTva);
+    if (siret)  siret.addEventListener('input', fmtSiret);
+    syncCard(); fmtSiret();
+  })();
+</script>
 <?php
 gnl_auth_foot();

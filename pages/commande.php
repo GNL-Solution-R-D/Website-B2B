@@ -150,7 +150,7 @@ function gnl_bool($v) { return in_array(strtolower(trim((string) $v)), array('1'
 function gnl_money($f) { return number_format((float) $f, 2, ',', ' ') . "\xc2\xa0\xe2\x82\xac"; }
 function gnl_flag($code) {
     $code = strtoupper((string) $code);
-    if ($code === 'FR') return '<img decoding="async" width="20" height="auto" src="./assets/img/icon-flag-edited.png" alt="Datacenter France" style="width:20px;height:auto;vertical-align:middle" />';
+    if ($code === 'FR') return '<img decoding="async" width="20" height="auto" src="/assets/img/icon-flag-edited.png" alt="Datacenter France" style="width:20px;height:auto;vertical-align:middle" />';
     $emoji = array('DE' => "\xf0\x9f\x87\xa9\xf0\x9f\x87\xaa", 'SW' => "\xf0\x9f\x87\xa8\xf0\x9f\x87\xad", 'CH' => "\xf0\x9f\x87\xa8\xf0\x9f\x87\xad", 'BE' => "\xf0\x9f\x87\xa7\xf0\x9f\x87\xaa");
     $flag = isset($emoji[$code]) ? $emoji[$code] : "\xf0\x9f\x8c\x8d";
     return '<span style="font-size:18px" title="Datacenter ' . gnl_e($code) . '">' . $flag . '</span>';
@@ -177,6 +177,12 @@ function gnl_billing_plan($key) {
 /* Date lisible en français, ex. "5 septembre 2026" */
 function gnl_fr_date($ts) {
     if (!$ts) return '';
+    /* Date affichée dans la langue du visiteur (extension intl), français sinon. */
+    if (function_exists('gnl_lang') && gnl_lang() !== 'fr' && class_exists('IntlDateFormatter')) {
+        $f = new IntlDateFormatter(gnl_i18n_locale(gnl_region(), gnl_lang()), IntlDateFormatter::LONG, IntlDateFormatter::NONE);
+        $out = $f->format($ts);
+        if ($out !== false) return $out;
+    }
     $mois = array(1=>'janvier',2=>'février',3=>'mars',4=>'avril',5=>'mai',6=>'juin',7=>'juillet',8=>'août',9=>'septembre',10=>'octobre',11=>'novembre',12=>'décembre');
     $m = (int) date('n', $ts);
     return ((int) date('j', $ts)) . ' ' . $mois[$m] . ' ' . date('Y', $ts);
@@ -896,7 +902,7 @@ function gnl_render_recap_from_order($order) {
     echo '<p class="gnl-line-note" style="margin-top:.7rem">Facturation&nbsp;: <strong>' . gnl_e($plan['label']) . '</strong>';
     if (!empty($order['next_renewal'])) {
         $ts = strtotime((string) $order['next_renewal']);
-        if ($ts) echo ' &middot; renouvellement le <strong>' . gnl_e(gnl_fr_date($ts)) . '</strong>';
+        if ($ts) echo ' &middot; ' . gnl_e(gnl_t('renouvellement le')) . ' <strong translate="no">' . gnl_e(gnl_fr_date($ts)) . '</strong>';
     }
     echo '.</p>';
 }
@@ -927,23 +933,24 @@ function gnl_render_recap_from_order($order) {
       <p>Référence de commande&nbsp;:</p>
       <div class="gnl-ref"><?php echo gnl_e($order['reference']); ?></div>
 
-      <p style="opacity:.85">
-        <?php if ($paid): ?>
-          Votre commande est en cours de mise en service.
-          <?php if (!empty($order['recurring_amount']) && $order['recurring_amount'] > 0):
-                $sBill  = (isset($order['billing']) && is_array($order['billing'])) ? $order['billing'] : array();
-                $sPlan  = gnl_billing_plan(isset($sBill['frequence']) ? $sBill['frequence'] : 'mensuel');
-                $sRenew = !empty($order['next_renewal']) ? strtotime((string) $order['next_renewal']) : 0; ?>
-            Votre abonnement <strong><?php echo gnl_e(strtolower($sPlan['label'])); ?></strong> est activé&nbsp;; le prélèvement se renouvellera automatiquement une fois <?php echo gnl_e($sPlan['per']); ?><?php echo $sRenew ? ', à partir du ' . gnl_e(gnl_fr_date($sRenew)) : ''; ?>.
-          <?php endif; ?>
-          Un e-mail de confirmation part vers <strong><?php echo gnl_e($order['client']['email']); ?></strong>.
-        <?php elseif ($pending): ?>
-          Votre banque finalise l'opération. Vous recevrez un e-mail dès que le paiement est confirmé&nbsp;;
-          aucune action supplémentaire n'est nécessaire de votre part.
-        <?php else: ?>
-          Aucun montant n'a été débité. Vous pouvez relancer le paiement en toute sécurité.
+      <?php if ($paid): ?>
+        <p style="opacity:.85">Votre commande est en cours de mise en service.</p>
+        <?php if (!empty($order['recurring_amount']) && $order['recurring_amount'] > 0):
+              $sBill  = (isset($order['billing']) && is_array($order['billing'])) ? $order['billing'] : array();
+              $sPlan  = gnl_billing_plan(isset($sBill['frequence']) ? $sBill['frequence'] : 'mensuel');
+              $sRenew = !empty($order['next_renewal']) ? strtotime((string) $order['next_renewal']) : 0; ?>
+          <p style="opacity:.85"><?php
+            $sTxt = gnl_t('Votre abonnement {formule} est activé ; le prélèvement se renouvellera automatiquement une fois {periode}.');
+            echo str_replace(array('{formule}', '{periode}'), array('<strong>' . gnl_e(strtolower(gnl_t($sPlan['label']))) . '</strong>', gnl_e(gnl_t($sPlan['per']))), gnl_e($sTxt));
+            if ($sRenew) echo ' ' . gnl_e(str_replace('{date}', date('d/m/Y', $sRenew), gnl_t('Prochain prélèvement le {date}.')));
+          ?></p>
         <?php endif; ?>
-      </p>
+        <p style="opacity:.85"><?php echo str_replace('{email}', '<strong translate="no">' . gnl_e($order['client']['email']) . '</strong>', gnl_e(gnl_t('Un e-mail de confirmation part vers {email}.'))); ?></p>
+      <?php elseif ($pending): ?>
+        <p style="opacity:.85">Votre banque finalise l'opération. Vous recevrez un e-mail dès que le paiement est confirmé&nbsp;; aucune action supplémentaire n'est nécessaire de votre part.</p>
+      <?php else: ?>
+        <p style="opacity:.85">Aucun montant n'a été débité. Vous pouvez relancer le paiement en toute sécurité.</p>
+      <?php endif; ?>
 
       <div class="gnl-card" style="margin-top:1.2rem"><h3 style="margin-top:0">Récapitulatif</h3><?php gnl_render_recap_from_order($order); ?></div>
 
@@ -972,18 +979,15 @@ function gnl_render_recap_from_order($order) {
 
   <div class="gnl-confirm">
     <div class="gnl-check<?php echo $mollieError ? ' warn' : ''; ?>"><?php echo $mollieError ? '!' : '&#10003;'; ?></div>
-    <h1><?php echo $mollieError ? 'Commande enregistrée' : 'Merci, votre commande est enregistrée&nbsp;!'; ?></h1>
+    <h1><?php echo $mollieError ? gnl_t('Commande enregistrée') : gnl_t('Merci, votre commande est enregistrée !'); ?></h1>
     <p>Votre référence de commande&nbsp;:</p>
     <div class="gnl-ref"><?php echo gnl_e($orderRef); ?></div>
-    <p style="opacity:.85">
-      <?php if ($mollieError): ?>
-        Le paiement en ligne est momentanément indisponible. Pas d'inquiétude&nbsp;: votre commande est bien reçue,
-        un conseiller GNL Solution vous recontacte à <strong><?php echo gnl_e($client['email']); ?></strong> pour finaliser le règlement.
-      <?php else: ?>
-        Nous avons bien reçu votre demande à <strong><?php echo gnl_e($client['email']); ?></strong>.
-        Notre équipe procède à la mise en service de votre offre.
-      <?php endif; ?>
-    </p>
+    <p style="opacity:.85"><?php
+      $mTxt = $mollieError
+        ? gnl_t('Le paiement en ligne est momentanément indisponible. Pas d\'inquiétude : votre commande est bien reçue, un conseiller GNL Solution vous recontacte à {email} pour finaliser le règlement.')
+        : gnl_t('Nous avons bien reçu votre demande à {email}. Notre équipe procède à la mise en service de votre offre.');
+      echo str_replace('{email}', '<strong translate="no">' . gnl_e($client['email']) . '</strong>', gnl_e($mTxt));
+    ?></p>
     <div class="gnl-card" style="margin-top:1.2rem"><h3 style="margin-top:0">Récapitulatif</h3><?php if ($order) gnl_render_recap_from_order($order); ?></div>
     <div class="gnl-btns">
       <a class="gnl-btn primary" href="<?php echo gnl_ui_h(GNL_ESPACE_CLIENT_URL); ?>">Accéder à mon espace client</a>
@@ -1005,7 +1009,7 @@ function gnl_render_recap_from_order($order) {
   <p class="gnl-steps"><span>1. Configuration</span> &rsaquo; <b>2. Récapitulatif &amp; coordonnées</b> &rsaquo; <span>3. Paiement</span></p>
 
   <?php if ($gnlUser): ?>
-    <p style="font-size:.85rem;opacity:.8;margin:.1rem 0 1rem">Connecté en tant que <strong><?php echo gnl_e($gnlUser['email'] !== '' ? $gnlUser['email'] : $gnlUser['name']); ?></strong> &middot; <a href="/keycloak_callback.php?action=logout" style="color:var(--gnl-teal)">Se déconnecter</a></p>
+    <p style="font-size:.85rem;opacity:.8;margin:.1rem 0 1rem">Connecté en tant que <strong translate="no"><?php echo gnl_e($gnlUser['email'] !== '' ? $gnlUser['email'] : $gnlUser['name']); ?></strong> &middot; <a href="/keycloak_callback.php?action=logout" style="color:var(--gnl-teal)">Se déconnecter</a></p>
   <?php endif; ?>
 
   <?php if ($errors): ?>
@@ -1167,7 +1171,7 @@ function gnl_render_recap_from_order($order) {
           <?php if ($mollieOn && ($cartMonthly > 0 || $cartOnce > 0)): ?>
             <p class="gnl-line-note">Aujourd'hui&nbsp;: <strong id="gnl-today-total"><?php echo gnl_money($selPeriod + $cartOnce); ?></strong> (1<sup>re</sup> échéance<?php echo $cartOnce > 0 ? ' + frais uniques' : ''; ?>), puis <span id="gnl-recurr-note"><?php echo gnl_money($selPeriod) . ' ' . gnl_e($selPlan['per']); ?></span>.</p>
             <?php if ($cartMonthly > 0): ?>
-            <p class="gnl-line-note" style="margin-top:.45rem">Prochain renouvellement prévu le <strong id="gnl-renew-date"><?php echo gnl_e(gnl_fr_date(strtotime('+' . $selPlan['months'] . ' month'))); ?></strong>.</p>
+            <p class="gnl-line-note" style="margin-top:.45rem">Prochain renouvellement prévu le <strong id="gnl-renew-date" translate="no"><?php echo gnl_e(gnl_fr_date(strtotime('+' . $selPlan['months'] . ' month'))); ?></strong>.</p>
             <?php endif; ?>
           <?php endif; ?>
           <?php $hasDom = false; foreach ($items as $it) { if ($it['domaine']) { $hasDom = true; break; } } ?>
@@ -1206,7 +1210,7 @@ function gnl_render_recap_from_order($order) {
     var monthly = parseFloat(box.getAttribute('data-monthly')) || 0;
     var once    = parseFloat(box.getAttribute('data-once')) || 0;
     function money(v){ return v.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '\u00a0€'; }
-    function frDate(months){ var d = new Date(); d.setMonth(d.getMonth()+months); return d.getDate()+' '+MOIS[d.getMonth()]+' '+d.getFullYear(); }
+    function frDate(months){ var d = new Date(); d.setMonth(d.getMonth()+months); try { return d.toLocaleDateString(window.GNL_LOCALE || 'fr-FR', {day:'numeric', month:'long', year:'numeric'}); } catch (e) { return d.getDate()+' '+MOIS[d.getMonth()]+' '+d.getFullYear(); } }
     function set(id, txt){ var el = document.getElementById(id); if(el) el.textContent = txt; }
     function apply(key){
       var p = PLANS[key] || PLANS.mensuel;

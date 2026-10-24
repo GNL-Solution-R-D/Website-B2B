@@ -15,6 +15,7 @@
    ===================================================================== */
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/i18n.php';
 
 if (!function_exists('gnl_ui_h')) {
     function gnl_ui_h($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }
@@ -47,9 +48,10 @@ if (!function_exists('gnl_ui_open')) {
         $fullTitle = ($title === '' ? 'GNL Solution — Hébergement bas carbone à Besançon' : $title . ' — GNL Solution');
         if (!headers_sent()) header('Content-Type: text/html; charset=UTF-8');
         ?><!DOCTYPE html>
-<html lang="fr">
+<html lang="<?php echo gnl_lang(); ?>">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="content-language" content="<?php echo gnl_lang(); ?>">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?php echo gnl_ui_h($fullTitle); ?></title>
 <meta name="description" content="<?php echo gnl_ui_h($desc); ?>">
@@ -61,6 +63,8 @@ if (!function_exists('gnl_ui_open')) {
 <link rel="apple-touch-icon" href="/assets/gnl/img/favicon-180.png">
 <link rel="preload" href="/assets/gnl/fonts/Manrope.ttf" as="font" type="font/ttf" crossorigin>
 <link rel="stylesheet" href="/assets/gnl/gnl.css">
+<?php echo gnl_i18n_hreflang(); ?>
+<?php echo gnl_i18n_js_dict(); ?>
 <?php if (!empty($opts['head'])) echo $opts['head'] . "\n"; ?>
 <?php gnl_ui_stats_snippet(); ?>
 </head>

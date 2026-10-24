@@ -3,22 +3,20 @@
 #  /contact -> pages/contact.php, /cart -> pages/cart.php, etc.
 # =====================================================================
 Options -Indexes
-DirectoryIndex index.php
+DirectoryIndex router.php
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
-  # Dossiers internes : jamais servis directement
-  RewriteRule ^include/ - [F,L]
-  RewriteRule ^pages/(config-legal|keycloak_rest)\.php$ - [F,L]
+  # Dossiers et fichiers internes : jamais servis directement
+  RewriteRule ^(include|lang|geoip|pages)/ - [F,L]
+  RewriteRule ^(dev-router|index)\.php$ - [F,L]
 
-  # Alias historique
-  RewriteRule ^entreprise-lookup/?$ pages/entreprise_lookup.php [L,QSA]
-
-  # /slug ou /slug.php -> pages/slug.php s'il existe
+  # Tout ce qui n'est pas un fichier réel (assets…) passe par le contrôleur frontal :
+  # région d'après le sous-domaine, langue d'après le préfixe /fr/, /de/…
   RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{DOCUMENT_ROOT}/pages/$1.php -f
-  RewriteRule ^([a-z0-9_-]+)(?:\.php)?/?$ pages/$1.php [L,QSA]
+  RewriteRule ^ router.php [L,QSA]
+  RewriteRule ^$ router.php [L,QSA]
 </IfModule>
 
 <IfModule mod_headers.c>

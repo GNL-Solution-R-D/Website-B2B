@@ -148,14 +148,17 @@ function gnl_normalize($rows) {
     foreach ($rows as $r) {
         if (!is_array($r)) continue;
         $g = function ($k) use ($r) { return isset($r[$k]) ? $r[$k] : ''; };
+        /* Colonnes traduites facultatives dans la datatable n8n : name_de, stitre_de, description_de… */
+        $lg = function_exists('gnl_lang') ? gnl_lang() : 'fr';
+        $gt = function ($k) use ($r, $lg) { return (isset($r[$k . '_' . $lg]) && trim((string) $r[$k . '_' . $lg]) !== '') ? $r[$k . '_' . $lg] : (isset($r[$k]) ? $r[$k] : ''); };
         $out[] = array(
             'id'           => $g('id'),
             'flag'         => strtoupper(trim((string) $g('datacenter_flag'))),
             'type'         => strtolower(trim((string) $g('type'))),
             'slug'         => trim((string) $g('slug')),
-            'name'         => trim((string) $g('name')),
-            'stitre'       => trim((string) $g('stitre')),
-            'description'  => trim((string) $g('description')),
+            'name'         => trim((string) $gt('name')),
+            'stitre'       => trim((string) $gt('stitre')),
+            'description'  => trim((string) $gt('description')),
             'categorie'    => (int) $g('categorie_id'),
             'stock'        => $g('stock'),
             'stock_limite' => $g('stock_limite'),
@@ -197,7 +200,7 @@ function gnl_flag($code) {
     $code = strtoupper((string) $code);
     if ($code === 'FR') {
         return '<figure class="wp-block-image alignright size-full is-resized" style="margin-bottom:0">'
-             . '<img decoding="async" width="1000" height="563" src="./assets/img/icon-flag-edited.png" '
+             . '<img decoding="async" width="1000" height="563" src="/assets/img/icon-flag-edited.png" '
              . 'alt="Datacenter France" class="wp-image-573" style="width:20px;height:auto" /></figure>';
     }
     $emoji = array('DE' => '🇩🇪', 'SW' => '🇨🇭', 'CH' => '🇨🇭', 'BE' => '🇧🇪', 'FR' => '🇫🇷');

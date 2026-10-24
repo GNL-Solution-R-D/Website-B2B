@@ -883,16 +883,19 @@ if (!function_exists('gnl_csrf_check')) {
     }
 }
 
-/* ==================== Gabarit visuel (charte GNL) ===================
-   Carte centrée, police Manrope, vert #6c9400 / teal #009494 / ink #353535,
-   dans l'esprit des pages /cart et /commande. */
+/* ==================== Gabarit visuel (maquette GNL) ===================
+   Reprend la fenêtre « Connexion aux services GNL » de la maquette (canvas
+   Design, artboard Panier) en page autonome : fond voilé marine, carte
+   blanche à bandeau marine, onglets « J'ai un compte / Créer un compte »,
+   panneau « Informations de l'organisation » à gauche pour les entreprises.
+   La logique (Keycloak, CSRF, redirections) est inchangée. */
 if (!function_exists('gnl_auth_head')) {
     function gnl_auth_head($title, $active = 'connexion', $bare = false, $mainClass = '') {
         $GLOBALS['gnl_auth_bare'] = $bare;
         header('Content-Type: text/html; charset=UTF-8');
-        $logo = gnl_e(KEYCLOAK_LOGO_URL);
+        $lang = function_exists('gnl_lang') ? gnl_lang() : 'fr';
         ?><!DOCTYPE html>
-<html lang="fr">
+<html lang="<?php echo gnl_e($lang); ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -902,90 +905,152 @@ if (!function_exists('gnl_auth_head')) {
 <link rel="icon" href="/assets/gnl/img/favicon-32.png" sizes="32x32">
 <link rel="stylesheet" href="/assets/gnl/gnl.css">
 <style>
-/* Gabarit des pages de compte (connexion, inscription, organisation) — charte GNL */
-body{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:100vh;padding:0 16px 48px;background:var(--paper-50)}
-body::before{content:"";position:fixed;inset:0 0 auto 0;height:260px;background:var(--navy-950);z-index:-1}
-.gnl-auth{width:100%;max-width:460px;margin-top:28px}
-.gnl-auth-logo{display:block;margin:0 auto 22px;width:max-content;line-height:0}
-.gnl-auth-logo img{height:62px;width:auto}
-.gnl-card{background:#fff;border:1px solid var(--silver-300);border-radius:var(--radius);padding:32px 32px 28px}
-.gnl-card h1{font-size:26px;line-height:32px;font-weight:800;margin:0 0 6px}
-.gnl-card .sub{margin:0 0 24px;font-size:15px;line-height:23px;color:var(--slate-500)}
-.gnl-field{margin-bottom:16px;display:block}
-.gnl-field.row{display:flex;gap:12px}
-.gnl-field.row>div{flex:1;min-width:0}
-label{display:block;font-size:14px;font-weight:700;margin:0 0 8px;color:var(--navy-950)}
-.gnl-in{width:100%;min-height:46px;border:1px solid var(--slate-500);border-radius:var(--radius);padding:0 14px;font:400 15px var(--font-display);background:#fff;color:var(--navy-950)}
-.gnl-in:focus{outline:2px solid var(--green-700);outline-offset:1px;border-color:var(--green-700)}
-.gnl-in::placeholder{color:#8a90a8}
-select.gnl-in{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M1.5 4 6 8l4.5-4' stroke='%23141a33' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
-.gnl-pass{position:relative}
-.gnl-pass .gnl-in{padding-right:52px}
-.gnl-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;cursor:pointer;color:var(--slate-500);width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius)}
-.gnl-eye:hover{color:var(--navy-950);background:var(--paper-50)}
-.gnl-row-between{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 18px;flex-wrap:wrap}
-.gnl-check{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:21px;font-weight:500;color:var(--navy-950);cursor:pointer;margin:0}
-.gnl-check input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--green-700);flex:none}
-.gnl-link{color:var(--green-700);font-size:14px;font-weight:700}
-.gnl-btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;border:0;cursor:pointer;margin-top:6px;background:var(--green-700);color:#fff;border-radius:var(--radius);font:700 16px var(--font-display);transition:background-color .2s}
+/* Fond : la page du site voilée par rgba(20,26,51,.72), comme la fenêtre de la maquette */
+body{margin:0;min-height:100vh;background:#535869;color:var(--navy-950);font-family:var(--font-display);display:flex;flex-direction:column}
+.gnl-auth{flex:1 0 auto;width:100%;box-sizing:border-box;padding:24px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:16px}
+.gnl-auth *{box-sizing:border-box}
+.gnl-auth a{color:var(--green-700)}
+.gnl-auth a:hover{color:var(--navy-950)}
+.gnl-auth input:focus-visible,.gnl-auth select:focus-visible,.gnl-auth button:focus-visible,.gnl-auth a:focus-visible{outline:2px solid var(--green-700);outline-offset:2px}
+/* Fenêtre principale */
+.gnl-dlg{flex:0 1 500px;min-width:0;background:#fff;color:var(--navy-950);border-radius:3px;overflow:hidden}
+.gnl-dlg-head{background:var(--navy-950);color:#fff;padding:24px 28px;display:flex;gap:16px;align-items:flex-start;justify-content:space-between}
+.gnl-dlg-head img{height:48px;width:auto;margin:-6px 0 6px -14px;display:block}
+.gnl-dlg-title{margin:0;font-size:22px;line-height:28px;font-weight:800;color:#fff}
+.gnl-close{flex:none;width:44px;height:44px;margin:-6px -10px 0 0;border-radius:3px;color:#fff !important;display:flex;align-items:center;justify-content:center}
+.gnl-close:hover{background:var(--navy-800)}
+.gnl-dlg-body{padding:28px}
+.gnl-dlg-intro{margin:0 0 20px;font-size:15px;line-height:23px;color:var(--slate-500)}
+.gnl-dlg-foot{margin:0;padding:14px 28px;border-top:1px solid var(--line-200);display:flex;gap:8px;align-items:center;font-size:13px;color:var(--slate-500)}
+.gnl-dlg-body>h1{margin:0 0 6px;font-size:22px;line-height:28px;font-weight:800}
+.gnl-dlg-body>.sub{margin:0 0 20px;font-size:15px;line-height:23px;color:var(--slate-500)}
+.gnl-alt{margin:20px 0 0;text-align:center;font-size:15px;color:var(--slate-500)}
+.gnl-alt a{font-weight:700}
+/* Onglets */
+.gnl-tabs{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--silver-300);border-radius:3px;padding:4px;gap:4px;margin:0 0 24px}
+.gnl-tabs a{min-height:40px;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 8px;border-radius:2px;font:700 14px var(--font-display);color:var(--navy-950) !important;text-decoration:none}
+.gnl-tabs a:hover{background:var(--paper-50)}
+.gnl-tabs a[aria-current]{background:var(--navy-950);color:#fff !important}
+/* Formulaires */
+.gnl-form{display:flex;flex-direction:column;gap:16px;margin:0}
+.gnl-form.login{gap:18px}
+.gnl-form h2{margin:0 0 4px;font-size:18px;line-height:24px;font-weight:800}
+.gnl-form .sub,.gnl-orgpanel .sub{margin:0;font-size:14px;color:var(--slate-500)}
+.gnl-lbl{display:block;margin:0;font-size:14px;line-height:20px;font-weight:700;color:var(--navy-950);min-width:0}
+.gnl-lbl>.gnl-in{display:block;margin-top:8px}
+.gnl-hint.gnl-under{margin-top:-8px}
+.gnl-form>.gnl-hint.gnl-under+.gnl-hint.gnl-under,.gnl-orgpanel>.gnl-hint.gnl-under+.gnl-hint.gnl-under{margin-top:-12px}
+.gnl-hint:empty{display:none}
+.gnl-lbl .opt{font-weight:400;color:var(--slate-500)}
+.gnl-in{width:100%;min-height:46px;padding:0 14px;border:1px solid var(--slate-500);border-radius:3px;font:400 15px var(--font-display);color:var(--navy-950);background:#fff}
+.gnl-in::placeholder{color:#7a809a}
+select.gnl-in{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M1.5 4 6 8l4.5-4' stroke='%23141a33' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+.gnl-in.gnl-derived,.gnl-in[readonly]{border:1px dashed var(--silver-300);background:var(--paper-50);color:var(--slate-500)}
+.gnl-hint{margin:0;font-weight:400;font-size:13px;line-height:19px;color:var(--slate-500)}
+.gnl-g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.gnl-g-civ{display:grid;grid-template-columns:minmax(0,120px) minmax(0,1fr) minmax(0,1fr);gap:14px}
+.gnl-g-num{display:grid;grid-template-columns:minmax(0,90px) minmax(0,1fr);gap:14px}
+.gnl-g-cp{display:grid;grid-template-columns:minmax(0,130px) minmax(0,1fr);gap:14px}
+.gnl-row-between{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px}
+.gnl-check{display:flex;gap:8px;align-items:center;margin:0;font-size:14px;font-weight:500;color:var(--navy-950);cursor:pointer}
+.gnl-check input{width:18px;height:18px;margin:0;accent-color:var(--green-700);flex:none}
+.gnl-link{font-weight:600}
+.gnl-btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 20px;border:0;border-radius:3px;background:var(--green-700);color:#fff;font:700 16px var(--font-display);cursor:pointer}
 .gnl-btn:hover{background:#196540}
 .gnl-btn[disabled]{opacity:.6;cursor:progress}
-.gnl-alt{margin:20px 0 0;text-align:center;font-size:15px;color:var(--slate-500)}
-.gnl-alt a{color:var(--green-700);font-weight:700}
-.gnl-msg{border-radius:var(--radius);padding:12px 14px;font-size:14px;line-height:21px;margin:0 0 20px;display:flex;gap:10px;align-items:flex-start}
+.gnl-btn.alt{background:#fff;color:var(--navy-950);border:1px solid var(--silver-300);font-size:15px;min-height:46px}
+.gnl-btn.alt:hover{background:var(--paper-50)}
+.gnl-legal{margin:0;font-size:12px;line-height:18px;color:var(--slate-500)}
+.gnl-sep{display:flex;align-items:center;gap:12px;color:var(--slate-500);font-size:12px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin:24px 0 16px}
+.gnl-sep::before,.gnl-sep::after{content:"";height:1px;background:var(--line-200);flex:1}
+.gnl-msg{border-radius:3px;padding:12px 14px;font-size:14px;line-height:21px;margin:0 0 20px;display:flex;gap:10px;align-items:flex-start}
 .gnl-msg svg{flex:none;margin-top:1px}
 .gnl-msg.err{background:#fef3f2;border:1px solid var(--danger);color:#7a1610}
 .gnl-msg.ok{background:#eef8f2;border:1px solid var(--green-700);color:#14532d}
-.gnl-hint{font-size:13px;line-height:19px;font-weight:400;color:var(--slate-500);margin:6px 0 0}
-.gnl-sep{display:flex;align-items:center;gap:12px;color:var(--slate-500);font-size:12px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin:20px 0 12px}
-.gnl-sep::before,.gnl-sep::after{content:"";height:1px;background:var(--silver-300);flex:1}
-.gnl-foot{margin:22px 0 0;text-align:center;font-size:13px;color:var(--slate-500)}
-.gnl-foot a{color:inherit}
-.gnl-note-etu,.gnl-note-org{display:flex;gap:12px;padding:14px 16px;border:1px solid var(--warning);border-radius:var(--radius);background:#fff8f1;margin:0 0 18px;font-size:13px;line-height:20px}
-.gnl-note-etu svg,.gnl-note-org svg{flex:none;margin-top:1px}
-/* Inscription : panneau organisation qui glisse à gauche */
-.gnl-auth.gnl-auth-wide{max-width:460px;transition:max-width .35s ease}
-.gnl-auth.gnl-auth-wide.has-org{max-width:960px}
-.gnl-auth-cols{display:flex;gap:20px;align-items:flex-start;justify-content:center;flex-wrap:wrap}
-.gnl-auth-cols>.gnl-card{flex:1 1 400px;max-width:460px;min-width:0;margin:0}
-.gnl-orgcard{display:none;order:-1}
-.gnl-auth.has-org .gnl-orgcard{display:block;animation:gnlslide .4s cubic-bezier(.2,.7,.2,1)}
-@keyframes gnlslide{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
-.gnl-orgcard h2{font-size:20px;font-weight:800;margin:0 0 4px}
-.gnl-orgcard .sub{margin:0 0 20px}
-.req{color:var(--danger);font-weight:700;margin-left:.1em}
-.gnl-derived{background:var(--paper-50) !important;color:var(--slate-500);letter-spacing:.06em}
-@media(max-width:940px){.gnl-auth.gnl-auth-wide.has-org{max-width:460px}.gnl-orgcard{order:0}}
-@media(max-width:480px){.gnl-card{padding:24px 20px}.gnl-field.row{flex-direction:column;gap:0}}
-@media (prefers-reduced-motion:reduce){.gnl-auth.has-org .gnl-orgcard{animation:none}}
+/* « Vous êtes » : boutons radio présentés comme dans la maquette */
+.gnl-fs{border:0;margin:0;padding:0;min-width:0}
+.gnl-fs legend{margin:0 0 8px;padding:0;font-size:14px;font-weight:700}
+.gnl-kinds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.gnl-kind{position:relative;display:block;margin:0;cursor:pointer}
+.gnl-kind input{position:absolute;opacity:0;width:1px;height:1px}
+.gnl-kind span{display:flex;align-items:center;justify-content:center;text-align:center;min-height:44px;padding:0 8px;border:1px solid var(--silver-300);border-radius:3px;background:#fff;font:700 14px var(--font-display);color:var(--navy-950)}
+.gnl-kind input:checked+span{border:2px solid var(--green-700);background:#eef8f2}
+.gnl-kind input:focus-visible+span{outline:2px solid var(--green-700);outline-offset:2px}
+/* Encadrés */
+.gnl-note{display:flex;gap:12px;padding:14px 16px;border:1px solid var(--warning);border-radius:3px;background:#fff8f1}
+.gnl-note svg{flex:none;margin-top:1px}
+.gnl-note p{margin:0;font-size:13px;line-height:20px;color:var(--navy-950)}
+.gnl-tip{margin:0;padding:12px 14px;background:#eef8f2;border-radius:3px;font-size:13px;line-height:19px}
+[hidden]{display:none !important}
+.gnl-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+/* Panneau organisation (à gauche) */
+.gnl-orgpanel{flex:0 1 460px;min-width:0;background:#fff;color:var(--navy-950);border-radius:3px;border-top:4px solid var(--green-700);padding:24px 28px 28px;display:flex;flex-direction:column;gap:16px;order:-1}
+.gnl-orgpanel .kicker{margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:.2em;color:var(--green-700)}
+.gnl-orgpanel h2{margin:0 0 4px;font-size:22px;line-height:28px;font-weight:800}
+.gnl-auth:not(.has-org) .gnl-orgpanel{display:none}
+.gnl-auth.has-org .gnl-orgpanel{animation:gnlslide .35s cubic-bezier(.2,.7,.2,1)}
+@keyframes gnlslide{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.gnl-auth.has-org .gnl-orgpanel{animation:none}}
+@media (max-width:1000px){.gnl-auth{align-items:flex-start}}
+@media (max-width:520px){.gnl-auth{padding:16px}.gnl-dlg-head,.gnl-dlg-body,.gnl-orgpanel{padding-left:20px;padding-right:20px}.gnl-dlg-foot{padding:14px 20px}.gnl-g-civ{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.gnl-g-civ>:first-child{grid-column:1/-1}.gnl-g2{grid-template-columns:minmax(0,1fr)}}
 </style>
 </head>
 <body>
-<main class="gnl-auth<?php echo $bare ? ' gnl-auth-wide' : ''; ?><?php echo $mainClass !== '' ? ' ' . $mainClass : ''; ?>">
-  <a class="gnl-auth-logo" href="/" aria-label="GNL Solution"><img src="<?php echo $logo; ?>" alt="GNL Solution"></a>
-  <?php if (!$bare): ?><div class="gnl-card"><?php endif; ?>
+<main class="gnl-auth<?php echo $mainClass !== '' ? ' ' . gnl_e($mainClass) : ''; ?>" id="gnl-auth">
+<?php if (!$bare) { gnl_auth_dlg_open('/'); echo '<div class="gnl-dlg-body">'; } ?>
 <?php
+    }
+}
+
+/* Bandeau marine de la fenêtre : logo, titre, bouton fermer. */
+if (!function_exists('gnl_auth_dlg_open')) {
+    function gnl_auth_dlg_open($closeUrl = '/') {
+        $logo = gnl_e(KEYCLOAK_LOGO_URL);
+        ?>
+<div class="gnl-dlg" role="region" aria-labelledby="titre-connexion">
+  <div class="gnl-dlg-head">
+    <div>
+      <img src="<?php echo $logo; ?>" alt="GNL Solution" width="150" height="48">
+      <p class="gnl-dlg-title" id="titre-connexion">Connexion aux services GNL</p>
+    </div>
+    <a class="gnl-close" href="<?php echo gnl_e($closeUrl); ?>" aria-label="Fermer"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></a>
+  </div>
+<?php
+    }
+}
+if (!function_exists('gnl_auth_dlg_close')) {
+    function gnl_auth_dlg_close() {
+        ?>
+  <p class="gnl-dlg-foot"><svg aria-hidden="true" width="14" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="1"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Connexion chiffrée · comptes gérés sur nos serveurs à Besançon</p>
+</div>
+<?php
+    }
+}
+/* Onglets « J'ai un compte / Créer un compte » (liens entre /connexion et /inscription). */
+if (!function_exists('gnl_auth_tabs')) {
+    function gnl_auth_tabs($active, $return) {
+        $q = '?return=' . rawurlencode($return);
+        ?>
+<nav class="gnl-tabs" aria-label="Connexion ou inscription">
+  <a href="/connexion<?php echo gnl_e($q); ?>"<?php echo $active === 'connexion' ? ' aria-current="page"' : ''; ?>>J'ai un compte</a>
+  <a href="/inscription<?php echo gnl_e($q); ?>"<?php echo $active === 'inscription' ? ' aria-current="page"' : ''; ?>>Créer un compte</a>
+</nav>
+<?php
+    }
+}
+/* Où mène la croix « Fermer » : retour au panier si l'on venait de la commande. */
+if (!function_exists('gnl_auth_close_url')) {
+    function gnl_auth_close_url($return) {
+        return (strpos((string) $return, '/commande') === 0) ? '/cart' : '/';
     }
 }
 
 if (!function_exists('gnl_auth_foot')) {
     function gnl_auth_foot() {
+        if (empty($GLOBALS['gnl_auth_bare'])) { echo '</div>'; gnl_auth_dlg_close(); }
         ?>
-  <?php if (empty($GLOBALS['gnl_auth_bare'])): ?></div><?php endif; ?>
-  <p class="gnl-foot">Espace sécurisé GNL Solution &middot; <a href="/">Retour au site</a></p>
 </main>
 <script>
-document.addEventListener('click', function(e){
-  var b = e.target.closest('.gnl-eye'); if(!b) return;
-  var inp = b.parentNode.querySelector('input');
-  if(!inp) return;
-  var show = inp.type === 'password';
-  inp.type = show ? 'text' : 'password';
-  b.setAttribute('aria-label', show ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
-  b.innerHTML = show
-    ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M1 1l22 22"/><path d="M9.5 9.5a3 3 0 0 0 4.24 4.24"/></svg>'
-    : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-});
 document.querySelectorAll('form[data-gnl-auth]').forEach(function(f){
   f.addEventListener('submit', function(){
     var b = f.querySelector('button[type=submit]');

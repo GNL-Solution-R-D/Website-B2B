@@ -3,6 +3,7 @@
    ===================================================================== */
 (function () {
   'use strict';
+  var T = function (s) { return window.gnlT ? window.gnlT(s) : s; };
 
   /* ---------- Menu mobile ---------- */
   var hd = document.querySelector('.gnl-hd');
@@ -11,7 +12,7 @@
     burger.addEventListener('click', function () {
       var open = hd.classList.toggle('is-open');
       burger.setAttribute('aria-expanded', open ? 'true' : 'false');
-      burger.setAttribute('aria-label', open ? 'Fermer le menu' : 'Ouvrir le menu');
+      burger.setAttribute('aria-label', open ? T('Fermer le menu') : T('Ouvrir le menu'));
     });
   }
 
@@ -62,7 +63,7 @@
   function render() {
     var off = getCookie('gnl_stats_optout') === '1';
     if (toggle) toggle.checked = !off;
-    if (state) { state.textContent = off ? 'Désactivées pour vous' : 'Actives'; state.classList.toggle('is-off', off); }
+    if (state) { state.textContent = off ? T('Désactivées pour vous') : T('Actives'); state.classList.toggle('is-off', off); }
   }
   if (toggle) toggle.addEventListener('change', function () { setOptOut(!toggle.checked); render(); });
   render();

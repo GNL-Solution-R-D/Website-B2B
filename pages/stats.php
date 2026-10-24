@@ -790,6 +790,11 @@ function gnlst_fmt_dt($ts) {
     if (!$ts) return '';
     $mois = array(1=>'janv.',2=>'févr.',3=>'mars',4=>'avr.',5=>'mai',6=>'juin',
                   7=>'juil.',8=>'août',9=>'sept.',10=>'oct.',11=>'nov.',12=>'déc.');
+    if (function_exists('gnl_lang') && gnl_lang() !== 'fr' && class_exists('IntlDateFormatter')) {
+        $f = new IntlDateFormatter(gnl_i18n_locale(gnl_region(), gnl_lang()), IntlDateFormatter::MEDIUM, IntlDateFormatter::SHORT);
+        $out = $f->format($ts);
+        if ($out !== false) return $out;
+    }
     return (int) date('j', $ts) . ' ' . $mois[(int) date('n', $ts)] . ' ' . date('Y', $ts) . ' à ' . date('H:i', $ts);
 }
 
@@ -941,6 +946,7 @@ gnl_ui_open('État des services', 'statut', array('main' => false));
         if(!ts) return '';
         var d = new Date(ts*1000);
         function p(n){ return (n<10?'0':'')+n; }
+        if (window.GNL_LANG && window.GNL_LANG !== 'fr') { try { return d.toLocaleString(window.GNL_LOCALE, {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}); } catch (e) {} }
         return d.getDate()+' '+MOIS[d.getMonth()]+' '+d.getFullYear()+' à '+p(d.getHours())+':'+p(d.getMinutes());
     }
     function maintHTML(list){
@@ -1025,11 +1031,11 @@ gnl_ui_open('État des services', 'statut', array('main' => false));
     function relative(ms){
         var s = Math.max(0, Math.round((Date.now()-ms)/1000));
         if (s < 5)  return "à l’instant";
-        if (s < 60) return 'il y a ' + s + ' s';
+        if (s < 60) return 'il y a {n} s'.replace('{n}', s);
         var m = Math.round(s/60);
-        if (m < 60) return 'il y a ' + m + ' min';
+        if (m < 60) return 'il y a {n} min'.replace('{n}', m);
         var h = Math.round(m/60);
-        return 'il y a ' + h + ' h';
+        return 'il y a {n} h'.replace('{n}', h);
     }
     function tick(){
         var el = document.getElementById('gnlst-updated');

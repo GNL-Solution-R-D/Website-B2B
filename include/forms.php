@@ -74,6 +74,7 @@ function gnl_form_files($field) {
 function gnl_form_dispatch($action, $reference, $data, $files = array()) {
     $payload = array(
         'source' => 'site', 'action' => $action, 'reference' => $reference,
+        'lang' => function_exists('gnl_lang') ? gnl_lang() : 'fr', 'region' => function_exists('gnl_region') ? gnl_region() : '',
         'submitted_at' => date('c'),
         'ip_hash' => hash('sha256', (isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '') . date('Y-m-d')),
         'data' => $data, 'files' => $files,

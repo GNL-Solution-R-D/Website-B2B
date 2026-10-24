@@ -61,7 +61,7 @@ gnl_ui_open('Contact', 'contact', array('desc' => 'Contactez GNL Solution, hébe
 <div role="status" style="display: flex; flex-direction: column; gap: 16px; align-items: flex-start; padding: 24px 0;">
 <svg aria-hidden="true" width="18" height="34" viewBox="0 0 22 40"><path d="M13 0h9L9 40H0z" fill="#1f7a4a"/></svg>
 <h2 id="titre-form" style="margin: 0; font-size: 28px; line-height: 34px; font-weight: 800;">Merci, votre message est envoyé.</h2>
-<p style="margin: 0; font-size: 16px; line-height: 26px; color: #5e6684; max-width: 520px;">Votre demande porte la référence <strong style="color: #141a33;"><?php echo gnl_ui_h($ref); ?></strong>. Nous revenons vers vous sous <?php echo gnl_ui_h(GNL_DELAI_REPONSE); ?>, à l'adresse que vous avez indiquée.</p>
+<p style="margin: 0; font-size: 16px; line-height: 26px; color: #5e6684; max-width: 520px;"><?php echo str_replace(array('{ref}', '{delai}'), array('<strong style="color: #141a33;" translate="no">' . gnl_ui_h($ref) . '</strong>', gnl_ui_h(gnl_t(GNL_DELAI_REPONSE))), gnl_ui_h(gnl_t('Votre demande porte la référence {ref}. Nous revenons vers vous sous {delai}, à l\'adresse que vous avez indiquée.'))); ?></p>
 <a href="/contact" class="gnl-b gnl-b-line" style="min-height: 44px; font-size: 14px;">Envoyer un autre message</a>
 </div>
 <?php else: ?>
@@ -97,7 +97,7 @@ gnl_ui_open('Contact', 'contact', array('desc' => 'Contactez GNL Solution, hébe
 
 <label style="display: flex; flex-direction: column; gap: 8px; font-size: 14px; font-weight: 700;">Sujet *
 <select name="sujet" required style="min-height: 46px; padding: 0 14px; border: 1px solid #5e6684; border-radius: 3px; font: 400 15px var(--font-display); color: #141a33; background: #ffffff;">
-<?php foreach ($SUJETS as $s): ?><option<?php echo $v['sujet'] === $s ? ' selected' : ''; ?>><?php echo gnl_ui_h($s); ?></option><?php endforeach; ?>
+<?php foreach ($SUJETS as $s): ?><option value="<?php echo gnl_ui_h($s); ?>"<?php echo $v['sujet'] === $s ? ' selected' : ''; ?>><?php echo gnl_ui_h($s); ?></option><?php endforeach; ?>
 </select>
 </label>
 

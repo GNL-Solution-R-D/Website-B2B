@@ -135,7 +135,7 @@ function gnl_bool($v) { return in_array(strtolower(trim((string) $v)), array('1'
 function gnl_money($f) { return number_format((float) $f, 2, ',', ' ') . "\xc2\xa0\xe2\x82\xac"; }
 function gnl_flag($code) {
     $code = strtoupper((string) $code);
-    if ($code === 'FR') return '<img decoding="async" width="20" height="auto" src="./assets/img/icon-flag-edited.png" alt="Datacenter France" style="width:20px;height:auto;vertical-align:middle" />';
+    if ($code === 'FR') return '<img decoding="async" width="20" height="auto" src="/assets/img/icon-flag-edited.png" alt="Datacenter France" style="width:20px;height:auto;vertical-align:middle" />';
     $emoji = array('DE' => "\xf0\x9f\x87\xa9\xf0\x9f\x87\xaa", 'SW' => "\xf0\x9f\x87\xa8\xf0\x9f\x87\xad", 'CH' => "\xf0\x9f\x87\xa8\xf0\x9f\x87\xad", 'BE' => "\xf0\x9f\x87\xa7\xf0\x9f\x87\xaa");
     $flag = isset($emoji[$code]) ? $emoji[$code] : "\xf0\x9f\x8c\x8d";
     return '<span style="font-size:18px" title="Datacenter ' . gnl_e($code) . '">' . $flag . '</span>';
@@ -305,91 +305,132 @@ $cartCount = 0; foreach ($items as $it) $cartCount += $it['qty'];
 gnl_cart_sync_cookie($cartCount);
 ?>
 <?php
-/* ---- Affichage : nouvelle charte (include/layout.php) ---- */
+/* ---- Affichage : maquette « Votre panier » (canvas Design, artboard Panier).
+   La logique ci-dessus (session, actions add/remove/qty/clear, prix recalculés
+   côté serveur) est inchangée ; « Passer au paiement » mène toujours à /commande. */
 require_once __DIR__ . '/../include/layout.php';
-gnl_ui_open('Panier', '', array('main' => false));
+$gnlUser = (isset($_SESSION['gnl_user']) && is_array($_SESSION['gnl_user'])) ? $_SESSION['gnl_user'] : null;
+$KICKERS = array(1 => 'HÉBERGEMENT PHP', 2 => 'HÉBERGEMENT WORDPRESS', 3 => 'SPÉCIAL DÉVELOPPEURS');
+$cartKicker = function ($p) use ($KICKERS) {
+    if ($p['type'] === 'web_edu') return 'ÉTUDIANTS · CHERCHEURS';
+    return isset($KICKERS[$p['categorie']]) ? $KICKERS[$p['categorie']] : 'HÉBERGEMENT WEB';
+};
+gnl_ui_open('Panier', 'cart', array('main' => false, 'head' => '<style>
+.gnl-cart-rm{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:10px 0;color:#5e6684;font:600 14px var(--font-display);text-decoration:none}
+.gnl-cart-rm:hover{color:#b42318}
+.gnl-cart-qty{display:inline-flex;align-items:center;gap:2px;font-size:14px;color:#5e6684}
+.gnl-cart-qty a{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #c5cbd8;border-radius:3px;color:#141a33;text-decoration:none;font-weight:700}
+.gnl-cart-qty a:hover{background:#f4f6fa}
+.gnl-cart-qty a[aria-disabled="true"]{opacity:.4;pointer-events:none}
+.gnl-cart-qty output{min-width:28px;text-align:center;font-weight:700;color:#141a33}
+.gnl-pay{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;border-radius:3px;color:#fff;font:700 16px var(--font-display);text-decoration:none;background-image:linear-gradient(135deg,#1f7a4a 0,#1f7a4a 50%,#5e6684 50%,#5e6684 100%);background-size:300% 300%;background-position:100% 100%;transition:background-position .7s cubic-bezier(.65,0,.35,1)}
+.gnl-pay.is-ready{background-position:0 0}
+.gnl-pay.is-ready:hover{background-image:linear-gradient(135deg,#17603a 0,#17603a 50%,#5e6684 50%,#5e6684 100%);color:#fff}
+.gnl-pay:hover{color:#fff}
+@media (prefers-reduced-motion: reduce){.gnl-pay{transition:none}}
+</style>'));
+$n = $cartCount;
 ?>
-<main id="contenu">
-<div class="gnl-config-wrap">
+<main id="contenu" style="flex: 1 0 auto; width: 100%; box-sizing: border-box; max-width: 1240px; margin: 0 auto; padding: 56px 24px 96px;">
 
-  <p class="gnl-breadcrumb"><a href="/">Accueil</a> &rsaquo; Panier</p>
+<p style="margin: 0 0 12px; font-size: 12px; font-weight: 700; letter-spacing: 0.2em; color: #1f7a4a;">COMMANDE</p>
+<h1 style="margin: 0 0 8px; font-size: 44px; line-height: 50px; font-weight: 800;">Votre panier</h1>
+<p style="margin: 0 0 40px; font-size: 16px; color: #5e6684;"><?php
+if ($n === 0)      echo 'Aucun produit pour le moment.';
+elseif ($gnlUser)  echo $n > 1 ? $n . ' produits · vous êtes connecté, vous passerez directement au paiement.' : $n . ' produit · vous êtes connecté, vous passerez directement au paiement.';
+else               echo $n > 1 ? $n . ' produits · vous pourrez vous connecter ou créer votre compte à l’étape suivante.' : $n . ' produit · vous pourrez vous connecter ou créer votre compte à l’étape suivante.';
+?></p>
 
 <?php if (empty($items)): ?>
 
-  <div class="gnl-empty">
-    <h2 style="margin-top:0">Votre panier est vide</h2>
-    <p>Parcourez nos offres et configurez celle qui vous convient pour l'ajouter au panier.</p>
-    <p><a class="gnl-btn primary" style="text-decoration:none" href="/solutions">Voir les offres</a></p>
-  </div>
+<!-- Panier vide -->
+<section style="background: #ffffff; border: 2px dashed #5e6684; border-radius: 3px; padding: 64px 24px; display: flex; flex-direction: column; gap: 16px; align-items: center; text-align: center;">
+<svg aria-hidden="true" width="84" height="72" viewBox="0 0 28 24" fill="none"><path d="M1.5 3.5H5.2L6.4 7" fill="none" stroke="#141a33" stroke-width="1.6" stroke-linecap="square"/><path d="M6.4 7H26L23 16.5H9.4Z" fill="none" stroke="#141a33" stroke-width="1.6"/><path d="M14.1 9.6 12.7 14M18.6 9.6 17.2 14" fill="none" stroke="#c5cbd8" stroke-width="1.8"/><rect x="10" y="19.6" width="2.6" height="2.6" fill="#141a33"/><rect x="20" y="19.6" width="2.6" height="2.6" fill="#141a33"/></svg>
+<h2 style="margin: 0; font-size: 26px; line-height: 32px; font-weight: 800;">Votre panier est vide.</h2>
+<p style="margin: 0; max-width: 460px; font-size: 16px; line-height: 25px; color: #5e6684;">Trouvez l'hébergement adapté à votre projet : PHP, WordPress, développeur ou Laboratoire.</p>
+<p style="margin: 0;"><a href="/solutions" style="display: inline-flex; align-items: center; min-height: 48px; padding: 0 22px; border-radius: 3px; background: #1f7a4a; color: #ffffff; font-weight: 700; font-size: 15px; text-decoration: none;">Voir les offres</a></p>
+</section>
 
 <?php else: ?>
 
-  <h1 class="gnl-config-title">Mon panier <span class="gnl-cart-count">(<?php echo (int) $cartCount; ?> article<?php echo $cartCount > 1 ? 's' : ''; ?>)</span></h1>
+<div style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;">
 
-  <div class="gnl-layout">
+<!-- Articles -->
+<section aria-label="Articles du panier" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+<?php foreach ($items as $it):
+    $p = $it['product'];
+    $id = rawurlencode($it['id']);
+    $hasOpts = !empty($it['options']) || !empty($it['domaine']); ?>
+<article style="background: #ffffff; border: 1px solid #c5cbd8; border-radius: 3px; padding: 24px 28px;">
+<div style="display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; justify-content: space-between;">
+<div style="min-width: 0;">
+<p style="margin: 0 0 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.2em; color: #1f7a4a;"><?php echo gnl_e($cartKicker($p)); ?></p>
+<h2 id="nom-<?php echo gnl_e($it['id']); ?>" style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 800;" translate="no"><?php echo gnl_e($p['name']); ?></h2>
+</div>
+<p style="margin: 0; font-size: 15px; color: #5e6684; text-align: right;"><strong style="font-size: 20px; color: #141a33;"><?php echo gnl_money($it['line_monthly']); ?></strong> / mois<?php if ($it['line_once'] > 0): ?><br><span style="font-size: 13px;">+ <?php echo gnl_money($it['line_once']); ?> (unique)</span><?php endif; ?></p>
+</div>
+<?php if ($hasOpts): ?>
+<ul style="margin: 16px 0 0; padding: 14px 0 0; list-style: none; border-top: 1px solid #e3e6ee; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 20px;">
+<?php if ($it['domaine']): ?>
+<li style="display: flex; gap: 16px; justify-content: space-between;"><span style="display: flex; gap: 10px; align-items: baseline; min-width: 0; overflow-wrap: anywhere;"><svg aria-hidden="true" width="8" height="14" viewBox="0 0 22 40" style="flex: none;"><path d="M13 0h9L9 40H0z" fill="#1f7a4a"/></svg><span>Nom de domaine : <strong translate="no"><?php echo gnl_e($it['domaine']['name']); ?></strong></span></span><span style="color: #5e6684; white-space: nowrap;"><?php echo $it['domaine']['price'] !== '' ? gnl_e($it['domaine']['price']) : 'selon le domaine'; ?></span></li>
+<?php endif; ?>
+<?php foreach ($it['options'] as $o): ?>
+<li style="display: flex; gap: 16px; justify-content: space-between;"><span style="display: flex; gap: 10px; align-items: baseline; min-width: 0;"><svg aria-hidden="true" width="8" height="14" viewBox="0 0 22 40" style="flex: none;"><path d="M13 0h9L9 40H0z" fill="#1f7a4a"/></svg><span translate="no"><?php echo gnl_e($o['name']); ?></span></span><span style="color: #5e6684; white-space: nowrap;"><?php
+    if ($o['prix'] <= 0)   echo 'inclus';
+    elseif ($o['unique'])  echo gnl_money($o['prix']) . ' (unique)';
+    else                   echo '+ ' . gnl_money($o['prix']) . ' / mois';
+?></span></li>
+<?php endforeach; ?>
+</ul>
+<?php endif; ?>
+<div style="display: flex; flex-wrap: wrap; gap: 4px 24px; margin-top: 12px; align-items: center;">
+<a href="/product-configuration?slug=<?php echo rawurlencode($p['slug']); ?>" style="display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 600; color: #1f7a4a;">Modifier les options</a>
+<span class="gnl-cart-qty" role="group" aria-labelledby="qty-<?php echo gnl_e($it['id']); ?>"><div id="qty-<?php echo gnl_e($it['id']); ?>" style="margin-right: 8px;">Quantité</div>
+<a href="cart?action=qty&amp;id=<?php echo $id; ?>&amp;q=<?php echo max(1, $it['qty'] - 1); ?>" aria-label="Diminuer"<?php echo $it['qty'] <= 1 ? ' aria-disabled="true" tabindex="-1"' : ''; ?>>&minus;</a>
+<output translate="no"><?php echo (int) $it['qty']; ?></output>
+<a href="cart?action=qty&amp;id=<?php echo $id; ?>&amp;q=<?php echo $it['qty'] + 1; ?>" aria-label="Augmenter">+</a>
+</span>
+<a class="gnl-cart-rm" href="cart?action=remove&amp;id=<?php echo $id; ?>" aria-describedby="nom-<?php echo gnl_e($it['id']); ?>"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>Retirer</a>
+</div>
+</article>
+<?php endforeach; ?>
+<p style="margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; font-size: 15px;"><a href="/solutions" style="font-weight: 700;">← Continuer mes achats</a><a href="cart?action=clear" style="font-size: 14px; font-weight: 600; color: #5e6684;">Vider le panier</a></p>
+</section>
 
-    <!-- Lignes du panier -->
-    <div>
-      <?php foreach ($items as $it): $p = $it['product']; ?>
-        <div class="gnl-cart-item">
-          <div class="gnl-ci-main">
-            <h3><?php echo gnl_e($p['name']); ?> <?php echo gnl_flag($p['flag']); ?></h3>
-            <div style="font-size:.85rem;opacity:.7"><?php echo gnl_money(gnl_num($p['prix'])); ?> / mois</div>
-            <ul class="gnl-ci-opts">
-              <?php foreach ($it['options'] as $o): ?>
-                <li>&#8627; <?php echo gnl_e($o['name']); ?><?php echo $o['unique'] ? ' (unique)' : ''; ?> — <?php echo $o['prix'] > 0 ? '+ ' . gnl_money($o['prix']) : 'incluse'; ?></li>
-              <?php endforeach; ?>
-              <?php if ($it['domaine']): ?>
-                <li>&#8627; Domaine&nbsp;: <strong><?php echo gnl_e($it['domaine']['name']); ?></strong><?php echo $it['domaine']['price'] !== '' ? ' — ' . gnl_e($it['domaine']['price']) : ''; ?></li>
-              <?php endif; ?>
-            </ul>
-          </div>
-          <div class="gnl-ci-side">
-            <div class="gnl-ci-price"><?php echo gnl_money($it['line_monthly']); ?><small>/ mois</small></div>
-            <?php if ($it['line_once'] > 0): ?><div class="gnl-ci-once">+ <?php echo gnl_money($it['line_once']); ?> (frais uniques)</div><?php endif; ?>
-            <div class="gnl-qty">
-              <a href="cart?action=qty&amp;id=<?php echo rawurlencode($it['id']); ?>&amp;q=<?php echo max(1, $it['qty'] - 1); ?>" aria-label="Diminuer">&minus;</a>
-              <span><?php echo (int) $it['qty']; ?></span>
-              <a href="cart?action=qty&amp;id=<?php echo rawurlencode($it['id']); ?>&amp;q=<?php echo $it['qty'] + 1; ?>" aria-label="Augmenter">+</a>
-            </div>
-            <a class="gnl-ci-remove" href="cart?action=remove&amp;id=<?php echo rawurlencode($it['id']); ?>">Retirer</a>
-          </div>
-        </div>
-      <?php endforeach; ?>
+<!-- Récapitulatif -->
+<aside aria-label="Récapitulatif" style="flex: 1 1 340px; min-width: 0; background: #ffffff; border: 1px solid #c5cbd8; border-radius: 3px; padding: 28px;">
+<h2 style="margin: 0 0 20px; font-size: 20px; line-height: 26px; font-weight: 800;">Récapitulatif</h2>
+<dl style="margin: 0 0 20px; display: flex; flex-direction: column; gap: 12px; font-size: 15px;">
+<div style="display: flex; justify-content: space-between; gap: 16px;"><dt style="color: #5e6684;">Abonnements</dt><dd style="margin: 0; white-space: nowrap;"><?php echo gnl_money($cartMonthly); ?> / mois</dd></div>
+<div style="display: flex; justify-content: space-between; gap: 16px;"><dt style="color: #5e6684;">Paiements uniques</dt><dd style="margin: 0; white-space: nowrap;"><?php echo gnl_money($cartOnce); ?></dd></div>
+</dl>
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding-top: 16px; border-top: 2px solid #141a33;">
+<span style="font-size: 16px; font-weight: 700;">À payer aujourd'hui</span>
+<span style="font-size: 28px; font-weight: 800; white-space: nowrap;"><?php echo gnl_money($cartMonthly + $cartOnce); ?></span>
+</div>
+<p style="margin: 6px 0 20px; font-size: 13px; line-height: 19px; color: #5e6684;">TVA non applicable, article 293 B du CGI. Facturation mensuelle par défaut : la périodicité se choisit à l'étape suivante.</p>
+<label style="display: flex; gap: 12px; align-items: flex-start; font-size: 14px; line-height: 21px; margin-bottom: 16px; cursor: pointer;">
+<input type="checkbox" id="gnl-cart-cgv" style="width: 20px; height: 20px; margin: 1px 0 0; flex: none; accent-color: #1f7a4a;">
+<span>J'ai lu et j'accepte les <a href="/cgv">conditions générales de vente</a>.</span>
+</label>
+<a class="gnl-pay" id="gnl-cart-pay" href="commande">Passer au paiement</a>
+<p id="gnl-cart-cgv-hint" role="alert" style="margin: 10px 0 0; font-size: 13px; color: #b42318;" hidden>Acceptez les CGV pour continuer.</p>
+<p style="margin: 16px 0 0; display: flex; gap: 8px; align-items: center; font-size: 13px; line-height: 19px; color: #5e6684;"><svg aria-hidden="true" width="14" height="16" viewBox="0 0 24 24" fill="none" stroke="#5e6684" stroke-width="2" style="flex: none;"><rect x="4" y="10" width="16" height="11" rx="1"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><?php echo $gnlUser ? 'Paiement sécurisé par Mollie.' : 'Paiement sécurisé par Mollie. Connexion ou création de compte à l\'étape suivante.'; ?></p>
+</aside>
 
-      <div class="gnl-btns">
-        <a class="gnl-btn ghost" href="/solutions">&larr; Continuer mes achats</a>
-        <a class="gnl-btn danger" href="cart?action=clear">Vider le panier</a>
-      </div>
-    </div>
-
-    <!-- Résumé -->
-    <aside>
-      <div class="gnl-summary">
-        <h3>Récapitulatif</h3>
-        <ul class="gnl-sum-lines">
-          <?php foreach ($items as $it): ?>
-            <li>
-              <span><?php echo gnl_e($it['product']['name']); ?><?php echo $it['qty'] > 1 ? ' &times;' . (int) $it['qty'] : ''; ?></span>
-              <span><?php echo gnl_money($it['line_monthly']); ?></span>
-            </li>
-          <?php endforeach; ?>
-        </ul>
-        <div class="gnl-sum-total"><span>Total <small>/ mois</small></span><span><?php echo gnl_money($cartMonthly); ?></span></div>
-        <?php if ($cartOnce > 0): ?>
-          <div class="gnl-sum-total" style="font-size:.98rem;font-weight:600"><span>Frais uniques</span><span><?php echo gnl_money($cartOnce); ?></span></div>
-        <?php endif; ?>
-
-        <?php $gnlUser = (isset($_SESSION['gnl_user']) && is_array($_SESSION['gnl_user'])) ? $_SESSION['gnl_user'] : null; ?>
-        <a class="gnl-cta" style="text-decoration:none" href="commande"><?php echo $gnlUser ? 'Passer la commande' : 'Se connecter et commander'; ?></a>
-        <a class="gnl-back" href="/solutions">&larr; Retour à la boutique</a>
-      </div>
-    </aside>
-
-  </div>
+</div>
+<script>
+(function(){
+  var cb = document.getElementById('gnl-cart-cgv'), pay = document.getElementById('gnl-cart-pay'), hint = document.getElementById('gnl-cart-cgv-hint');
+  if (!cb || !pay) return;
+  function sync(){ pay.classList.toggle('is-ready', cb.checked); pay.setAttribute('aria-disabled', cb.checked ? 'false' : 'true'); if (cb.checked && hint) hint.hidden = true; }
+  cb.addEventListener('change', sync);
+  pay.addEventListener('click', function(e){ if (!cb.checked){ e.preventDefault(); if (hint) hint.hidden = false; cb.focus(); } });
+  sync();
+})();
+</script>
 
 <?php endif; ?>
 
-</div>
 </main>
 <?php gnl_ui_close(); ?>

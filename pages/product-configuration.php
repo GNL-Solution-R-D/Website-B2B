@@ -191,7 +191,7 @@ function gnl_price($v) {
 function gnl_flag($code) {
     $code = strtoupper((string) $code);
     if ($code === 'FR') {
-        return '<img decoding="async" width="20" height="auto" src="./assets/img/icon-flag-edited.png" '
+        return '<img decoding="async" width="20" height="auto" src="/assets/img/icon-flag-edited.png" '
              . 'alt="Datacenter France" style="width:20px;height:auto;vertical-align:middle" />';
     }
     $emoji = array('DE' => "\xf0\x9f\x87\xa9\xf0\x9f\x87\xaa", 'SW' => "\xf0\x9f\x87\xa8\xf0\x9f\x87\xad", 'CH' => "\xf0\x9f\x87\xa8\xf0\x9f\x87\xad", 'BE' => "\xf0\x9f\x87\xa7\xf0\x9f\x87\xaa");
@@ -335,7 +335,7 @@ gnl_ui_open('Configuration de votre offre', 'solutions', array('main' => false))
     );
 ?>
 
-  <p class="gnl-breadcrumb"><a href="/">Accueil</a> &rsaquo; Configuration &rsaquo; <?php echo $name; ?></p>
+  <p class="gnl-breadcrumb"><a href="/">Accueil</a> &rsaquo; Configuration &rsaquo; <span translate="no"><?php echo $name; ?></span></p>
   <h1 class="gnl-config-title">Configurez votre offre</h1>
   <p class="gnl-config-sub">Ajustez les options puis validez votre commande.</p>
 

@@ -6,6 +6,7 @@
    en repli quand la session ne peut plus être ouverte).
    ===================================================================== */
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/i18n.php';
 if (!function_exists('gnl_ui_h')) {
     function gnl_ui_h($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }
 }
@@ -37,11 +38,15 @@ $gnl_menu = array(
       <?php foreach ($gnl_menu as $key => $it): ?>
         <a href="<?php echo $it[0]; ?>"<?php echo $gnl_active === $key ? ' aria-current="page"' : ''; ?>><?php echo gnl_ui_h($it[1]); ?></a>
       <?php endforeach; ?>
-      <a class="gnl-hd-cart" href="/cart"<?php echo $gnl_cart_n > 0 ? '' : ' hidden'; ?> aria-label="Panier : <?php echo $gnl_cart_n; ?> produit<?php echo $gnl_cart_n > 1 ? 's' : ''; ?>">
+      <a class="gnl-hd-cart" href="/cart"<?php echo (isset($gnl_active) && $gnl_active === 'cart') ? ' aria-current="page"' : ''; ?><?php echo $gnl_cart_n > 0 ? '' : ' hidden'; ?> aria-label="Panier : <?php echo $gnl_cart_n; ?> produit<?php echo $gnl_cart_n > 1 ? 's' : ''; ?>">
         <svg aria-hidden="true" width="36" height="30" viewBox="0 0 36 30" fill="none"><path d="M1.5 3.5H6.2L7.6 8" stroke="#ffffff" stroke-width="2.2" stroke-linecap="square"/><path d="M7.6 8H34L30.4 21H11.2Z" fill="#5cd98b"/><rect x="11.6" y="24.4" width="3.4" height="3.4" fill="#ffffff"/><rect x="25.6" y="24.4" width="3.4" height="3.4" fill="#ffffff"/></svg>
         <span class="gnl-hd-cart-n" aria-hidden="true"><?php echo $gnl_cart_n > 99 ? '99+' : $gnl_cart_n; ?></span>
       </a>
     </nav>
+    <button type="button" class="gnl-hd-loc" data-gnl-open="gnl-loc" aria-haspopup="dialog" aria-label="Pays et langue">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>
+      <span translate="no"><?php echo strtoupper(gnl_region() === 'eu' ? 'EU' : gnl_region()); ?> · <?php echo strtoupper(gnl_lang()); ?></span>
+    </button>
     <a class="gnl-hd-client" href="<?php echo gnl_ui_h(GNL_ESPACE_CLIENT_URL); ?>">Espace Client</a>
   </div>
 </header>

@@ -92,68 +92,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $csrf     = gnl_csrf_token();
 $retAttr  = gnl_e($return);
-$regUrl   = '/inscription?return=' . rawurlencode($return);
 $prefEmail = gnl_e(isset($_POST['username']) ? (string) $_POST['username'] : '');
+$toPay    = (strpos($return, '/commande') === 0);   // depuis le panier : « Se connecter et payer »
+$forgotOpen = (isset($_POST['action']) && $_POST['action'] === 'forgot');
 
-gnl_auth_head('Connexion', 'connexion');
+gnl_auth_head('Connexion', 'connexion', true);
+gnl_auth_dlg_open(gnl_auth_close_url($return));
 ?>
-    <h1>Connexion</h1>
-    <p class="sub">Accédez à votre espace pour finaliser votre commande.</p>
+  <div class="gnl-dlg-body">
+    <h1 class="gnl-sr">Connexion</h1>
+    <p class="gnl-dlg-intro">Un seul compte pour commander, payer et gérer tous vos services depuis l'Espace Client.</p>
+
+    <?php gnl_auth_tabs('connexion', $return); ?>
 
     <?php if ($error !== ''): ?>
-      <div class="gnl-msg err"><?php echo gnl_icon('err'); ?><span><?php echo gnl_e($error); ?></span></div>
+      <div class="gnl-msg err" role="alert"><?php echo gnl_icon('err'); ?><span><?php echo gnl_e($error); ?></span></div>
     <?php endif; ?>
     <?php if ($notice !== ''): ?>
-      <div class="gnl-msg ok"><?php echo gnl_icon('ok'); ?><span><?php echo gnl_e($notice); ?></span></div>
+      <div class="gnl-msg ok" role="status"><?php echo gnl_icon('ok'); ?><span><?php echo gnl_e($notice); ?></span></div>
     <?php endif; ?>
 
-    <form method="post" action="/connexion" data-gnl-auth autocomplete="on">
+    <form class="gnl-form login" method="post" action="/connexion" data-gnl-auth autocomplete="on">
       <input type="hidden" name="csrf" value="<?php echo gnl_e($csrf); ?>">
       <input type="hidden" name="action" value="login">
       <input type="hidden" name="return" value="<?php echo $retAttr; ?>">
 
-      <div class="gnl-field">
-        <label for="username">E-mail ou identifiant</label>
+      <label class="gnl-lbl" for="username">E-mail ou identifiant
         <input class="gnl-in" type="text" id="username" name="username" value="<?php echo $prefEmail; ?>"
                autocomplete="username" autocapitalize="none" spellcheck="false"
-               placeholder="vous@exemple.fr" required autofocus>
-      </div>
+               placeholder="vous@exemple.fr" required<?php echo $forgotOpen ? '' : ' autofocus'; ?>>
+      </label>
 
-      <div class="gnl-field">
-        <label for="password">Mot de passe</label>
-        <div class="gnl-pass">
-          <input class="gnl-in" type="password" id="password" name="password"
-                 autocomplete="current-password" placeholder="••••••••" required>
-          <button type="button" class="gnl-eye" aria-label="Afficher le mot de passe" tabindex="-1">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
-        </div>
-      </div>
+      <label class="gnl-lbl" for="password">Mot de passe
+        <input class="gnl-in" type="password" id="password" name="password" autocomplete="current-password" required>
+      </label>
 
       <div class="gnl-row-between">
-        <label class="gnl-check"><input type="checkbox" name="remember" value="1"> Se souvenir de moi</label>
-        <a class="gnl-link" href="#" id="gnl-forgot-toggle">Mot de passe oublié&nbsp;?</a>
+        <label class="gnl-check"><input type="checkbox" name="remember" value="1">Rester connecté</label>
+        <a class="gnl-link" href="#gnl-forgot-form" id="gnl-forgot-toggle" aria-controls="gnl-forgot-form" aria-expanded="<?php echo $forgotOpen ? 'true' : 'false'; ?>">Mot de passe oublié&nbsp;?</a>
       </div>
 
-      <button class="gnl-btn" type="submit">Se connecter</button>
+      <button class="gnl-btn" type="submit"><?php echo $toPay ? 'Se connecter et payer' : 'Se connecter'; ?></button>
     </form>
 
-    <!-- Bloc "mot de passe oublié" (affiché à la demande) -->
-    <form method="post" action="/connexion" data-gnl-auth id="gnl-forgot-form" style="display:none; margin-top:1.1rem">
+    <!-- Mot de passe oublié (affiché à la demande) -->
+    <form class="gnl-form" method="post" action="/connexion" data-gnl-auth id="gnl-forgot-form"<?php echo $forgotOpen ? '' : ' hidden'; ?>>
       <input type="hidden" name="csrf" value="<?php echo gnl_e($csrf); ?>">
       <input type="hidden" name="action" value="forgot">
       <input type="hidden" name="return" value="<?php echo $retAttr; ?>">
-      <div class="gnl-sep">Réinitialiser le mot de passe</div>
-      <div class="gnl-field">
-        <label for="forgot-email">Votre adresse e-mail</label>
-        <input class="gnl-in" type="email" id="forgot-email" name="email"
-               autocomplete="email" placeholder="vous@exemple.fr" required>
-        <p class="gnl-hint">Un lien de réinitialisation vous sera envoyé par e-mail.</p>
-      </div>
-      <button class="gnl-btn" type="submit" style="background:var(--gnl-teal)">Envoyer le lien</button>
+      <div class="gnl-sep" style="margin-bottom:0">Réinitialiser le mot de passe</div>
+      <label class="gnl-lbl" for="forgot-email">Votre adresse e-mail
+        <input class="gnl-in" type="email" id="forgot-email" name="email" autocomplete="email" placeholder="vous@exemple.fr" required>
+      </label>
+      <p class="gnl-hint gnl-under">Un lien de réinitialisation vous sera envoyé par e-mail.</p>
+      <button class="gnl-btn alt" type="submit">Envoyer le lien</button>
     </form>
-
-    <p class="gnl-alt">Pas encore de compte&nbsp;? <a href="<?php echo gnl_e($regUrl); ?>">Créer un compte</a></p>
 
     <script>
       (function(){
@@ -161,11 +154,15 @@ gnl_auth_head('Connexion', 'connexion');
         var f = document.getElementById('gnl-forgot-form');
         if(t && f){ t.addEventListener('click', function(e){
           e.preventDefault();
-          var open = f.style.display !== 'none';
-          f.style.display = open ? 'none' : 'block';
-          if(!open){ var i=f.querySelector('input[type=email]'); if(i) i.focus(); }
+          var open = !f.hidden;
+          f.hidden = open;
+          t.setAttribute('aria-expanded', open ? 'false' : 'true');
+          if(!open){ var i=f.querySelector('input[type=email]'); var u=document.getElementById('username');
+            if(i){ if(u && u.value && u.value.indexOf('@')>0 && !i.value) i.value=u.value; i.focus(); } }
         }); }
       })();
     </script>
+  </div>
 <?php
+gnl_auth_dlg_close();
 gnl_auth_foot();

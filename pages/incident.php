@@ -109,7 +109,7 @@ gnl_ui_open($type === 'abuse' ? 'Signaler un contenu illicite' : 'Signaler un in
 <p style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.2em; color: #1f7a4a;"><?php echo $isA ? 'NOTIFICATION REÇUE' : 'SIGNALEMENT REÇU'; ?></p>
 </div>
 <h1 style="margin: 0 0 12px; font-size: 36px; line-height: 42px; font-weight: 800;"><?php echo $isA ? 'Merci, votre notification est enregistrée.' : 'Merci, nous prenons le relais.'; ?></h1>
-<p style="margin: 0 0 28px; max-width: 640px; font-size: 17px; line-height: 27px; color: #5e6684;">Votre signalement porte la référence <strong style="color: #141a33;"><?php echo gnl_ui_h($ref); ?></strong>. <?php echo $isA ? 'Nous l\'examinons avec diligence ; conservez cette référence pour tout échange.' : 'Un technicien le prend en charge ; rappelez cette référence si vous nous contactez.'; ?></p>
+<p style="margin: 0 0 28px; max-width: 640px; font-size: 17px; line-height: 27px; color: #5e6684;"><?php echo str_replace('{ref}', '<strong style="color: #141a33;" translate="no">' . gnl_ui_h($ref) . '</strong>', gnl_ui_h(gnl_t($isA ? 'Votre signalement porte la référence {ref}. Nous l\'examinons avec diligence ; conservez cette référence pour tout échange.' : 'Votre signalement porte la référence {ref}. Un technicien le prend en charge ; rappelez cette référence si vous nous contactez.'))); ?></p>
 <ol style="margin: 0 0 32px; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1px; background: #c5cbd8; border: 1px solid #c5cbd8;">
 <li style="background: #ffffff; padding: 20px 22px;"><p style="margin: 0 0 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.2em; color: #1f7a4a;">1 · FAIT</p><p style="margin: 0; font-size: 15px; font-weight: 700;"><?php echo $isA ? 'Notification enregistrée' : 'Signalement reçu'; ?></p></li>
 <li style="background: #ffffff; padding: 20px 22px;"><p style="margin: 0 0 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.2em; color: #b54708;">2 · EN COURS</p><p style="margin: 0; font-size: 15px; font-weight: 700;"><?php echo $isA ? 'Examen du contenu signalé' : 'Prise en charge par un technicien'; ?></p></li>
@@ -257,7 +257,7 @@ gnl_ui_open($type === 'abuse' ? 'Signaler un contenu illicite' : 'Signaler un in
 </label>
 <label style="display: flex; flex-direction: column; gap: 8px; font-size: 14px; font-weight: 700;">Vous agissez <span style="font-weight: 400; color: #5e6684;">(facultatif)</span>
 <select name="qualite" style="min-height: 46px; padding: 0 14px; border: 1px solid #5e6684; border-radius: 3px; font: 400 15px var(--font-display); color: #141a33; background: #ffffff;">
-<?php foreach ($QUALITES as $q): ?><option<?php echo $v['qualite'] === $q ? ' selected' : ''; ?>><?php echo gnl_ui_h($q); ?></option><?php endforeach; ?>
+<?php foreach ($QUALITES as $q): ?><option value="<?php echo gnl_ui_h($q); ?>"<?php echo $v['qualite'] === $q ? ' selected' : ''; ?>><?php echo gnl_ui_h($q); ?></option><?php endforeach; ?>
 </select>
 </label>
 </div>

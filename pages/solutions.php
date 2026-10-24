@@ -27,11 +27,13 @@ foreach ($GNL_PRODUCTS as $p) {
     $priceNum = (float) str_replace(array(' ', ','), array('', '.'), (string) $p['prix']);
     $offers[] = array('p' => $p, 'cat' => $cat, 'kicker' => $kicker, 'pitch' => $pitch, 'features' => $features, 'price' => gnl_price($p['prix']));
     $jsProducts[$p['slug']] = array(
-        'slug' => $p['slug'], 'name' => $p['name'], 'kicker' => $kicker, 'price' => $priceNum,
+        'slug' => $p['slug'], 'name' => gnl_t($p['name']), 'kicker' => gnl_t($kicker), 'price' => $priceNum,
         'options' => gnl_cat_has_options($p),
         'stock' => ((string) $p['stock'] !== '' && (int) $p['stock'] <= 0 && strtolower((string) $p['stock_limite']) === 'true') ? 0 : null,
     );
 }
+foreach ($GNL_OPTIONS as &$gnl_o) { $gnl_o['name'] = gnl_t($gnl_o['name']); $gnl_o['desc'] = $gnl_o['desc'] !== '' ? gnl_t($gnl_o['desc']) : ''; }
+unset($gnl_o);
 $jsData = array('products' => $jsProducts, 'options' => $GNL_OPTIONS);
 
 $gnl_head = <<<'GNLHEAD'
