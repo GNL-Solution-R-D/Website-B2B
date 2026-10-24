@@ -1,6 +1,6 @@
 <?php
 /* =====================================================================
-   in.gnl-solution.fr — « Ce site n'est pas disponible dans votre pays »
+   in.gnl-solution.com — « Ce site n'est pas disponible dans votre pays »
    Servie par router.php (code HTTP 451) pour les visiteurs situés hors
    de l'UE, de la Suisse, du Canada et du Royaume-Uni.
    ===================================================================== */

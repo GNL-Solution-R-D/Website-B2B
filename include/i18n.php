@@ -8,7 +8,7 @@
      ca.gnl-solution.com          /en /fr      (Québec -> fr, ailleurs -> en)
      ch.gnl-solution.com          /fr /de /it  (selon le canton)
      uk.gnl-solution.com          /en
-     in.gnl-solution.fr           page « service non disponible dans votre pays »
+     in.gnl-solution.com           page « service non disponible dans votre pays »
      gnl-solution.com (racine)    aiguillage automatique vers la bonne région
 
    Le site est rédigé en français. Pour les autres langues, la page
@@ -36,7 +36,7 @@ function gnl_i18n_regions() {
         'ch' => array('host' => gnl_cfg('GNL_HOST_CH', 'ch.gnl-solution.com'), 'langs' => array('fr','de','it'), 'default' => 'de', 'name' => 'Suisse'),
         'ca' => array('host' => gnl_cfg('GNL_HOST_CA', 'ca.gnl-solution.com'), 'langs' => array('en','fr'), 'default' => 'en', 'name' => 'Canada'),
         'uk' => array('host' => gnl_cfg('GNL_HOST_UK', 'uk.gnl-solution.com'), 'langs' => array('en'), 'default' => 'en', 'name' => 'Royaume-Uni'),
-        'in' => array('host' => gnl_cfg('GNL_HOST_IN', 'in.gnl-solution.fr'),  'langs' => $eu, 'default' => 'en', 'name' => 'Autres pays'),
+        'in' => array('host' => gnl_cfg('GNL_HOST_IN', 'in.gnl-solution.com'),  'langs' => $eu, 'default' => 'en', 'name' => 'Autres pays'),
     );
 }
 

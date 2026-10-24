@@ -81,7 +81,7 @@ gnl_ui_open('', '', array('head' => $gnl_head));
 </article>
 
 <button type="button" class="order-card" data-gnl-open="gnl-order" aria-haspopup="dialog" style="min-height: 100%; padding: 32px; border: 2px dashed #5e6684; border-radius: 3px; background: transparent; color: #141a33; display: flex; flex-direction: column; gap: 16px; align-items: center; justify-content: center; font: 800 20px/26px var(--font-display); cursor: pointer;">
-<span aria-hidden="true" class="order-plus" style="width: 64px; height: 64px; border-radius: 50%; border: 2px solid #1f7a4a; display: flex; align-items: center; justify-content: center;"><span class="order-fill"></span><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1f7a4a" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg></span>
+<span aria-hidden="true" class="order-plus" style="width: 64px; height: 64px; display: flex; align-items: center; justify-content: center;"><span class="order-fill"></span><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1f7a4a" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg></span>
 <span class="order-text">Commander un service</span>
 <span class="order-text" style="font: 400 14px/20px var(--font-display); color: #5e6684;">Depuis votre Espace Client</span>
 </button>

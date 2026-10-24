@@ -1,13 +1,12 @@
 a{color:#5cd98b}a:hover{color:#ffffff}
 .order-card{position:relative;isolation:isolate;overflow:hidden;transition:border-color .3s ease,color .3s ease}
-.order-plus{position:relative;transition:border-color .3s ease}
+.order-plus{position:relative}
 .order-plus svg{position:relative;z-index:1;transition:transform .5s cubic-bezier(.2,.7,.2,1)}
 .order-plus svg path{transition:stroke .3s ease}
-.order-fill{position:absolute;left:-2px;top:-2px;width:64px;height:64px;border-radius:50%;background:#1f7a4a;transform:scale(0);transition:transform .6s cubic-bezier(.2,.7,.2,1);z-index:0;pointer-events:none}
+.order-fill{position:absolute;left:0;top:0;width:64px;height:64px;border-radius:50%;background:#1f7a4a;transform:scale(0);transition:transform .6s cubic-bezier(.2,.7,.2,1);z-index:0;pointer-events:none}
 .order-text{position:relative;z-index:1;transition:color .3s ease}
 .order-card:hover,.order-card:focus-visible{border-color:#1f7a4a !important;border-style:solid !important}
 .order-card:hover .order-fill,.order-card:focus-visible .order-fill{transform:scale(14)}
-.order-card:hover .order-plus,.order-card:focus-visible .order-plus{border-color:#ffffff !important}
 .order-card:hover .order-plus svg,.order-card:focus-visible .order-plus svg{transform:rotate(90deg)}
 .order-card:hover .order-plus svg path,.order-card:focus-visible .order-plus svg path{stroke:#ffffff}
 .order-card:hover .order-text,.order-card:focus-visible .order-text{color:#ffffff !important}

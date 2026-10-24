@@ -25,7 +25,7 @@ Toutes les URL sont préfixées par la langue : `https://eu.gnl-solution.com/de/
 ## Installation
 
 1. Déposer le contenu du dossier à la racine du site (PHP 7.4+ ; 8.x recommandé ; extensions cURL et **intl** pour les dates traduites).
-   Le même dossier sert tous les domaines (`gnl-solution.com`, `eu.`, `ch.`, `ca.`, `uk.gnl-solution.com`, `in.gnl-solution.fr`).
+   Le même dossier sert tous les domaines (`gnl-solution.com`, `eu.`, `ch.`, `ca.`, `uk.gnl-solution.com`, `in.gnl-solution.com`).
 2. **Apache** : le fichier `.htaccess` envoie tout ce qui n'est pas un fichier réel vers `router.php` (`mod_rewrite` requis)
    et bloque `include/`, `lang/`, `geoip/` et `pages/`.
    **Debian l'ignore par défaut** (`AllowOverride None` sur `/var/www`) : les adresses `/fr/`, `/it/…` répondent alors
@@ -48,7 +48,7 @@ Toutes les URL sont préfixées par la langue : `https://eu.gnl-solution.com/de/
    la région étant choisie par géolocalisation, cookie ou `?gnl_region=ch`. Par défaut chaque région a son sous-domaine.
    **Nginx** : équivalent à ajouter dans le bloc `server` (un seul bloc avec tous les `server_name`) :
    ```nginx
-   server_name gnl-solution.com eu.gnl-solution.com ch.gnl-solution.com ca.gnl-solution.com uk.gnl-solution.com in.gnl-solution.fr;
+   server_name gnl-solution.com eu.gnl-solution.com ch.gnl-solution.com ca.gnl-solution.com uk.gnl-solution.com in.gnl-solution.com;
    location ~ ^/(include|lang|geoip|pages)/ { deny all; }
    location ~ ^/(dev-router|index)\.php$ { deny all; }
    location / { try_files $uri /router.php$is_args$args; }
@@ -92,7 +92,7 @@ Toutes les URL sont préfixées par la langue : `https://eu.gnl-solution.com/de/
 | Suisse | `ch.gnl-solution.com` | `/fr` (GE, VD, NE, JU), `/it` (TI), `/de` (autres cantons) ; cantons bilingues FR, VS, BE, GR selon la langue du navigateur |
 | Canada | `ca.gnl-solution.com` | Québec → `/fr`, autres provinces → `/en`, Nouveau-Brunswick selon le navigateur |
 | Royaume-Uni (+ Jersey, Guernesey, île de Man) | `uk.gnl-solution.com` | `/en` |
-| Reste du monde | `in.gnl-solution.fr` | page « Ce site n'est pas disponible dans votre pays » (HTTP 451), dans la langue du navigateur |
+| Reste du monde | `in.gnl-solution.com` | page « Ce site n'est pas disponible dans votre pays » (HTTP 451), dans la langue du navigateur |
 
 - **Première visite** (`gnl-solution.com` ou une URL sans langue) : redirection automatique d'après le pays et la région de l'adresse IP.
 - **Choix mémorisé** : le bouton « EU · FR » de l'en-tête (et le lien du pied de page) ouvre la fenêtre « Pays et langue ».
@@ -103,8 +103,8 @@ Toutes les URL sont préfixées par la langue : `https://eu.gnl-solution.com/de/
 
 ### DNS et serveur
 
-- Créer les enregistrements DNS `eu`, `ch`, `ca`, `uk` (sur `gnl-solution.com`) et `in` (sur `gnl-solution.fr`) vers le serveur, plus la racine `gnl-solution.com`.
-- Un certificat HTTPS couvrant tous ces noms (Let's Encrypt : `-d gnl-solution.com -d eu.gnl-solution.com -d ch.… -d ca.… -d uk.… -d in.gnl-solution.fr`).
+- Créer les enregistrements DNS `eu`, `ch`, `ca`, `uk` (sur `gnl-solution.com`) et `in` (sur `gnl-solution.com`) vers le serveur, plus la racine `gnl-solution.com`.
+- Un certificat HTTPS couvrant tous ces noms (Let's Encrypt : `-d gnl-solution.com -d eu.gnl-solution.com -d ch.… -d ca.… -d uk.… -d in.gnl-solution.com`).
 - Derrière un proxy ou un CDN, mettre `GNL_TRUST_PROXY=1` pour lire l'IP réelle dans `X-Forwarded-For` / `CF-Connecting-IP`.
 - **Keycloak** : déclarer dans le client les URI de redirection de chaque hôte (`https://eu.gnl-solution.com/*`, `https://ch.…/*`, etc.),
   et définir `KEYCLOAK_REDIRECT_URI` par vhost (sinon le retour de connexion se fait sur `beta.gnl-solution.fr`).
@@ -117,7 +117,7 @@ Toutes les URL sont préfixées par la langue : `https://eu.gnl-solution.com/de/
 | `GNL_SINGLE_HOST` | `0` | `0` = un sous-domaine par région (eu./ch./ca./uk.) ; `1` = tout sur un seul domaine (dépannage) |
 | `GNL_ROOT_HOST` | `gnl-solution.com` | Domaine racine qui aiguille les visiteurs |
 | `GNL_HOST_EU` / `_CH` / `_CA` / `_UK` | `eu.` / `ch.` / `ca.` / `uk.gnl-solution.com` | Hôte de chaque région |
-| `GNL_HOST_IN` | `in.gnl-solution.fr` | Hôte de la page « non disponible » (attention : en `.fr`, comme demandé ; le cookie de choix n'y est pas partagé) |
+| `GNL_HOST_IN` | `in.gnl-solution.com` | Hôte de la page « non disponible » |
 | `GNL_COOKIE_DOMAIN` | `.gnl-solution.com` | Domaine du cookie `gnl_loc` |
 | `GNL_GEOIP_DB` | `geoip/GeoLite2-City.mmdb` | Base MaxMind (City recommandée : la version Country ne donne ni cantons ni provinces) |
 | `GNL_GEO_FALLBACK` | `eu` | Région utilisée si l'IP est inconnue (réseau local, base absente) |
@@ -184,7 +184,7 @@ Pour tester l'aiguillage, simuler l'hôte racine et un pays :
 
 ```bash
 curl -sI -A Mozilla -H "Host: gnl-solution.com" "http://localhost:8000/?geo=CH-TI"   # → https://ch.gnl-solution.com/it/
-curl -sI -A Mozilla -H "Host: gnl-solution.com" "http://localhost:8000/?geo=US"      # → https://in.gnl-solution.fr/en/
+curl -sI -A Mozilla -H "Host: gnl-solution.com" "http://localhost:8000/?geo=US"      # → https://in.gnl-solution.com/en/
 ```
 
 Sans accès au webhook n8n, le catalogue se rabat sur `product.csv` / `pages/product_option.csv` / `partner.csv` s'ils existent (mêmes colonnes que la datatable n8n).
