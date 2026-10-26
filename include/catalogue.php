@@ -9,7 +9,7 @@
    ---------------------------------------------------------------------
    La liste des produits provient de la datatable n8n "product",
    interrogée via le webhook POST :
-        https://api.gnl-solution.fr/webhook/boutique
+        GNL_FORMS_WEBHOOK_URL (include/config.php)
    En cas d'indisponibilité du webhook, on retombe automatiquement sur
    le fichier local product.csv (même structure de colonnes).
 
@@ -22,9 +22,7 @@
    categorie_id: 1=PHP  2=WordPress  3=DEV  4=Étudiant  5=Cloud/À venir
    ===================================================================== */
 
-if (!defined('GNL_WEBHOOK_URL')) {
-    define('GNL_WEBHOOK_URL', 'https://api.gnl-solution.fr/webhook/boutique');
-}
+require_once __DIR__ . '/config.php';   // GNL_FORMS_WEBHOOK_URL (webhook n8n, surchargeable par variable d'environnement)
 if (!defined('GNL_CSV_FALLBACK')) {
     define('GNL_CSV_FALLBACK', is_readable(dirname(__DIR__) . '/product.csv') ? dirname(__DIR__) . '/product.csv' : dirname(__DIR__) . '/pages/product.csv');
 }
@@ -34,7 +32,7 @@ if (!defined('GNL_CACHE_TTL')) {
 
 /* --- Partenaires ("Nous avons contribué à leurs projets") -----------
    Source : datatable n8n "partner" via le MÊME webhook que la boutique
-        https://api.gnl-solution.fr/webhook/boutique   (action = partner.list)
+        GNL_FORMS_WEBHOOK_URL   (action = partner.list)
    Repli automatique sur partner.csv (mêmes colonnes) si indisponible.
    Colonnes attendues : id, comercial_name, url, banner_logo_file,
                         bg_color (fond du bandeau, ex. #000000), createdAt, updatedAt
@@ -48,7 +46,7 @@ function gnl_fetch_from_webhook() {
     $payload = json_encode(array('source' => 'site', 'action' => 'product.list'));
 
     if (function_exists('curl_init')) {
-        $ch = curl_init(GNL_WEBHOOK_URL);
+        $ch = curl_init(GNL_FORMS_WEBHOOK_URL);
         curl_setopt_array($ch, array(
             CURLOPT_POST           => true,
             CURLOPT_POSTFIELDS     => $payload,
@@ -74,7 +72,7 @@ function gnl_fetch_from_webhook() {
         'timeout'       => 6,
         'ignore_errors' => true,
     )));
-    $body = @file_get_contents(GNL_WEBHOOK_URL, false, $ctx);
+    $body = @file_get_contents(GNL_FORMS_WEBHOOK_URL, false, $ctx);
     if ($body === false) return null;
     return gnl_decode_rows($body);
 }
@@ -230,7 +228,7 @@ function gnl_fetch_partners_from_webhook() {
     $payload = json_encode(array('source' => 'site', 'action' => 'partner.list'));
 
     if (function_exists('curl_init')) {
-        $ch = curl_init(GNL_WEBHOOK_URL);
+        $ch = curl_init(GNL_FORMS_WEBHOOK_URL);
         curl_setopt_array($ch, array(
             CURLOPT_POST           => true,
             CURLOPT_POSTFIELDS     => $payload,
@@ -256,7 +254,7 @@ function gnl_fetch_partners_from_webhook() {
         'timeout'       => 6,
         'ignore_errors' => true,
     )));
-    $body = @file_get_contents(GNL_WEBHOOK_URL, false, $ctx);
+    $body = @file_get_contents(GNL_FORMS_WEBHOOK_URL, false, $ctx);
     if ($body === false) return null;
     return gnl_decode_partner_rows($body);
 }
@@ -431,7 +429,7 @@ function gnl_cat_load_options() {
         $payload = json_encode(array('source' => 'site', 'action' => 'option.list'));
         $body = false;
         if (function_exists('curl_init')) {
-            $ch = curl_init(GNL_WEBHOOK_URL);
+            $ch = curl_init(GNL_FORMS_WEBHOOK_URL);
             curl_setopt_array($ch, array(
                 CURLOPT_POST => true, CURLOPT_POSTFIELDS => $payload,
                 CURLOPT_HTTPHEADER => array('Content-Type: application/json', 'Accept: application/json'),

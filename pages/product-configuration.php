@@ -24,7 +24,7 @@
    ===================================================================== */
 
 /* ---------- Config (identique à index.php) -------------------------- */
-if (!defined('GNL_WEBHOOK_URL'))  define('GNL_WEBHOOK_URL', 'https://api.gnl-solution.fr/webhook/boutique');
+require_once __DIR__ . '/../include/config.php';   // GNL_FORMS_WEBHOOK_URL
 if (!defined('GNL_CSV_FALLBACK')) define('GNL_CSV_FALLBACK', __DIR__ . '/product.csv');
 if (!defined('GNL_OPT_CSV'))      define('GNL_OPT_CSV', __DIR__ . '/product_option.csv');
 if (!defined('GNL_CACHE_TTL'))    define('GNL_CACHE_TTL', 300);
@@ -44,7 +44,7 @@ if (!defined('OVH_SUBSIDIARY'))   define('OVH_SUBSIDIARY', 'FR');
 function gnl_fetch_from_webhook($action) {
     $payload = json_encode(array('source' => 'product-configuration', 'action' => $action));
     if (function_exists('curl_init')) {
-        $ch = curl_init(GNL_WEBHOOK_URL);
+        $ch = curl_init(GNL_FORMS_WEBHOOK_URL);
         curl_setopt_array($ch, array(
             CURLOPT_POST => true, CURLOPT_POSTFIELDS => $payload,
             CURLOPT_HTTPHEADER => array('Content-Type: application/json', 'Accept: application/json'),
@@ -61,7 +61,7 @@ function gnl_fetch_from_webhook($action) {
         'header' => "Content-Type: application/json\r\nAccept: application/json\r\n",
         'content' => $payload, 'timeout' => 6, 'ignore_errors' => true,
     )));
-    $body = @file_get_contents(GNL_WEBHOOK_URL, false, $ctx);
+    $body = @file_get_contents(GNL_FORMS_WEBHOOK_URL, false, $ctx);
     if ($body === false) return null;
     return gnl_decode_rows($body);
 }

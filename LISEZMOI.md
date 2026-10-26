@@ -62,7 +62,7 @@ Toutes les URL sont préfixées par la langue : `https://eu.gnl-solution.com/de/
 | Variable | Défaut | Rôle |
 |---|---|---|
 | `GNL_ESPACE_CLIENT_URL` | `https://espace-client.gnl-solution.fr/` | Bouton « Espace Client » |
-| `GNL_FORMS_WEBHOOK_URL` | `https://api.gnl-solution.fr/webhook/boutique` | Webhook n8n des formulaires |
+| `GNL_FORMS_WEBHOOK_URL` | `https://api.gnl-solution.fr/webhook/boutique` | Webhook n8n unique : produits, options, partenaires, panier, commandes et formulaires |
 | `GNL_FORMS_MAIL_TO` | `contact@gnl-solution.com` | Repli e-mail si le webhook ne répond pas |
 | `GNL_MATOMO_URL` | *(vide = pas de traceur)* | URL de votre Matomo auto-hébergé |
 | `GNL_MATOMO_SITE_ID` | `1` | Identifiant du site dans Matomo |

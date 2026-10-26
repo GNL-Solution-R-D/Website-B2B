@@ -21,7 +21,7 @@
    product_option.csv) : les montants du navigateur ne sont jamais fiables.
    ===================================================================== */
 
-if (!defined('GNL_WEBHOOK_URL'))  define('GNL_WEBHOOK_URL', 'https://api.gnl-solution.fr/webhook/boutique');
+require_once __DIR__ . '/../include/config.php';   // GNL_FORMS_WEBHOOK_URL
 if (!defined('GNL_CSV_FALLBACK')) define('GNL_CSV_FALLBACK', __DIR__ . '/product.csv');
 if (!defined('GNL_OPT_CSV'))      define('GNL_OPT_CSV', __DIR__ . '/product_option.csv');
 if (!defined('GNL_CACHE_TTL'))    define('GNL_CACHE_TTL', 300);
@@ -38,7 +38,7 @@ if (!defined('GNL_BASE_URL'))   define('GNL_BASE_URL',   getenv('GNL_BASE_URL') 
 function gnl_fetch_from_webhook($action) {
     $payload = json_encode(array('source' => 'commande', 'action' => $action));
     if (function_exists('curl_init')) {
-        $ch = curl_init(GNL_WEBHOOK_URL);
+        $ch = curl_init(GNL_FORMS_WEBHOOK_URL);
         curl_setopt_array($ch, array(
             CURLOPT_POST => true, CURLOPT_POSTFIELDS => $payload,
             CURLOPT_HTTPHEADER => array('Content-Type: application/json', 'Accept: application/json'),
@@ -54,7 +54,7 @@ function gnl_fetch_from_webhook($action) {
         'method' => 'POST', 'header' => "Content-Type: application/json\r\nAccept: application/json\r\n",
         'content' => $payload, 'timeout' => 6, 'ignore_errors' => true,
     )));
-    $body = @file_get_contents(GNL_WEBHOOK_URL, false, $ctx);
+    $body = @file_get_contents(GNL_FORMS_WEBHOOK_URL, false, $ctx);
     if ($body === false) return null;
     return gnl_decode_rows($body);
 }
@@ -190,7 +190,7 @@ function gnl_fr_date($ts) {
 function gnl_send_order($payload) {
     $json = json_encode($payload, JSON_UNESCAPED_UNICODE);
     if (function_exists('curl_init')) {
-        $ch = curl_init(GNL_WEBHOOK_URL);
+        $ch = curl_init(GNL_FORMS_WEBHOOK_URL);
         curl_setopt_array($ch, array(
             CURLOPT_POST => true, CURLOPT_POSTFIELDS => $json,
             CURLOPT_HTTPHEADER => array('Content-Type: application/json', 'Accept: application/json'),
@@ -205,7 +205,7 @@ function gnl_send_order($payload) {
         'method' => 'POST', 'header' => "Content-Type: application/json\r\nAccept: application/json\r\n",
         'content' => $json, 'timeout' => 8, 'ignore_errors' => true,
     )));
-    return @file_get_contents(GNL_WEBHOOK_URL, false, $ctx) !== false;
+    return @file_get_contents(GNL_FORMS_WEBHOOK_URL, false, $ctx) !== false;
 }
 
 /* =================== Persistance légère des commandes ===============
