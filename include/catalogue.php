@@ -9,7 +9,7 @@
    ---------------------------------------------------------------------
    La liste des produits provient de la datatable n8n "product",
    interrogée via le webhook POST :
-        https://n8n.gnl-cloud.us/webhook/boutique
+        https://api.gnl-solution.fr/webhook/boutique
    En cas d'indisponibilité du webhook, on retombe automatiquement sur
    le fichier local product.csv (même structure de colonnes).
 
@@ -23,7 +23,7 @@
    ===================================================================== */
 
 if (!defined('GNL_WEBHOOK_URL')) {
-    define('GNL_WEBHOOK_URL', 'https://n8n.gnl-cloud.us/webhook/boutique');
+    define('GNL_WEBHOOK_URL', 'https://api.gnl-solution.fr/webhook/boutique');
 }
 if (!defined('GNL_CSV_FALLBACK')) {
     define('GNL_CSV_FALLBACK', is_readable(dirname(__DIR__) . '/product.csv') ? dirname(__DIR__) . '/product.csv' : dirname(__DIR__) . '/pages/product.csv');
@@ -34,10 +34,10 @@ if (!defined('GNL_CACHE_TTL')) {
 
 /* --- Partenaires ("Nous avons contribué à leurs projets") -----------
    Source : datatable n8n "partner" via le MÊME webhook que la boutique
-        https://n8n.gnl-cloud.us/webhook/boutique   (action = partner.list)
+        https://api.gnl-solution.fr/webhook/boutique   (action = partner.list)
    Repli automatique sur partner.csv (mêmes colonnes) si indisponible.
    Colonnes attendues : id, comercial_name, url, banner_logo_file,
-                        createdAt, updatedAt
+                        bg_color (fond du bandeau, ex. #000000), createdAt, updatedAt
    ------------------------------------------------------------------ */
 if (!defined('GNL_PARTNER_CSV_FALLBACK')) {
     define('GNL_PARTNER_CSV_FALLBACK', dirname(__DIR__) . '/partner.csv');
@@ -138,7 +138,22 @@ function gnl_load_products() {
     } else {
         $rows = gnl_fetch_from_csv();
     }
-    return gnl_normalize($rows);
+    return gnl_cat_showable(gnl_normalize($rows));
+}
+
+/* --- Produits masqués de la boutique ----------------------------------
+   store_showable = false (ou 0, "false", "non"…) dans la datatable n8n :
+   le produit n'apparaît ni dans la liste des offres ni dans les prix « dès ».
+   Il reste commandable s'il est déjà au panier (cart.php, commande.php et
+   product-configuration.php ne filtrent pas). Colonne absente ou vide = affiché. */
+function gnl_cat_is_showable($v) {
+    if ($v === null || $v === '') return true;
+    if (is_bool($v)) return $v;
+    if (is_int($v) || is_float($v)) return $v != 0;
+    return !in_array(strtolower(trim((string) $v)), array('false', '0', 'no', 'non', 'off', 'n'), true);
+}
+function gnl_cat_showable($products) {
+    return array_values(array_filter($products, function ($p) { return !empty($p['showable']); }));
 }
 
 /* --- Normalisation d'une ligne (clés stables) ----------------------- */
@@ -164,6 +179,7 @@ function gnl_normalize($rows) {
             'stock_limite' => $g('stock_limite'),
             'option'       => $g('option'),
             'prix'         => $g('prix_mensuel'),
+            'showable'     => gnl_cat_is_showable(array_key_exists('store_showable', $r) ? $r['store_showable'] : null),
         );
     }
     return $out;
@@ -308,6 +324,17 @@ function gnl_load_partners() {
 }
 
 /* --- Normalisation d'une ligne partenaire (clés stables) ---------- */
+/* Couleur de fond du bandeau (colonne n8n bg_color) : seules les couleurs CSS valides
+   sont acceptées (#fff, #ffffff, #ffffffcc, rgb()/rgba()/hsl()/hsla(), nom de couleur), sinon blanc. */
+function gnl_cat_css_color($v) {
+    $v = trim((string) $v);
+    if ($v !== '' && preg_match('/^[0-9a-f]{3}([0-9a-f]{3}([0-9a-f]{2})?)?$/i', $v)) $v = '#' . $v;   // « ffffff » sans #
+    if (preg_match('/^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i', $v)) return strtolower($v);
+    if (preg_match('/^(rgb|rgba|hsl|hsla)\(\s*[0-9.%,\s\/deg-]+\)$/i', $v)) return $v;
+    if (preg_match('/^[a-z]{3,20}$/i', $v)) return strtolower($v);
+    return '#ffffff';
+}
+
 function gnl_normalize_partners($rows) {
     $out = array();
     if (!is_array($rows)) return $out;
@@ -322,6 +349,7 @@ function gnl_normalize_partners($rows) {
             'name' => $name,
             'url'  => trim((string) $g('url')),
             'logo' => $logo,
+            'bg'   => gnl_cat_css_color($g('bg_color')),
         );
     }
     return $out;
@@ -379,8 +407,9 @@ function gnl_cat_render_partners($partners) {
         if (isset($mime[$ext]) && is_file($file) && filesize($file) <= 6144) {
             $src = 'data:' . $mime[$ext] . ';base64,' . base64_encode((string) file_get_contents($file));
         }
-        $img  = '<img decoding="async" src="' . gnl_e($src) . '" alt="' . $name . '" style="max-width:100%;max-height:64px;width:auto;object-fit:contain">';
-        $box  = 'height:88px;border:1px solid #e3e6ee;border-radius:3px;display:flex;align-items:center;justify-content:center;padding:12px;background:#fff';
+        $img  = '<img decoding="async" src="' . gnl_e($src) . '" alt="' . $name . '" style="max-width:100%;max-height:100%;width:auto;object-fit:contain">';
+        $bg   = isset($p['bg']) && $p['bg'] !== '' ? $p['bg'] : '#ffffff';
+        $box  = 'height:88px;border:1px solid #e3e6ee;border-radius:3px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:' . $bg;
         if (trim((string) $p['url']) !== '') {
             echo '<a href="' . gnl_e($p['url']) . '" title="' . $name . '" target="_blank" rel="noopener noreferrer" style="' . $box . '">' . $img . '</a>' . "\n";
         } else {
