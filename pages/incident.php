@@ -36,6 +36,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Votre session a expiré. Merci de renvoyer le formulaire.';
     } elseif ($type === 'tech' && ($v['cible'] === '' || $v['depuis'] === '' || $v['description'] === '' || !$emailOk)) {
         $error = 'Merci de compléter les champs obligatoires (service concerné, date, description et e-mail valide).';
+    } elseif ($type === 'tech' && (($dt = strtotime($v['depuis'])) === false || $dt > time() + 86400)) {
+        /* Date future refusée (le champ est saisi à l'heure locale du visiteur : marge d'un jour pour les fuseaux). */
+        $error = 'La date indiquée est dans le futur. Indiquez depuis quand le problème se produit.';
     } elseif ($type === 'abuse' && ($v['urls'] === '' || $v['motif'] === '' || empty($_POST['bonne_foi']) || (!$anon && ($v['nom'] === '' || !$emailOk)) || ($v['email'] !== '' && !$emailOk))) {
         $error = 'Merci de compléter les champs obligatoires : adresse du contenu, motif, vos coordonnées et la déclaration de bonne foi.';
     } elseif (!gnl_form_rate_ok()) {
@@ -151,7 +154,7 @@ gnl_ui_open($type === 'abuse' ? 'Signaler un contenu illicite' : 'Signaler un in
 <input type="text" name="cible" required maxlength="200" placeholder="mon-asso.fr, VM labo-12…" value="<?php echo gnl_ui_h($v['cible']); ?>" style="min-height: 46px; padding: 0 14px; border: 1px solid #5e6684; border-radius: 3px; font: 400 15px var(--font-display); color: #141a33;">
 </label>
 <label style="display: flex; flex-direction: column; gap: 8px; font-size: 14px; font-weight: 700;">Depuis quand ? *
-<input type="datetime-local" name="depuis" required value="<?php echo gnl_ui_h($v['depuis']); ?>" style="min-height: 46px; padding: 0 14px; border: 1px solid #5e6684; border-radius: 3px; font: 400 15px var(--font-display); color: #141a33;">
+<input type="datetime-local" name="depuis" required max="<?php echo date('Y-m-d'); ?>T23:59" value="<?php echo gnl_ui_h($v['depuis']); ?>" style="min-height: 46px; padding: 0 14px; border: 1px solid #5e6684; border-radius: 3px; font: 400 15px var(--font-display); color: #141a33;">
 </label>
 </div>
 <label style="display: flex; flex-direction: column; gap: 8px; font-size: 14px; font-weight: 700;">Description *

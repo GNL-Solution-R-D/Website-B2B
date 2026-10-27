@@ -8,3 +8,15 @@
   }
   sel.addEventListener('change', sync); sync();
 })();
+
+/* « Depuis quand ? » : pas de date future (heure locale du visiteur, mise à jour à chaque ouverture). */
+(function(){
+  var d = document.querySelector('input[name="depuis"]'); if (!d) return;
+  function setMax(){
+    var n = new Date(); n.setSeconds(0, 0);
+    d.max = new Date(n.getTime() - n.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  }
+  setMax();
+  d.addEventListener('focus', setMax);
+  d.addEventListener('click', setMax);
+})();
